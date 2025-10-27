@@ -159,7 +159,7 @@ export default function Games() {
 
       {uploading && (
         <div className="mb-6 p-4 bg-blue-100 text-blue-700 rounded">
-          Uploading and processing CSV with AI... This may take a moment.
+          Uploading and processing CSV... This may take a moment.
         </div>
       )}
 
