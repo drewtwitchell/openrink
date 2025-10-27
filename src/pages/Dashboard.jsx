@@ -46,23 +46,23 @@ export default function Dashboard() {
       </div>
 
       <div className="grid md:grid-cols-3 gap-6 mb-8">
-        <div className="card">
+        <Link to="/leagues" className="card hover:shadow-lg transition-shadow cursor-pointer">
           <div className="text-3xl mb-2">🏒</div>
           <div className="text-3xl font-bold text-ice-600">{stats.leagues}</div>
           <div className="text-gray-600">Active Leagues</div>
-        </div>
+        </Link>
 
-        <div className="card">
+        <Link to="/teams" className="card hover:shadow-lg transition-shadow cursor-pointer">
           <div className="text-3xl mb-2">👥</div>
           <div className="text-3xl font-bold text-ice-600">{stats.teams}</div>
           <div className="text-gray-600">Total Teams</div>
-        </div>
+        </Link>
 
-        <div className="card">
+        <Link to="/games" className="card hover:shadow-lg transition-shadow cursor-pointer">
           <div className="text-3xl mb-2">📅</div>
           <div className="text-3xl font-bold text-ice-600">{stats.upcomingGames}</div>
           <div className="text-gray-600">Upcoming Games</div>
-        </div>
+        </Link>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
