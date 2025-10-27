@@ -1,6 +1,6 @@
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { supabase } from './lib/supabase'
+import { auth } from './lib/api'
 
 // Pages
 import Home from './pages/Home'
@@ -12,23 +12,20 @@ import Games from './pages/Games'
 import Standings from './pages/Standings'
 
 function App() {
-  const [session, setSession] = useState(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setLoading(false)
-    })
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-    })
-
-    return () => subscription.unsubscribe()
+    // Check if user is authenticated
+    setIsAuthenticated(auth.isAuthenticated())
+    setLoading(false)
   }, [])
+
+  const handleSignOut = () => {
+    auth.signOut()
+    setIsAuthenticated(false)
+    window.location.href = '/'
+  }
 
   if (loading) {
     return (
@@ -49,7 +46,7 @@ function App() {
                 <Link to="/" className="text-2xl font-bold text-ice-600">
                   🏒 OpenRink
                 </Link>
-                {session && (
+                {isAuthenticated && (
                   <>
                     <Link to="/dashboard" className="text-gray-700 hover:text-ice-600">
                       Dashboard
@@ -70,9 +67,9 @@ function App() {
                 )}
               </div>
               <div className="flex items-center">
-                {session ? (
+                {isAuthenticated ? (
                   <button
-                    onClick={() => supabase.auth.signOut()}
+                    onClick={handleSignOut}
                     className="btn-secondary"
                   >
                     Sign Out
@@ -91,12 +88,12 @@ function App() {
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/dashboard" element={session ? <Dashboard /> : <Login />} />
-            <Route path="/leagues" element={session ? <Leagues /> : <Login />} />
-            <Route path="/teams" element={session ? <Teams /> : <Login />} />
-            <Route path="/games" element={session ? <Games /> : <Login />} />
-            <Route path="/standings" element={session ? <Standings /> : <Login />} />
+            <Route path="/login" element={<Login onLogin={() => setIsAuthenticated(true)} />} />
+            <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
+            <Route path="/leagues" element={isAuthenticated ? <Leagues /> : <Navigate to="/login" />} />
+            <Route path="/teams" element={isAuthenticated ? <Teams /> : <Navigate to="/login" />} />
+            <Route path="/games" element={isAuthenticated ? <Games /> : <Navigate to="/login" />} />
+            <Route path="/standings" element={isAuthenticated ? <Standings /> : <Navigate to="/login" />} />
           </Routes>
         </main>
       </div>

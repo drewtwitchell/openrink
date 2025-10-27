@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
+import { teams, leagues as leaguesApi } from '../lib/api'
 
 export default function Teams() {
-  const [teams, setTeams] = useState([])
-  const [leagues, setLeagues] = useState([])
+  const [teamsList, setTeamsList] = useState([])
+  const [leaguesList, setLeaguesList] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [selectedTeam, setSelectedTeam] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     league_id: '',
@@ -19,16 +18,12 @@ export default function Teams() {
 
   const fetchData = async () => {
     try {
-      const [teamsRes, leaguesRes] = await Promise.all([
-        supabase.from('teams').select('*, leagues(name)').order('name'),
-        supabase.from('leagues').select('id, name').order('name'),
+      const [teamsData, leaguesData] = await Promise.all([
+        teams.getAll(),
+        leaguesApi.getAll(),
       ])
-
-      if (teamsRes.error) throw teamsRes.error
-      if (leaguesRes.error) throw leaguesRes.error
-
-      setTeams(teamsRes.data || [])
-      setLeagues(leaguesRes.data || [])
+      setTeamsList(teamsData)
+      setLeaguesList(leaguesData)
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
@@ -39,12 +34,7 @@ export default function Teams() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      const { error } = await supabase
-        .from('teams')
-        .insert([formData])
-
-      if (error) throw error
-
+      await teams.create(formData)
       setFormData({ name: '', league_id: '', color: '#0284c7' })
       setShowForm(false)
       fetchData()
@@ -94,7 +84,7 @@ export default function Teams() {
                 required
               >
                 <option value="">Select a league</option>
-                {leagues.map((league) => (
+                {leaguesList.map((league) => (
                   <option key={league.id} value={league.id}>
                     {league.name}
                   </option>
@@ -119,10 +109,10 @@ export default function Teams() {
         </div>
       )}
 
-      {teams.length === 0 ? (
+      {teamsList.length === 0 ? (
         <div className="card text-center py-12">
           <p className="text-gray-500 mb-4">No teams yet</p>
-          {leagues.length > 0 ? (
+          {leaguesList.length > 0 ? (
             <button onClick={() => setShowForm(true)} className="btn-primary">
               Create Your First Team
             </button>
@@ -132,11 +122,10 @@ export default function Teams() {
         </div>
       ) : (
         <div className="grid md:grid-cols-3 gap-6">
-          {teams.map((team) => (
+          {teamsList.map((team) => (
             <div
               key={team.id}
-              className="card hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => setSelectedTeam(team)}
+              className="card hover:shadow-lg transition-shadow"
             >
               <div className="flex items-center mb-3">
                 <div
@@ -145,9 +134,9 @@ export default function Teams() {
                 />
                 <h3 className="text-xl font-semibold">{team.name}</h3>
               </div>
-              {team.leagues && (
+              {team.league_name && (
                 <p className="text-sm text-gray-500 mb-2">
-                  League: {team.leagues.name}
+                  League: {team.league_name}
                 </p>
               )}
               <button className="btn-primary text-sm w-full">

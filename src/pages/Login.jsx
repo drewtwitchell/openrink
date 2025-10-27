@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { auth } from '../lib/api'
 import { useNavigate } from 'react-router-dom'
 
-export default function Login() {
+export default function Login({ onLogin }) {
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -17,22 +17,15 @@ export default function Login() {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-        })
-        if (error) throw error
-        setMessage('Check your email for the confirmation link!')
+        await auth.signUp(email, password)
+        setMessage('Account created successfully!')
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        })
-        if (error) throw error
-        navigate('/dashboard')
+        await auth.signIn(email, password)
       }
+      onLogin()
+      navigate('/dashboard')
     } catch (error) {
-      setMessage(error.message)
+      setMessage(error.message || 'Authentication failed')
     } finally {
       setLoading(false)
     }
@@ -47,7 +40,7 @@ export default function Login() {
 
         {message && (
           <div className={`mb-4 p-3 rounded ${
-            message.includes('Check your email')
+            message.includes('success')
               ? 'bg-green-100 text-green-700'
               : 'bg-red-100 text-red-700'
           }`}>

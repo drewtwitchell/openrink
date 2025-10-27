@@ -1,24 +1,12 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { auth } from '../lib/api'
 import { Link } from 'react-router-dom'
 
 export default function Dashboard() {
   const [user, setUser] = useState(null)
-  const [stats, setStats] = useState({
-    leagues: 0,
-    teams: 0,
-    upcomingGames: 0,
-  })
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-    }
-    getUser()
-
-    // TODO: Fetch actual stats from database
-    // For now, using placeholder data
+    setUser(auth.getUser())
   }, [])
 
   return (
@@ -31,19 +19,19 @@ export default function Dashboard() {
       <div className="grid md:grid-cols-3 gap-6 mb-8">
         <div className="card">
           <div className="text-3xl mb-2">🏒</div>
-          <div className="text-3xl font-bold text-ice-600">{stats.leagues}</div>
+          <div className="text-3xl font-bold text-ice-600">-</div>
           <div className="text-gray-600">Active Leagues</div>
         </div>
 
         <div className="card">
           <div className="text-3xl mb-2">👥</div>
-          <div className="text-3xl font-bold text-ice-600">{stats.teams}</div>
+          <div className="text-3xl font-bold text-ice-600">-</div>
           <div className="text-gray-600">Your Teams</div>
         </div>
 
         <div className="card">
           <div className="text-3xl mb-2">📅</div>
-          <div className="text-3xl font-bold text-ice-600">{stats.upcomingGames}</div>
+          <div className="text-3xl font-bold text-ice-600">-</div>
           <div className="text-gray-600">Upcoming Games</div>
         </div>
       </div>

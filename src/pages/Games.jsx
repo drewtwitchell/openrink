@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
+import { games, teams, rinks } from '../lib/api'
 
 export default function Games() {
-  const [games, setGames] = useState([])
-  const [teams, setTeams] = useState([])
-  const [rinks, setRinks] = useState([])
+  const [gamesList, setGamesList] = useState([])
+  const [teamsList, setTeamsList] = useState([])
+  const [rinksList, setRinksList] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState({
@@ -14,8 +14,6 @@ export default function Games() {
     game_time: '',
     rink_id: '',
     surface_name: 'NHL',
-    home_score: null,
-    away_score: null,
   })
 
   useEffect(() => {
@@ -24,28 +22,14 @@ export default function Games() {
 
   const fetchData = async () => {
     try {
-      const [gamesRes, teamsRes, rinksRes] = await Promise.all([
-        supabase
-          .from('games')
-          .select(`
-            *,
-            home_team:teams!home_team_id(name, color),
-            away_team:teams!away_team_id(name, color),
-            rinks(name)
-          `)
-          .order('game_date', { ascending: true })
-          .order('game_time', { ascending: true }),
-        supabase.from('teams').select('id, name').order('name'),
-        supabase.from('rinks').select('id, name').order('name'),
+      const [gamesData, teamsData, rinksData] = await Promise.all([
+        games.getAll(),
+        teams.getAll(),
+        rinks.getAll(),
       ])
-
-      if (gamesRes.error) throw gamesRes.error
-      if (teamsRes.error) throw teamsRes.error
-      if (rinksRes.error) throw rinksRes.error
-
-      setGames(gamesRes.data || [])
-      setTeams(teamsRes.data || [])
-      setRinks(rinksRes.data || [])
+      setGamesList(gamesData)
+      setTeamsList(teamsData)
+      setRinksList(rinksData)
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
@@ -56,10 +40,7 @@ export default function Games() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      const { error } = await supabase.from('games').insert([formData])
-
-      if (error) throw error
-
+      await games.create(formData)
       setFormData({
         home_team_id: '',
         away_team_id: '',
@@ -67,8 +48,6 @@ export default function Games() {
         game_time: '',
         rink_id: '',
         surface_name: 'NHL',
-        home_score: null,
-        away_score: null,
       })
       setShowForm(false)
       fetchData()
@@ -114,7 +93,7 @@ export default function Games() {
                   required
                 >
                   <option value="">Select home team</option>
-                  {teams.map((team) => (
+                  {teamsList.map((team) => (
                     <option key={team.id} value={team.id}>
                       {team.name}
                     </option>
@@ -133,7 +112,7 @@ export default function Games() {
                   required
                 >
                   <option value="">Select away team</option>
-                  {teams.map((team) => (
+                  {teamsList.map((team) => (
                     <option key={team.id} value={team.id}>
                       {team.name}
                     </option>
@@ -181,7 +160,7 @@ export default function Games() {
                 required
               >
                 <option value="">Select rink</option>
-                {rinks.map((rink) => (
+                {rinksList.map((rink) => (
                   <option key={rink.id} value={rink.id}>
                     {rink.name}
                   </option>
@@ -210,10 +189,10 @@ export default function Games() {
         </div>
       )}
 
-      {games.length === 0 ? (
+      {gamesList.length === 0 ? (
         <div className="card text-center py-12">
           <p className="text-gray-500 mb-4">No games scheduled</p>
-          {teams.length > 0 && rinks.length > 0 ? (
+          {teamsList.length > 0 && rinksList.length > 0 ? (
             <button onClick={() => setShowForm(true)} className="btn-primary">
               Schedule Your First Game
             </button>
@@ -223,7 +202,7 @@ export default function Games() {
         </div>
       ) : (
         <div className="space-y-4">
-          {games.map((game) => (
+          {gamesList.map((game) => (
             <div key={game.id} className="card">
               <div className="flex justify-between items-center">
                 <div className="flex-1">
@@ -231,9 +210,9 @@ export default function Games() {
                     <div className="flex items-center space-x-3">
                       <div
                         className="w-6 h-6 rounded-full"
-                        style={{ backgroundColor: game.home_team?.color }}
+                        style={{ backgroundColor: game.home_team_color || '#0284c7' }}
                       />
-                      <span className="font-semibold">{game.home_team?.name}</span>
+                      <span className="font-semibold">{game.home_team_name}</span>
                     </div>
                     <span className="text-2xl font-bold mx-4">
                       {game.home_score ?? '-'}
@@ -243,9 +222,9 @@ export default function Games() {
                     <div className="flex items-center space-x-3">
                       <div
                         className="w-6 h-6 rounded-full"
-                        style={{ backgroundColor: game.away_team?.color }}
+                        style={{ backgroundColor: game.away_team_color || '#0284c7' }}
                       />
-                      <span className="font-semibold">{game.away_team?.name}</span>
+                      <span className="font-semibold">{game.away_team_name}</span>
                     </div>
                     <span className="text-2xl font-bold mx-4">
                       {game.away_score ?? '-'}
@@ -258,7 +237,7 @@ export default function Games() {
                   </div>
                   <div className="text-sm text-gray-600">{game.game_time}</div>
                   <div className="text-sm text-gray-500">
-                    {game.rinks?.name} - {game.surface_name}
+                    {game.rink_name} - {game.surface_name}
                   </div>
                 </div>
               </div>

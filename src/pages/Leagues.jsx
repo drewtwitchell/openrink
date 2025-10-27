@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
+import { leagues } from '../lib/api'
 
 export default function Leagues() {
-  const [leagues, setLeagues] = useState([])
+  const [leaguesList, setLeaguesList] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState({
@@ -17,13 +17,8 @@ export default function Leagues() {
 
   const fetchLeagues = async () => {
     try {
-      const { data, error } = await supabase
-        .from('leagues')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-      setLeagues(data || [])
+      const data = await leagues.getAll()
+      setLeaguesList(data)
     } catch (error) {
       console.error('Error fetching leagues:', error)
     } finally {
@@ -34,14 +29,7 @@ export default function Leagues() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-
-      const { error } = await supabase
-        .from('leagues')
-        .insert([{ ...formData, created_by: user.id }])
-
-      if (error) throw error
-
+      await leagues.create(formData)
       setFormData({ name: '', description: '', season: '' })
       setShowForm(false)
       fetchLeagues()
@@ -111,7 +99,7 @@ export default function Leagues() {
         </div>
       )}
 
-      {leagues.length === 0 ? (
+      {leaguesList.length === 0 ? (
         <div className="card text-center py-12">
           <p className="text-gray-500 mb-4">No leagues yet</p>
           <button onClick={() => setShowForm(true)} className="btn-primary">
@@ -120,7 +108,7 @@ export default function Leagues() {
         </div>
       ) : (
         <div className="grid md:grid-cols-2 gap-6">
-          {leagues.map((league) => (
+          {leaguesList.map((league) => (
             <div key={league.id} className="card hover:shadow-lg transition-shadow">
               <h3 className="text-xl font-semibold mb-2">{league.name}</h3>
               {league.season && (
