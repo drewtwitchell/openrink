@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { leagues as leaguesApi, games as gamesApi, teams as teamsApi } from '../lib/api'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
 export default function Home() {
   const [hasLeagues, setHasLeagues] = useState(false)
@@ -23,8 +24,8 @@ export default function Home() {
   const fetchPublicData = async () => {
     try {
       const [leaguesData, gamesData] = await Promise.all([
-        fetch('http://localhost:3001/api/leagues').then(r => r.json()).catch(() => []),
-        fetch('http://localhost:3001/api/games').then(r => r.json()).catch(() => []),
+        fetch(`${API_URL}/api/leagues`).then(r => r.json()).catch(() => []),
+        fetch(`${API_URL}/api/games`).then(r => r.json()).catch(() => []),
       ])
 
       if (leaguesData.length > 0) {
@@ -51,8 +52,8 @@ export default function Home() {
   const calculateStandings = async (leagueId) => {
     try {
       const [teamsData, gamesData] = await Promise.all([
-        fetch('http://localhost:3001/api/teams').then(r => r.json()),
-        fetch('http://localhost:3001/api/games').then(r => r.json()),
+        fetch(`${API_URL}/api/teams`).then(r => r.json()),
+        fetch(`${API_URL}/api/games`).then(r => r.json()),
       ])
 
       const leagueTeams = teamsData.filter(t => t.league_id === parseInt(leagueId))

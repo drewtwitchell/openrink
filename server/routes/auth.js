@@ -75,7 +75,7 @@ router.post('/signin', (req, res) => {
       const token = generateToken({ id: user.id, email: user.email })
       res.json({
         token,
-        user: { id: user.id, email: user.email, name: user.name }
+        user: { id: user.id, email: user.email, name: user.name, role: user.role }
       })
     } catch (error) {
       res.status(500).json({ error: 'Server error' })
