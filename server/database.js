@@ -37,6 +37,14 @@ function initDatabase() {
       }
     })
 
+    // Add role column if it doesn't exist (migration)
+    db.run(`ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'player'`, (err) => {
+      // Ignore error if column already exists
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding role column:', err)
+      }
+    })
+
     // League managers table
     db.run(`
       CREATE TABLE IF NOT EXISTS league_managers (

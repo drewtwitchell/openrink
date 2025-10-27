@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import { auth } from '../lib/api'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -10,8 +11,10 @@ export default function Home() {
   const [standings, setStandings] = useState([])
   const [upcomingGames, setUpcomingGames] = useState([])
   const [loading, setLoading] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
+    setIsAuthenticated(auth.isAuthenticated())
     fetchPublicData()
   }, [])
 
@@ -177,9 +180,15 @@ export default function Home() {
         </div>
 
         <div className="space-x-4">
-          <Link to="/login" className="btn-primary inline-block">
-            Get Started
-          </Link>
+          {isAuthenticated ? (
+            <Link to="/dashboard" className="btn-primary inline-block">
+              Go to Dashboard
+            </Link>
+          ) : (
+            <Link to="/login" className="btn-primary inline-block">
+              Get Started
+            </Link>
+          )}
           <a
             href="https://github.com/drewtwitchell/openrink"
             target="_blank"
@@ -295,13 +304,27 @@ export default function Home() {
 
       {/* Call to Action */}
       <div className="card text-center bg-ice-50">
-        <h3 className="text-xl font-semibold mb-3">Need a Sub?</h3>
-        <p className="text-gray-600 mb-4">
-          Log in to request a substitute for an upcoming game and notify your team.
-        </p>
-        <Link to="/login" className="btn-primary">
-          Sign In to Request Sub
-        </Link>
+        {isAuthenticated ? (
+          <>
+            <h3 className="text-xl font-semibold mb-3">Manage Your League</h3>
+            <p className="text-gray-600 mb-4">
+              Access your dashboard to manage teams, games, and rosters.
+            </p>
+            <Link to="/dashboard" className="btn-primary">
+              Go to Dashboard
+            </Link>
+          </>
+        ) : (
+          <>
+            <h3 className="text-xl font-semibold mb-3">Need a Sub?</h3>
+            <p className="text-gray-600 mb-4">
+              Log in to request a substitute for an upcoming game and notify your team.
+            </p>
+            <Link to="/login" className="btn-primary">
+              Sign In to Request Sub
+            </Link>
+          </>
+        )}
       </div>
     </div>
   )
