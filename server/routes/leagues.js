@@ -14,6 +14,32 @@ router.get('/', (req, res) => {
   })
 })
 
+// Get league managers/owners (public - no auth required)
+router.get('/:id/managers', (req, res) => {
+  db.all(
+    `SELECT users.id, users.name, users.email, users.phone, users.role,
+       leagues.created_by,
+       league_managers.id as manager_id
+     FROM leagues
+     LEFT JOIN league_managers ON leagues.id = league_managers.league_id
+     LEFT JOIN users ON (league_managers.user_id = users.id OR leagues.created_by = users.id)
+     WHERE leagues.id = ? AND users.id IS NOT NULL
+     GROUP BY users.id
+     ORDER BY
+       CASE WHEN users.role = 'admin' THEN 1
+            WHEN leagues.created_by = users.id THEN 2
+            ELSE 3 END,
+       users.name`,
+    [req.params.id],
+    (err, rows) => {
+      if (err) {
+        return res.status(500).json({ error: 'Error fetching league managers' })
+      }
+      res.json(rows)
+    }
+  )
+})
+
 // Create league
 router.post('/', authenticateToken, (req, res) => {
   const { name, description, season } = req.body

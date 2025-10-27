@@ -107,6 +107,7 @@ function initDatabase() {
       CREATE TABLE IF NOT EXISTS players (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         team_id INTEGER REFERENCES teams(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
         name TEXT NOT NULL,
         email TEXT,
         phone TEXT,
@@ -115,6 +116,13 @@ function initDatabase() {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `)
+
+    // Add user_id column to players if it doesn't exist (migration)
+    db.run(`ALTER TABLE players ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding user_id column to players:', err)
+      }
+    })
 
     // Games table
     db.run(`

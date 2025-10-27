@@ -425,12 +425,21 @@ export default function TeamRoster() {
                       <td className="py-3 px-4 font-semibold">
                         {player.jersey_number || '-'}
                       </td>
-                      <td className="py-3 px-4 font-medium">{player.name}</td>
-                      <td className="py-3 px-4 text-sm text-gray-600">
-                        {player.email || '-'}
+                      <td className="py-3 px-4 font-medium">
+                        <div className="flex items-center gap-2">
+                          {player.name}
+                          {player.is_captain === 1 && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-ice-100 text-ice-800">
+                              Captain
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-4 text-sm text-gray-600">
-                        {player.phone || '-'}
+                        {player.email || player.user_email || '-'}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-gray-600">
+                        {player.phone || player.user_phone || '-'}
                       </td>
                       {teamPayments.length > 0 && (
                         <>

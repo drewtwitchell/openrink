@@ -8,6 +8,7 @@ export default function LeagueDetails() {
   const [league, setLeague] = useState(null)
   const [teams, setTeams] = useState([])
   const [games, setGames] = useState([])
+  const [managers, setManagers] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
 
@@ -17,10 +18,11 @@ export default function LeagueDetails() {
 
   const fetchLeagueData = async () => {
     try {
-      const [leaguesData, teamsData, gamesData] = await Promise.all([
+      const [leaguesData, teamsData, gamesData, managersData] = await Promise.all([
         leagues.getAll(),
         teamsApi.getAll(),
         gamesApi.getAll(),
+        leagues.getManagers(id).catch(() => []),
       ])
 
       const leagueData = leaguesData.find(l => l.id === parseInt(id))
@@ -32,6 +34,9 @@ export default function LeagueDetails() {
       // Filter games for teams in this league
       const leagueTeamIds = teamsData.filter(t => t.league_id === parseInt(id)).map(t => t.id)
       setGames(gamesData.filter(g => leagueTeamIds.includes(g.home_team_id)))
+
+      // Set managers/owners
+      setManagers(managersData)
     } catch (error) {
       console.error('Error fetching league data:', error)
     } finally {
@@ -123,24 +128,53 @@ export default function LeagueDetails() {
 
       {/* Content */}
       {activeTab === 'overview' && (
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="card">
-            <div className="text-3xl mb-2">👥</div>
-            <div className="text-3xl font-bold text-ice-600">{teams.length}</div>
-            <div className="text-gray-600">Teams</div>
-          </div>
-          <div className="card">
-            <div className="text-3xl mb-2">🏒</div>
-            <div className="text-3xl font-bold text-ice-600">{games.length}</div>
-            <div className="text-gray-600">Games Scheduled</div>
-          </div>
-          <div className="card">
-            <div className="text-3xl mb-2">✅</div>
-            <div className="text-3xl font-bold text-ice-600">
-              {games.filter(g => g.home_score != null).length}
+        <div>
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
+            <div className="card">
+              <div className="text-3xl mb-2">👥</div>
+              <div className="text-3xl font-bold text-ice-600">{teams.length}</div>
+              <div className="text-gray-600">Teams</div>
             </div>
-            <div className="text-gray-600">Games Completed</div>
+            <div className="card">
+              <div className="text-3xl mb-2">🏒</div>
+              <div className="text-3xl font-bold text-ice-600">{games.length}</div>
+              <div className="text-gray-600">Games Scheduled</div>
+            </div>
+            <div className="card">
+              <div className="text-3xl mb-2">✅</div>
+              <div className="text-3xl font-bold text-ice-600">
+                {games.filter(g => g.home_score != null).length}
+              </div>
+              <div className="text-gray-600">Games Completed</div>
+            </div>
           </div>
+
+          {/* League Owners/Managers */}
+          {managers.length > 0 && (
+            <div className="card">
+              <h3 className="text-xl font-semibold mb-4">League Owners & Managers</h3>
+              <div className="space-y-3">
+                {managers.map((manager) => (
+                  <div key={manager.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                    <div>
+                      <div className="font-medium">{manager.name}</div>
+                      {manager.email && (
+                        <div className="text-sm text-gray-600">{manager.email}</div>
+                      )}
+                    </div>
+                    {manager.email && (
+                      <a
+                        href={`mailto:${manager.email}`}
+                        className="btn-secondary text-sm"
+                      >
+                        📧 Contact
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
