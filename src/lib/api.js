@@ -124,3 +124,20 @@ export const rinks = {
     body: JSON.stringify(data),
   }),
 }
+
+// Players API
+export const players = {
+  getAll: () => apiRequest('/api/players'),
+  getByTeam: (teamId) => apiRequest(`/api/players/team/${teamId}`),
+  create: (data) => apiRequest('/api/players', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  update: (id, data) => apiRequest(`/api/players/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  delete: (id) => apiRequest(`/api/players/${id}`, {
+    method: 'DELETE',
+  }),
+}

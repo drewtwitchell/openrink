@@ -9,8 +9,10 @@ import Dashboard from './pages/Dashboard'
 import Leagues from './pages/Leagues'
 import LeagueDetails from './pages/LeagueDetails'
 import Teams from './pages/Teams'
+import TeamRoster from './pages/TeamRoster'
 import Games from './pages/Games'
 import Standings from './pages/Standings'
+import Settings from './pages/Settings'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -67,14 +69,19 @@ function App() {
                   </>
                 )}
               </div>
-              <div className="flex items-center">
+              <div className="flex items-center space-x-4">
                 {isAuthenticated ? (
-                  <button
-                    onClick={handleSignOut}
-                    className="btn-secondary"
-                  >
-                    Sign Out
-                  </button>
+                  <>
+                    <Link to="/settings" className="text-gray-700 hover:text-ice-600">
+                      Settings
+                    </Link>
+                    <button
+                      onClick={handleSignOut}
+                      className="btn-secondary"
+                    >
+                      Sign Out
+                    </button>
+                  </>
                 ) : (
                   <Link to="/login" className="btn-primary">
                     Sign In
@@ -94,8 +101,10 @@ function App() {
             <Route path="/leagues" element={isAuthenticated ? <Leagues /> : <Navigate to="/login" />} />
             <Route path="/leagues/:id" element={isAuthenticated ? <LeagueDetails /> : <Navigate to="/login" />} />
             <Route path="/teams" element={isAuthenticated ? <Teams /> : <Navigate to="/login" />} />
+            <Route path="/teams/:id/roster" element={isAuthenticated ? <TeamRoster /> : <Navigate to="/login" />} />
             <Route path="/games" element={isAuthenticated ? <Games /> : <Navigate to="/login" />} />
             <Route path="/standings" element={isAuthenticated ? <Standings /> : <Navigate to="/login" />} />
+            <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
           </Routes>
         </main>
       </div>

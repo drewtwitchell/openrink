@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { teams, leagues as leaguesApi } from '../lib/api'
 
 export default function Teams() {
+  const navigate = useNavigate()
   const [teamsList, setTeamsList] = useState([])
   const [leaguesList, setLeaguesList] = useState([])
   const [loading, setLoading] = useState(true)
@@ -139,7 +141,10 @@ export default function Teams() {
                   League: {team.league_name}
                 </p>
               )}
-              <button className="btn-primary text-sm w-full">
+              <button
+                onClick={() => navigate(`/teams/${team.id}/roster`)}
+                className="btn-primary text-sm w-full"
+              >
                 View Roster
               </button>
             </div>

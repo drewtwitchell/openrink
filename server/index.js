@@ -8,6 +8,7 @@ import leagueRoutes from './routes/leagues.js'
 import teamRoutes from './routes/teams.js'
 import gameRoutes from './routes/games.js'
 import rinkRoutes from './routes/rinks.js'
+import playerRoutes from './routes/players.js'
 
 dotenv.config()
 
@@ -24,6 +25,7 @@ app.use('/api/leagues', leagueRoutes)
 app.use('/api/teams', teamRoutes)
 app.use('/api/games', gameRoutes)
 app.use('/api/rinks', rinkRoutes)
+app.use('/api/players', playerRoutes)
 
 // Health check
 app.get('/api/health', (req, res) => {
