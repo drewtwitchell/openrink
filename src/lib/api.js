@@ -66,6 +66,24 @@ export const auth = {
     return userStr ? JSON.parse(userStr) : null
   },
 
+  updateProfile: async (name) => {
+    const data = await apiRequest('/api/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify({ name }),
+    })
+    if (data.user) {
+      localStorage.setItem('user', JSON.stringify(data.user))
+    }
+    return data
+  },
+
+  getAllUsers: () => apiRequest('/api/auth/users'),
+
+  updateUserRole: (userId, role) => apiRequest(`/api/auth/users/${userId}/role`, {
+    method: 'PUT',
+    body: JSON.stringify({ role }),
+  }),
+
   isAuthenticated: () => {
     return !!getToken()
   },
