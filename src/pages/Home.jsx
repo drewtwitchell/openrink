@@ -1,14 +1,18 @@
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { auth } from '../lib/api'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
 export default function Home() {
+  const [searchParams] = useSearchParams()
   const [hasLeagues, setHasLeagues] = useState(false)
   const [leagueData, setLeagueData] = useState([]) // Array of {league, standings, upcomingGames}
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  // Get league filter from URL query parameter (e.g., ?league=mhl)
+  const leagueFilter = searchParams.get('league')
 
   useEffect(() => {
     setIsAuthenticated(auth.isAuthenticated())
@@ -197,26 +201,52 @@ export default function Home() {
     )
   }
 
+  // Filter leagues based on URL parameter if provided
+  const displayLeagues = leagueFilter
+    ? leagueData.filter(({ league }) =>
+        league.name.toLowerCase() === leagueFilter.toLowerCase() ||
+        league.id.toString() === leagueFilter
+      )
+    : leagueData
+
+  const isSingleLeague = displayLeagues.length === 1
+  const isMultipleLeagues = displayLeagues.length > 1
+
   // Public league view
   return (
     <div>
       <div className="mb-8 text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">League Standings & Schedule</h1>
-        <p className="text-gray-600">View current standings and upcoming games</p>
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          {isSingleLeague && displayLeagues[0]?.league.name
+            ? `${displayLeagues[0].league.name}${displayLeagues[0].league.season ? ` - ${displayLeagues[0].league.season}` : ''}`
+            : 'League Standings & Schedule'}
+        </h1>
+        <p className="text-gray-600">
+          {isSingleLeague && displayLeagues[0]?.league.description
+            ? displayLeagues[0].league.description
+            : 'View current standings and upcoming games'}
+        </p>
+        {isMultipleLeagues && !leagueFilter && (
+          <p className="text-sm text-gray-500 mt-2">
+            Tip: Access individual leagues at /?league={'{'}leaguename{'}'}
+          </p>
+        )}
       </div>
 
-      {leagueData.map(({ league, standings, upcomingGames }) => (
+      {displayLeagues.map(({ league, standings, upcomingGames }) => (
         <div key={league.id} className="mb-12">
-          {/* League Header */}
-          <div className="mb-6">
-            <h2 className="text-3xl font-bold text-gray-900">
-              {league.name}
-              {league.season && <span className="text-2xl text-gray-600 ml-2">({league.season})</span>}
-            </h2>
-            {league.description && (
-              <p className="text-gray-600 mt-1">{league.description}</p>
-            )}
-          </div>
+          {/* League Header - only show for multiple leagues */}
+          {isMultipleLeagues && (
+            <div className="mb-6">
+              <h2 className="text-3xl font-bold text-gray-900">
+                {league.name}
+                {league.season && <span className="text-2xl text-gray-600 ml-2">({league.season})</span>}
+              </h2>
+              {league.description && (
+                <p className="text-gray-600 mt-1">{league.description}</p>
+              )}
+            </div>
+          )}
 
           <div className="grid md:grid-cols-2 gap-8 mb-8">
             {/* Standings */}
