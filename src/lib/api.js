@@ -66,10 +66,10 @@ export const auth = {
     return userStr ? JSON.parse(userStr) : null
   },
 
-  updateProfile: async (name) => {
+  updateProfile: async (name, phone) => {
     const data = await apiRequest('/api/auth/profile', {
       method: 'PUT',
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, phone }),
     })
     if (data.user) {
       localStorage.setItem('user', JSON.stringify(data.user))
@@ -158,4 +158,57 @@ export const players = {
   delete: (id) => apiRequest(`/api/players/${id}`, {
     method: 'DELETE',
   }),
+}
+
+// CSV API
+export const csv = {
+  downloadRosterTemplate: () => {
+    window.open(`${API_URL}/api/csv/templates/roster`, '_blank')
+  },
+  downloadScheduleTemplate: () => {
+    window.open(`${API_URL}/api/csv/templates/schedule`, '_blank')
+  },
+  downloadStandingsTemplate: () => {
+    window.open(`${API_URL}/api/csv/templates/standings`, '_blank')
+  },
+  uploadRoster: async (teamId, file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const token = getToken()
+    const response = await fetch(`${API_URL}/api/csv/upload/roster/${teamId}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Upload failed' }))
+      throw new Error(error.error || 'Upload failed')
+    }
+
+    return response.json()
+  },
+  uploadSchedule: async (leagueId, file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const token = getToken()
+    const response = await fetch(`${API_URL}/api/csv/upload/schedule/${leagueId}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Upload failed' }))
+      throw new Error(error.error || 'Upload failed')
+    }
+
+    return response.json()
+  },
 }

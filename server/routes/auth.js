@@ -97,7 +97,7 @@ router.get('/me', (req, res) => {
     const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
     const decoded = jwt.verify(token, JWT_SECRET)
 
-    db.get('SELECT id, email, name, role FROM users WHERE id = ?', [decoded.id], (err, user) => {
+    db.get('SELECT id, email, name, phone, role FROM users WHERE id = ?', [decoded.id], (err, user) => {
       if (err || !user) {
         return res.status(404).json({ error: 'User not found' })
       }
@@ -121,17 +121,17 @@ router.put('/profile', (req, res) => {
     const jwt = require('jsonwebtoken')
     const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
     const decoded = jwt.verify(token, JWT_SECRET)
-    const { name } = req.body
+    const { name, phone } = req.body
 
     db.run(
-      'UPDATE users SET name = ? WHERE id = ?',
-      [name, decoded.id],
+      'UPDATE users SET name = ?, phone = ? WHERE id = ?',
+      [name, phone, decoded.id],
       function (err) {
         if (err) {
           return res.status(500).json({ error: 'Error updating profile' })
         }
 
-        db.get('SELECT id, email, name, role FROM users WHERE id = ?', [decoded.id], (err, user) => {
+        db.get('SELECT id, email, name, phone, role FROM users WHERE id = ?', [decoded.id], (err, user) => {
           if (err || !user) {
             return res.status(404).json({ error: 'User not found' })
           }
@@ -164,7 +164,7 @@ router.get('/users', (req, res) => {
         return res.status(403).json({ error: 'Admin access required' })
       }
 
-      db.all('SELECT id, email, name, role, created_at FROM users ORDER BY created_at DESC', [], (err, users) => {
+      db.all('SELECT id, email, name, phone, role, created_at FROM users ORDER BY created_at DESC', [], (err, users) => {
         if (err) {
           return res.status(500).json({ error: 'Error fetching users' })
         }

@@ -9,6 +9,7 @@ import teamRoutes from './routes/teams.js'
 import gameRoutes from './routes/games.js'
 import rinkRoutes from './routes/rinks.js'
 import playerRoutes from './routes/players.js'
+import csvUploadRoutes from './routes/csv-upload.js'
 
 dotenv.config()
 
@@ -26,6 +27,7 @@ app.use('/api/teams', teamRoutes)
 app.use('/api/games', gameRoutes)
 app.use('/api/rinks', rinkRoutes)
 app.use('/api/players', playerRoutes)
+app.use('/api/csv', csvUploadRoutes)
 
 // Health check
 app.get('/api/health', (req, res) => {

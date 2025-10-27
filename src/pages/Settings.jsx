@@ -6,6 +6,7 @@ export default function Settings() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
   })
   const [message, setMessage] = useState('')
   const [allUsers, setAllUsers] = useState([])
@@ -18,6 +19,7 @@ export default function Settings() {
       setFormData({
         name: currentUser.name || '',
         email: currentUser.email || '',
+        phone: currentUser.phone || '',
       })
       if (currentUser.role === 'admin') {
         fetchAllUsers()
@@ -52,7 +54,7 @@ export default function Settings() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      await auth.updateProfile(formData.name)
+      await auth.updateProfile(formData.name, formData.phone)
       const updatedUser = auth.getUser()
       setUser(updatedUser)
       setMessage('Profile updated successfully!')
@@ -114,6 +116,18 @@ export default function Settings() {
               disabled
             />
             <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
+          </div>
+
+          <div>
+            <label className="label">Phone Number</label>
+            <input
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              className="input"
+              placeholder="(123) 456-7890"
+            />
+            <p className="text-xs text-gray-500 mt-1">Used for team notifications and roster display</p>
           </div>
 
           <button type="submit" className="btn-primary">

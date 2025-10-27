@@ -1,12 +1,17 @@
-import { useState, useEffect } from 'react'
-import { games, teams, rinks } from '../lib/api'
+import { useState, useEffect, useRef } from 'react'
+import { games, teams, rinks, leagues, csv } from '../lib/api'
 
 export default function Games() {
   const [gamesList, setGamesList] = useState([])
   const [teamsList, setTeamsList] = useState([])
   const [rinksList, setRinksList] = useState([])
+  const [leaguesList, setLeaguesList] = useState([])
+  const [selectedLeague, setSelectedLeague] = useState('')
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadMessage, setUploadMessage] = useState('')
+  const fileInputRef = useRef(null)
   const [formData, setFormData] = useState({
     home_team_id: '',
     away_team_id: '',
@@ -22,14 +27,19 @@ export default function Games() {
 
   const fetchData = async () => {
     try {
-      const [gamesData, teamsData, rinksData] = await Promise.all([
+      const [gamesData, teamsData, rinksData, leaguesData] = await Promise.all([
         games.getAll(),
         teams.getAll(),
         rinks.getAll(),
+        leagues.getAll(),
       ])
       setGamesList(gamesData)
       setTeamsList(teamsData)
       setRinksList(rinksData)
+      setLeaguesList(leaguesData)
+      if (leaguesData.length > 0 && !selectedLeague) {
+        setSelectedLeague(leaguesData[0].id.toString())
+      }
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
@@ -64,18 +74,94 @@ export default function Games() {
     })
   }
 
+  const handleCSVUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    if (!selectedLeague) {
+      setUploadMessage('Error: Please select a league first')
+      return
+    }
+
+    setUploading(true)
+    setUploadMessage('')
+
+    try {
+      const result = await csv.uploadSchedule(selectedLeague, file)
+      setUploadMessage(result.message)
+      fetchData()
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    } catch (error) {
+      setUploadMessage('Error: ' + error.message)
+    } finally {
+      setUploading(false)
+    }
+  }
+
   if (loading) {
     return <div>Loading games...</div>
   }
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Games</h1>
-        <button onClick={() => setShowForm(!showForm)} className="btn-primary">
-          {showForm ? 'Cancel' : '+ Schedule Game'}
-        </button>
+      <div className="flex justify-between items-start mb-8">
+        <div>
+          <h1 className="text-3xl font-bold mb-4">Games</h1>
+          {leaguesList.length > 0 && (
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600">League for CSV Upload:</label>
+              <select
+                value={selectedLeague}
+                onChange={(e) => setSelectedLeague(e.target.value)}
+                className="input text-sm py-1"
+              >
+                {leaguesList.map((league) => (
+                  <option key={league.id} value={league.id}>
+                    {league.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => setShowForm(!showForm)} className="btn-primary">
+            {showForm ? 'Cancel' : '+ Schedule Game'}
+          </button>
+          <button
+            onClick={() => csv.downloadScheduleTemplate()}
+            className="btn-secondary"
+            title="Download CSV Template"
+          >
+            📄 Template
+          </button>
+          <label className="btn-secondary cursor-pointer" title="Upload Schedule CSV">
+            📤 Upload CSV
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleCSVUpload}
+              className="hidden"
+              disabled={uploading || !selectedLeague}
+            />
+          </label>
+        </div>
       </div>
+
+      {uploadMessage && (
+        <div className={`mb-6 p-4 rounded ${uploadMessage.includes('Error') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+          {uploadMessage}
+        </div>
+      )}
+
+      {uploading && (
+        <div className="mb-6 p-4 bg-blue-100 text-blue-700 rounded">
+          Uploading and processing CSV with AI... This may take a moment.
+        </div>
+      )}
 
       {showForm && (
         <div className="card mb-8">

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { teams, players } from '../lib/api'
+import { teams, players, csv } from '../lib/api'
 
 export default function TeamRoster() {
   const { id } = useParams()
@@ -9,6 +9,9 @@ export default function TeamRoster() {
   const [roster, setRoster] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadMessage, setUploadMessage] = useState('')
+  const fileInputRef = useRef(null)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -61,6 +64,27 @@ export default function TeamRoster() {
     }
   }
 
+  const handleCSVUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    setUploading(true)
+    setUploadMessage('')
+
+    try {
+      const result = await csv.uploadRoster(id, file)
+      setUploadMessage(result.message)
+      fetchData()
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    } catch (error) {
+      setUploadMessage('Error: ' + error.message)
+    } finally {
+      setUploading(false)
+    }
+  }
+
   if (loading) {
     return <div>Loading roster...</div>
   }
@@ -93,14 +117,46 @@ export default function TeamRoster() {
               <p className="text-gray-600">Team Roster</p>
             </div>
           </div>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="btn-primary"
-          >
-            {showForm ? 'Cancel' : '+ Add Player'}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="btn-primary"
+            >
+              {showForm ? 'Cancel' : '+ Add Player'}
+            </button>
+            <button
+              onClick={() => csv.downloadRosterTemplate()}
+              className="btn-secondary"
+              title="Download CSV Template"
+            >
+              📄 Template
+            </button>
+            <label className="btn-secondary cursor-pointer" title="Upload Roster CSV">
+              📤 Upload CSV
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleCSVUpload}
+                className="hidden"
+                disabled={uploading}
+              />
+            </label>
+          </div>
         </div>
       </div>
+
+      {uploadMessage && (
+        <div className={`mb-6 p-4 rounded ${uploadMessage.includes('Error') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+          {uploadMessage}
+        </div>
+      )}
+
+      {uploading && (
+        <div className="mb-6 p-4 bg-blue-100 text-blue-700 rounded">
+          Uploading and processing CSV with AI... This may take a moment.
+        </div>
+      )}
 
       {showForm && (
         <div className="card mb-8">

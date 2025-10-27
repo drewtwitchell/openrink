@@ -23,10 +23,19 @@ function initDatabase() {
         email TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         name TEXT,
+        phone TEXT,
         role TEXT DEFAULT 'player',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `)
+
+    // Add phone column if it doesn't exist (migration)
+    db.run(`ALTER TABLE users ADD COLUMN phone TEXT`, (err) => {
+      // Ignore error if column already exists
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding phone column:', err)
+      }
+    })
 
     // League managers table
     db.run(`
