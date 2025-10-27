@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { leagues } from '../lib/api'
 
 export default function Leagues() {
+  const navigate = useNavigate()
   const [leaguesList, setLeaguesList] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -118,8 +120,9 @@ export default function Leagues() {
                 <p className="text-gray-600 mb-4">{league.description}</p>
               )}
               <div className="flex space-x-2">
-                <button className="btn-primary text-sm">View Details</button>
-                <button className="btn-secondary text-sm">Manage</button>
+                <button onClick={() => navigate(`/leagues/${league.id}`)} className="btn-primary text-sm">
+                  View Details
+                </button>
               </div>
             </div>
           ))}

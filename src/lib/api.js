@@ -74,6 +74,7 @@ export const auth = {
 // Leagues API
 export const leagues = {
   getAll: () => apiRequest('/api/leagues'),
+  getById: (id) => apiRequest(`/api/leagues/${id}`),
   create: (data) => apiRequest('/api/leagues', {
     method: 'POST',
     body: JSON.stringify(data),

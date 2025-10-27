@@ -23,7 +23,30 @@ function initDatabase() {
         email TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         name TEXT,
+        role TEXT DEFAULT 'player',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+
+    // League managers table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS league_managers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        league_id INTEGER REFERENCES leagues(id) ON DELETE CASCADE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, league_id)
+      )
+    `)
+
+    // Team captains table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS team_captains (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        team_id INTEGER REFERENCES teams(id) ON DELETE CASCADE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, team_id)
       )
     `)
 

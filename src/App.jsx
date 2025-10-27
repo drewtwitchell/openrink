@@ -7,6 +7,7 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Leagues from './pages/Leagues'
+import LeagueDetails from './pages/LeagueDetails'
 import Teams from './pages/Teams'
 import Games from './pages/Games'
 import Standings from './pages/Standings'
@@ -87,10 +88,11 @@ function App() {
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Home />} />
             <Route path="/login" element={<Login onLogin={() => setIsAuthenticated(true)} />} />
             <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
             <Route path="/leagues" element={isAuthenticated ? <Leagues /> : <Navigate to="/login" />} />
+            <Route path="/leagues/:id" element={isAuthenticated ? <LeagueDetails /> : <Navigate to="/login" />} />
             <Route path="/teams" element={isAuthenticated ? <Teams /> : <Navigate to="/login" />} />
             <Route path="/games" element={isAuthenticated ? <Games /> : <Navigate to="/login" />} />
             <Route path="/standings" element={isAuthenticated ? <Standings /> : <Navigate to="/login" />} />
