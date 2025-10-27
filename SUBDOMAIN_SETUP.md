@@ -1,124 +1,63 @@
 # Subdomain Setup for Individual Leagues
 
-OpenRink supports dedicated URLs for each league using URL parameters. This guide explains how to set up subdomain routing (e.g., `mhl.openrink.app`) to automatically show a specific league.
+OpenRink automatically detects subdomains and displays the corresponding league. No code changes required!
 
 ## How It Works
 
-The homepage supports filtering by league using URL query parameters:
+The app automatically extracts the league name from your subdomain:
 - Main site: `openrink.app` → Shows all leagues
-- Specific league: `openrink.app?league=mhl` → Shows only MHL league
-- By ID: `openrink.app?league=1` → Shows league with ID 1
+- Specific league: `mhl.openrink.app` → Shows only MHL league
+- Another league: `summer.openrink.app` → Shows only Summer league
 
-## Setting Up Subdomains
+The subdomain name (e.g., "mhl") is matched against your league names in the database (case-insensitive).
 
-### Option 1: DNS + Hosting Redirect (Recommended)
+## DNS Setup
 
-Most hosting providers (Vercel, Netlify, etc.) support redirect rules:
+For each league subdomain, add a DNS record pointing to your hosting:
 
-**Vercel** - Create `vercel.json`:
-```json
-{
-  "redirects": [
-    {
-      "source": "/",
-      "has": [
-        {
-          "type": "host",
-          "value": "mhl.openrink.app"
-        }
-      ],
-      "destination": "/?league=mhl",
-      "permanent": false
-    }
-  ]
-}
+1. Go to your DNS provider (Cloudflare, Namecheap, etc.)
+2. Add a CNAME record:
+   - **Type**: CNAME
+   - **Name**: mhl (or your league name)
+   - **Value**: your-app.vercel.app (or your hosting domain)
+   - **TTL**: Auto or 3600
+3. Repeat for each league you want a subdomain for
+
+Example:
 ```
-
-**Netlify** - Add to `netlify.toml`:
-```toml
-[[redirects]]
-  from = "https://mhl.openrink.app/*"
-  to = "https://openrink.app/?league=mhl:splat"
-  status = 200
-  force = true
+CNAME  mhl      ->  your-app.vercel.app
+CNAME  summer   ->  your-app.vercel.app
+CNAME  winter   ->  your-app.vercel.app
 ```
-
-**Apache** - Add to `.htaccess`:
-```apache
-RewriteEngine On
-RewriteCond %{HTTP_HOST} ^mhl\.openrink\.app$ [NC]
-RewriteRule ^(.*)$ /?league=mhl [L,QSA]
-```
-
-**Nginx** - Add to server config:
-```nginx
-server {
-    listen 80;
-    server_name mhl.openrink.app;
-    return 301 $scheme://openrink.app$request_uri?league=mhl;
-}
-```
-
-### Option 2: Dynamic Subdomain Detection
-
-For a more advanced setup, modify the app to automatically detect subdomains:
-
-1. Update `src/pages/Home.jsx` to check `window.location.hostname`
-2. Extract subdomain (e.g., "mhl" from "mhl.openrink.app")
-3. Use subdomain as league filter automatically
-
-Example code:
-```javascript
-// In Home.jsx
-const getLeagueFromSubdomain = () => {
-  const hostname = window.location.hostname
-  const parts = hostname.split('.')
-  if (parts.length > 2 && parts[0] !== 'www') {
-    return parts[0] // Returns "mhl" from "mhl.openrink.app"
-  }
-  return null
-}
-
-// Use in component
-const subdomainLeague = getLeagueFromSubdomain()
-const leagueFilter = searchParams.get('league') || subdomainLeague
-```
-
-## DNS Configuration
-
-For each league subdomain:
-
-1. Add A record or CNAME pointing to your hosting:
-   - Type: CNAME
-   - Name: mhl
-   - Value: your-app.vercel.app (or your hosting domain)
-
-2. Repeat for each league you want a subdomain for
 
 ## Testing Locally
 
-To test subdomains locally:
+To test subdomains on your local machine:
 
-1. Edit `/etc/hosts` (Mac/Linux) or `C:\Windows\System32\drivers\etc\hosts` (Windows):
+1. Edit your hosts file:
+   - **Mac/Linux**: `/etc/hosts`
+   - **Windows**: `C:\Windows\System32\drivers\etc\hosts`
+
+2. Add entries:
    ```
    127.0.0.1 mhl.localhost
    127.0.0.1 summer.localhost
    ```
 
-2. Access your app at `http://mhl.localhost:3000`
+3. Access your app at `http://mhl.localhost:3000`
 
-## League Name vs ID
+## League Name Matching
 
-The filter supports both league names and IDs:
-- `?league=mhl` - Matches by name (case-insensitive)
-- `?league=1` - Matches by ID
-
-League names are more user-friendly but IDs are more stable if you rename a league.
+The subdomain is matched against league names in your database:
+- `mhl.openrink.app` will show leagues with name "MHL", "mhl", or "Mhl"
+- Matching is case-insensitive
+- If no matching league is found, all leagues are shown
 
 ## Benefits
 
-✅ Professional appearance (mhl.openrink.app vs openrink.app?league=mhl)
-✅ Easy to share specific league links
+✅ Clean, professional URLs (mhl.openrink.app)
+✅ Works automatically - no configuration needed
 ✅ Each league feels like its own site
-✅ SEO-friendly URLs
-✅ No code changes needed - just DNS + redirects
+✅ Easy to share league-specific links
+✅ SEO-friendly
+✅ Supports unlimited leagues

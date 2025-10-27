@@ -11,8 +11,28 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
-  // Get league filter from URL query parameter (e.g., ?league=mhl)
-  const leagueFilter = searchParams.get('league')
+  // Get league from subdomain (e.g., mhl.openrink.app -> "mhl")
+  const getLeagueFromSubdomain = () => {
+    const hostname = window.location.hostname
+    const parts = hostname.split('.')
+
+    // If we have more than 2 parts and the first part is not 'www' or 'localhost'
+    // then it's likely a subdomain (e.g., "mhl" from "mhl.openrink.app")
+    if (parts.length > 2 && parts[0] !== 'www') {
+      return parts[0]
+    }
+
+    // For localhost testing (e.g., mhl.localhost)
+    if (parts.length === 2 && parts[1] === 'localhost') {
+      return parts[0]
+    }
+
+    return null
+  }
+
+  // Get league filter from subdomain first, then fall back to URL parameter
+  const subdomainLeague = getLeagueFromSubdomain()
+  const leagueFilter = subdomainLeague || searchParams.get('league')
 
   useEffect(() => {
     setIsAuthenticated(auth.isAuthenticated())
@@ -228,7 +248,7 @@ export default function Home() {
         </p>
         {isMultipleLeagues && !leagueFilter && (
           <p className="text-sm text-gray-500 mt-2">
-            Tip: Access individual leagues at /?league={'{'}leaguename{'}'}
+            Tip: Access individual leagues via subdomain (e.g., mhl.yourdomain.com)
           </p>
         )}
       </div>
