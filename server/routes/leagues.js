@@ -4,8 +4,8 @@ import { authenticateToken } from '../middleware/auth.js'
 
 const router = express.Router()
 
-// Get all leagues
-router.get('/', authenticateToken, (req, res) => {
+// Get all leagues (public - no auth required)
+router.get('/', (req, res) => {
   db.all('SELECT * FROM leagues ORDER BY created_at DESC', [], (err, rows) => {
     if (err) {
       return res.status(500).json({ error: 'Error fetching leagues' })

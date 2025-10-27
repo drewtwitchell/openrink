@@ -4,8 +4,8 @@ import { authenticateToken } from '../middleware/auth.js'
 
 const router = express.Router()
 
-// Get all teams
-router.get('/', authenticateToken, (req, res) => {
+// Get all teams (public - no auth required)
+router.get('/', (req, res) => {
   db.all(
     `SELECT teams.*, leagues.name as league_name
      FROM teams

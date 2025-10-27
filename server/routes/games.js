@@ -4,8 +4,8 @@ import { authenticateToken } from '../middleware/auth.js'
 
 const router = express.Router()
 
-// Get all games
-router.get('/', authenticateToken, (req, res) => {
+// Get all games (public - no auth required)
+router.get('/', (req, res) => {
   db.all(
     `SELECT games.*,
        home_team.name as home_team_name, home_team.color as home_team_color,
