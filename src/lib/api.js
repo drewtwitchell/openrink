@@ -212,3 +212,36 @@ export const csv = {
     return response.json()
   },
 }
+
+// Payments API
+export const payments = {
+  getByTeam: (teamId) => apiRequest(`/api/payments/team/${teamId}`),
+  getByPlayer: (playerId) => apiRequest(`/api/payments/player/${playerId}`),
+  create: (data) => apiRequest('/api/payments', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  markPaid: (id) => apiRequest(`/api/payments/${id}/paid`, {
+    method: 'PUT',
+  }),
+  delete: (id) => apiRequest(`/api/payments/${id}`, {
+    method: 'DELETE',
+  }),
+}
+
+// Sub Requests API
+export const subRequests = {
+  getAll: () => apiRequest('/api/sub-requests'),
+  getByGame: (gameId) => apiRequest(`/api/sub-requests/game/${gameId}`),
+  create: (data) => apiRequest('/api/sub-requests', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  accept: (id, substitutePlayerId) => apiRequest(`/api/sub-requests/${id}/accept`, {
+    method: 'PUT',
+    body: JSON.stringify({ substitute_player_id: substitutePlayerId }),
+  }),
+  delete: (id) => apiRequest(`/api/sub-requests/${id}`, {
+    method: 'DELETE',
+  }),
+}

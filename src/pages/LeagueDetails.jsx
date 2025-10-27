@@ -154,18 +154,25 @@ export default function LeagueDetails() {
               </button>
             </div>
           ) : (
-            <div className="grid md:grid-cols-3 gap-6">
-              {teams.map((team) => (
-                <div key={team.id} className="card">
-                  <div className="flex items-center mb-3">
-                    <div
-                      className="w-8 h-8 rounded-full mr-3"
-                      style={{ backgroundColor: team.color }}
-                    />
-                    <h3 className="text-xl font-semibold">{team.name}</h3>
+            <div>
+              <div className="mb-4 flex justify-end">
+                <button onClick={() => navigate('/teams')} className="btn-primary">
+                  Add Team
+                </button>
+              </div>
+              <div className="grid md:grid-cols-3 gap-6">
+                {teams.map((team) => (
+                  <div key={team.id} className="card">
+                    <div className="flex items-center mb-3">
+                      <div
+                        className="w-8 h-8 rounded-full mr-3"
+                        style={{ backgroundColor: team.color }}
+                      />
+                      <h3 className="text-xl font-semibold">{team.name}</h3>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </div>
