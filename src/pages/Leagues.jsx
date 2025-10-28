@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { leagues, auth } from '../lib/api'
+import { leagues, seasons, auth } from '../lib/api'
 import Breadcrumbs from '../components/Breadcrumbs'
 
 export default function Leagues() {
@@ -23,7 +23,27 @@ export default function Leagues() {
   const fetchLeagues = async () => {
     try {
       const data = await leagues.getAll(showArchived)
-      setLeaguesList(data)
+
+      // Fetch active season for each league
+      const leaguesWithSeasons = await Promise.all(
+        data.map(async (league) => {
+          try {
+            const activeSeason = await seasons.getActive(league.id)
+            return {
+              ...league,
+              activeSeason: activeSeason
+            }
+          } catch (error) {
+            // No active season found
+            return {
+              ...league,
+              activeSeason: null
+            }
+          }
+        })
+      )
+
+      setLeaguesList(leaguesWithSeasons)
     } catch (error) {
       console.error('Error fetching leagues:', error)
     } finally {
@@ -178,7 +198,13 @@ export default function Leagues() {
               {leaguesList.map((league) => (
                 <tr key={league.id}>
                   <td className="font-medium">{league.name}</td>
-                  <td className="text-gray-600">{league.season || '-'}</td>
+                  <td className="text-gray-600">
+                    {league.activeSeason ? (
+                      <span className="text-green-700 font-medium">{league.activeSeason.name}</span>
+                    ) : (
+                      <span className="text-gray-400">No active season</span>
+                    )}
+                  </td>
                   <td className="text-gray-600">{league.description || '-'}</td>
                   <td>
                     {league.archived === 1 ? (
