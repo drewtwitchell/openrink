@@ -36,8 +36,14 @@ export default function LeagueDetails() {
   const [paymentStats, setPaymentStats] = useState(null)
   const [showContactModal, setShowContactModal] = useState(false)
   const [contactMessage, setContactMessage] = useState('')
+  const [currentUser, setCurrentUser] = useState(null)
+
+  // Check if current user can manage this league
+  const canManage = currentUser?.role === 'admin' ||
+    (currentUser?.role === 'league_manager' && managers.some(m => m.user_id === currentUser.id))
 
   useEffect(() => {
+    setCurrentUser(auth.getUser())
     fetchLeagueData()
     // Auto-open season form if coming from league creation
     if (searchParams.get('tab') === 'seasons') {
