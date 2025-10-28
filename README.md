@@ -23,7 +23,7 @@ Free, self-hosted hockey league management system.
 ## User Roles
 
 - **Admin**: Full access to all features, user management, and all leagues
-- **League Manager**: Create and manage leagues, teams, games, and schedules
+- **League Manager**: Manage assigned leagues only, create seasons, track payments across all teams
 - **Team Captain**: Manage team roster, request substitutes, and update team information
 - **Player**: View schedules, standings, and personal team information
 

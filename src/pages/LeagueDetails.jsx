@@ -580,6 +580,36 @@ export default function LeagueDetails() {
           )}
         </div>
       )}
+
+      {/* Seasons Tab */}
+      {activeTab === 'seasons' && (
+        <div>
+          <div className="card">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Seasons</h2>
+              <button className="btn-primary">+ Create New Season</button>
+            </div>
+            <div className="text-gray-500 text-center py-12">
+              Seasons management coming soon...
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payments Tab */}
+      {activeTab === 'payments' && (
+        <div>
+          <div className="card">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Payment Tracking</h2>
+              <button className="btn-primary">📧 Send Payment Reminder</button>
+            </div>
+            <div className="text-gray-500 text-center py-12">
+              Payment tracking coming soon...
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
