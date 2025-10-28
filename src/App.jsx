@@ -14,6 +14,7 @@ import Games from './pages/Games'
 import Standings from './pages/Standings'
 import Settings from './pages/Settings'
 import Users from './pages/Users'
+import Announcements from './pages/Announcements'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -152,6 +153,7 @@ function App() {
             <Route path="/standings" element={isAuthenticated ? <Standings /> : <Navigate to="/login" />} />
             <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
             <Route path="/users" element={isAuthenticated ? <Users /> : <Navigate to="/login" />} />
+            <Route path="/leagues/:leagueId/announcements" element={isAuthenticated ? <Announcements /> : <Navigate to="/login" />} />
           </Routes>
         </main>
       </div>
