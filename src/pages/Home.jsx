@@ -356,6 +356,33 @@ export default function Home() {
             </div>
           )}
 
+          {/* Quick Actions - only for authenticated users */}
+          {isAuthenticated && (
+            <div className="card bg-gradient-to-r from-ice-50 to-blue-50 border-ice-200 mb-8">
+              <h3 className="text-xl font-semibold mb-4 text-gray-900">Quick Actions</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <Link
+                  to="/dashboard"
+                  className="btn-primary text-center py-3"
+                >
+                  Go to Dashboard
+                </Link>
+                <Link
+                  to="/games"
+                  className="btn-secondary text-center py-3"
+                >
+                  View All Games
+                </Link>
+                <Link
+                  to="/teams"
+                  className="btn-secondary text-center py-3"
+                >
+                  Manage Teams
+                </Link>
+              </div>
+            </div>
+          )}
+
           {/* Announcements */}
           {announcements && announcements.length > 0 && (
             <div className="mb-8 space-y-3">
@@ -597,48 +624,18 @@ export default function Home() {
         </p>
       </div>
 
-      {/* Sub Requests & Management */}
-      <div className="grid md:grid-cols-2 gap-6">
+      {/* Sub Requests */}
+      {!isAuthenticated && (
         <div className="card bg-ice-50">
-          <h3 className="text-xl font-semibold mb-3">
-            {isAuthenticated ? 'Quick Actions' : 'Need a Sub?'}
-          </h3>
-          {isAuthenticated ? (
-            <div className="space-y-3">
-              <Link to="/dashboard" className="btn-primary w-full block text-center">
-                Go to Dashboard
-              </Link>
-              <Link to="/games" className="btn-secondary w-full block text-center">
-                View All Games
-              </Link>
-              <Link to="/teams" className="btn-secondary w-full block text-center">
-                Manage Teams
-              </Link>
-            </div>
-          ) : (
-            <>
-              <p className="text-gray-600 mb-4">
-                Log in to request a substitute for an upcoming game and notify your team.
-              </p>
-              <Link to="/login" className="btn-primary w-full block text-center">
-                Sign In to Request Sub
-              </Link>
-            </>
-          )}
+          <h3 className="text-xl font-semibold mb-3">Need a Sub?</h3>
+          <p className="text-gray-600 mb-4">
+            Log in to request a substitute for an upcoming game and notify your team.
+          </p>
+          <Link to="/login" className="btn-primary w-full block text-center">
+            Sign In to Request Sub
+          </Link>
         </div>
-
-        {isAuthenticated && (
-          <div className="card">
-            <h3 className="text-xl font-semibold mb-3">Request a Sub</h3>
-            <p className="text-gray-600 mb-4">
-              Can't make it to a game? Request a substitute through your team dashboard.
-            </p>
-            <Link to="/dashboard" className="btn-primary w-full block text-center">
-              Request Substitute
-            </Link>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   )
 }
