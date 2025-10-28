@@ -391,6 +391,26 @@ export default function Home() {
         </div>
       ))}
 
+      {/* Calendar Subscription */}
+      <div className="card mb-6 bg-blue-50">
+        <h3 className="text-xl font-semibold mb-3">Subscribe to Game Calendar</h3>
+        <p className="text-gray-600 mb-4">
+          Add all league games to your calendar app (Google Calendar, Apple Calendar, Outlook, etc.)
+        </p>
+        <div className="flex gap-3">
+          <a
+            href={`${API_URL}/api/calendar/league/${displayLeagues[0]?.league.id}`}
+            download
+            className="btn-primary"
+          >
+            Subscribe to All Games
+          </a>
+        </div>
+        <p className="text-xs text-gray-500 mt-3">
+          Downloads an .ics file that automatically updates when new games are added
+        </p>
+      </div>
+
       {/* Sub Requests & Management */}
       <div className="grid md:grid-cols-2 gap-6">
         <div className="card bg-ice-50">
