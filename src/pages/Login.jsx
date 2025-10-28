@@ -6,6 +6,9 @@ export default function Login({ onLogin }) {
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [position, setPosition] = useState('player')
   const [isSignUp, setIsSignUp] = useState(false)
   const [message, setMessage] = useState('')
   const navigate = useNavigate()
@@ -17,7 +20,7 @@ export default function Login({ onLogin }) {
 
     try {
       if (isSignUp) {
-        await auth.signUp(email, password)
+        await auth.signUp(email, password, name, phone, position)
         setMessage('Account created successfully!')
       } else {
         await auth.signIn(email, password)
@@ -49,6 +52,46 @@ export default function Login({ onLogin }) {
         )}
 
         <form onSubmit={handleAuth} className="space-y-4">
+          {isSignUp && (
+            <>
+              <div>
+                <label className="label">Name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="input"
+                  placeholder="Your name"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="label">Phone</label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="input"
+                  placeholder="(555) 123-4567"
+                />
+              </div>
+
+              <div>
+                <label className="label">Position</label>
+                <select
+                  value={position}
+                  onChange={(e) => setPosition(e.target.value)}
+                  className="input"
+                  required
+                >
+                  <option value="player">Player</option>
+                  <option value="goalie">Goalie</option>
+                </select>
+              </div>
+            </>
+          )}
+
           <div>
             <label className="label">Email</label>
             <input

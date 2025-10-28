@@ -7,7 +7,7 @@ const router = express.Router()
 
 // Sign up
 router.post('/signup', async (req, res) => {
-  const { email, password, name } = req.body
+  const { email, password, name, phone, position } = req.body
 
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password required' })
@@ -26,8 +26,8 @@ router.post('/signup', async (req, res) => {
       const role = isFirstUser ? 'admin' : 'player'
 
       db.run(
-        'INSERT INTO users (email, password, name, role) VALUES (?, ?, ?, ?)',
-        [email, hashedPassword, name, role],
+        'INSERT INTO users (email, password, name, phone, position, role) VALUES (?, ?, ?, ?, ?, ?)',
+        [email, hashedPassword, name, phone, position || 'player', role],
         function (err) {
           if (err) {
             if (err.message.includes('UNIQUE')) {
@@ -39,7 +39,7 @@ router.post('/signup', async (req, res) => {
           const token = generateToken({ id: this.lastID, email })
           res.json({
             token,
-            user: { id: this.lastID, email, name, role }
+            user: { id: this.lastID, email, name, phone, position: position || 'player', role }
           })
         }
       )
@@ -75,7 +75,7 @@ router.post('/signin', (req, res) => {
       const token = generateToken({ id: user.id, email: user.email })
       res.json({
         token,
-        user: { id: user.id, email: user.email, name: user.name, role: user.role }
+        user: { id: user.id, email: user.email, name: user.name, phone: user.phone, position: user.position, role: user.role }
       })
     } catch (error) {
       res.status(500).json({ error: 'Server error' })
@@ -85,7 +85,7 @@ router.post('/signin', (req, res) => {
 
 // Get current user
 router.get('/me', authenticateToken, (req, res) => {
-  db.get('SELECT id, email, name, phone, role FROM users WHERE id = ?', [req.user.id], (err, user) => {
+  db.get('SELECT id, email, name, phone, position, role FROM users WHERE id = ?', [req.user.id], (err, user) => {
     if (err || !user) {
       return res.status(404).json({ error: 'User not found' })
     }
@@ -95,17 +95,17 @@ router.get('/me', authenticateToken, (req, res) => {
 
 // Update user profile
 router.put('/profile', authenticateToken, (req, res) => {
-  const { name, phone } = req.body
+  const { name, phone, position } = req.body
 
   db.run(
-    'UPDATE users SET name = ?, phone = ? WHERE id = ?',
-    [name, phone, req.user.id],
+    'UPDATE users SET name = ?, phone = ?, position = ? WHERE id = ?',
+    [name, phone, position, req.user.id],
     function (err) {
       if (err) {
         return res.status(500).json({ error: 'Error updating profile' })
       }
 
-      db.get('SELECT id, email, name, phone, role FROM users WHERE id = ?', [req.user.id], (err, user) => {
+      db.get('SELECT id, email, name, phone, position, role FROM users WHERE id = ?', [req.user.id], (err, user) => {
         if (err || !user) {
           return res.status(404).json({ error: 'User not found' })
         }
@@ -126,7 +126,7 @@ router.get('/users/search', authenticateToken, (req, res) => {
   const searchPattern = `%${q}%`
 
   db.all(
-    'SELECT id, email, name, phone FROM users WHERE name LIKE ? OR email LIKE ? LIMIT 10',
+    'SELECT id, email, name, phone, position FROM users WHERE name LIKE ? OR email LIKE ? LIMIT 10',
     [searchPattern, searchPattern],
     (err, users) => {
       if (err) {
@@ -145,7 +145,7 @@ router.get('/users', authenticateToken, (req, res) => {
       return res.status(403).json({ error: 'Admin access required' })
     }
 
-    db.all('SELECT id, email, name, phone, role, created_at FROM users ORDER BY created_at DESC', [], (err, users) => {
+    db.all('SELECT id, email, name, phone, position, role, created_at FROM users ORDER BY created_at DESC', [], (err, users) => {
       if (err) {
         return res.status(500).json({ error: 'Error fetching users' })
       }

@@ -25,6 +25,7 @@ export default function TeamRoster() {
     email: '',
     phone: '',
     jersey_number: '',
+    position: 'player',
     email_notifications: true,
   })
 
@@ -72,7 +73,7 @@ export default function TeamRoster() {
         user_id: selectedUser?.id || null
       }
       await players.create(playerData)
-      setFormData({ name: '', email: '', phone: '', jersey_number: '', email_notifications: true })
+      setFormData({ name: '', email: '', phone: '', jersey_number: '', position: 'player', email_notifications: true })
       setSelectedUser(null)
       setShowForm(false)
       fetchData()
@@ -115,7 +116,8 @@ export default function TeamRoster() {
       ...formData,
       name: user.name || '',
       email: user.email || '',
-      phone: user.phone || ''
+      phone: user.phone || '',
+      position: user.position || 'player'
     })
     setShowUserSearch(false)
     setUserSearchResults([])
@@ -349,6 +351,24 @@ export default function TeamRoster() {
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
+                <label className="label">Position</label>
+                <select
+                  value={formData.position}
+                  onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                  className="input"
+                  disabled={!!selectedUser}
+                >
+                  <option value="player">Player</option>
+                  <option value="goalie">Goalie</option>
+                </select>
+                {selectedUser && (
+                  <p className="text-xs text-gray-500 mt-1">Auto-filled from user account</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
                 <label className="label">Email</label>
                 <input
                   type="email"
@@ -414,6 +434,7 @@ export default function TeamRoster() {
                 <tr className="border-b">
                   <th className="text-left py-3 px-4">#</th>
                   <th className="text-left py-3 px-4">Name</th>
+                  <th className="text-left py-3 px-4">Position</th>
                   <th className="text-left py-3 px-4">Email</th>
                   <th className="text-left py-3 px-4">Phone</th>
                   <th className="text-center py-3 px-4">Actions</th>
@@ -434,6 +455,15 @@ export default function TeamRoster() {
                           </span>
                         )}
                       </div>
+                    </td>
+                    <td className="py-3 px-4 text-sm">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        (player.position || player.user_position) === 'goalie'
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-blue-100 text-blue-800'
+                      }`}>
+                        {(player.position || player.user_position || 'player').charAt(0).toUpperCase() + (player.position || player.user_position || 'player').slice(1)}
+                      </span>
                     </td>
                     <td className="py-3 px-4 text-sm text-gray-600">
                       {player.email || player.user_email || '-'}

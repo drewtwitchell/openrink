@@ -233,6 +233,20 @@ function initDatabase() {
       }
     })
 
+    // Add position column to users if it doesn't exist (migration)
+    db.run(`ALTER TABLE users ADD COLUMN position TEXT DEFAULT 'player'`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding position column to users:', err)
+      }
+    })
+
+    // Add position column to players if it doesn't exist (migration)
+    db.run(`ALTER TABLE players ADD COLUMN position TEXT DEFAULT 'player'`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding position column to players:', err)
+      }
+    })
+
     // Games table
     db.run(`
       CREATE TABLE IF NOT EXISTS games (

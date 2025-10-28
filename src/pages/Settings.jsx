@@ -8,6 +8,7 @@ export default function Settings() {
     name: '',
     email: '',
     phone: '',
+    position: 'player',
   })
   const [message, setMessage] = useState('')
 
@@ -19,6 +20,7 @@ export default function Settings() {
         name: currentUser.name || '',
         email: currentUser.email || '',
         phone: currentUser.phone || '',
+        position: currentUser.position || 'player',
       })
     }
   }, [])
@@ -41,7 +43,7 @@ export default function Settings() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      await auth.updateProfile(formData.name, formData.phone)
+      await auth.updateProfile(formData.name, formData.phone, formData.position)
       const updatedUser = auth.getUser()
       setUser(updatedUser)
       setMessage('Profile updated successfully!')
@@ -111,6 +113,19 @@ export default function Settings() {
               placeholder="(123) 456-7890"
             />
             <p className="text-xs text-gray-500 mt-1">Used for team notifications and roster display</p>
+          </div>
+
+          <div>
+            <label className="label">Position</label>
+            <select
+              value={formData.position}
+              onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+              className="input"
+            >
+              <option value="player">Player</option>
+              <option value="goalie">Goalie</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">Your preferred position on the team</p>
           </div>
 
           <button type="submit" className="btn-primary">
