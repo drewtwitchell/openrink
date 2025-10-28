@@ -167,6 +167,18 @@ export default function Games() {
     return currentUser?.role === 'admin' || currentUser?.role === 'league_manager'
   }
 
+  const handleDeleteGame = async (gameId) => {
+    if (!window.confirm('Are you sure you want to delete this game?')) {
+      return
+    }
+    try {
+      await gamesApi.delete(gameId)
+      fetchData()
+    } catch (error) {
+      alert('Error deleting game: ' + error.message)
+    }
+  }
+
   if (loading) {
     return <div>Loading games...</div>
   }
@@ -489,59 +501,74 @@ export default function Games() {
           </div>
         </div>
       ) : (
-        <div className="space-y-4">
-          {gamesList.map((game) => (
-            <div key={game.id} className="card">
-              <div className="flex justify-between items-center">
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-100">
-                    <div className="flex items-center gap-3">
+        <div className="card">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Home Team</th>
+                <th>Away Team</th>
+                <th>Score</th>
+                <th>Rink</th>
+                <th className="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {gamesList.map((game) => (
+                <tr key={game.id}>
+                  <td className="font-medium">{formatDate(game.game_date)}</td>
+                  <td className="text-gray-600">{game.game_time}</td>
+                  <td>
+                    <div className="flex items-center gap-2">
                       <div
-                        className="w-3 h-3 rounded-full"
+                        className="w-3 h-3 rounded"
                         style={{ backgroundColor: game.home_team_color || '#0284c7' }}
                       />
-                      <span className="font-semibold text-gray-900">{game.home_team_name}</span>
+                      <span>{game.home_team_name}</span>
                     </div>
-                    <span className="text-2xl font-bold text-gray-900 min-w-[40px] text-center">
-                      {game.home_score ?? '-'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                  </td>
+                  <td>
+                    <div className="flex items-center gap-2">
                       <div
-                        className="w-3 h-3 rounded-full"
+                        className="w-3 h-3 rounded"
                         style={{ backgroundColor: game.away_team_color || '#0284c7' }}
                       />
-                      <span className="font-semibold text-gray-900">{game.away_team_name}</span>
+                      <span>{game.away_team_name}</span>
                     </div>
-                    <span className="text-2xl font-bold text-gray-900 min-w-[40px] text-center">
-                      {game.away_score ?? '-'}
-                    </span>
-                  </div>
-                </div>
-                <div className="ml-8 pl-8 border-l border-gray-200 min-w-[180px]">
-                  <div className="text-sm font-medium text-gray-900 mb-1">
-                    {formatDate(game.game_date)}
-                  </div>
-                  <div className="text-sm text-gray-600 mb-3">{game.game_time}</div>
-                  <div className="text-xs text-gray-500 mb-1">
-                    {game.rink_name}
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    {game.surface_name}
-                  </div>
-                  {!game.home_score && currentUser && (
-                    <button
-                      onClick={() => openSubRequestForm(game)}
-                      className="mt-3 btn-secondary text-xs py-1 px-2 w-full"
-                    >
-                      Request Sub
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
+                  </td>
+                  <td className="font-medium">
+                    {game.home_score !== null && game.away_score !== null
+                      ? `${game.home_score} - ${game.away_score}`
+                      : '-'}
+                  </td>
+                  <td className="text-gray-600 text-sm">
+                    {game.rink_name} ({game.surface_name})
+                  </td>
+                  <td>
+                    <div className="flex items-center justify-end gap-2">
+                      {!game.home_score && currentUser && (
+                        <button
+                          onClick={() => openSubRequestForm(game)}
+                          className="btn-secondary text-xs py-1 px-3"
+                        >
+                          Request Sub
+                        </button>
+                      )}
+                      {canScheduleGames() && (
+                        <button
+                          onClick={() => handleDeleteGame(game.id)}
+                          className="btn-danger text-xs py-1 px-3"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

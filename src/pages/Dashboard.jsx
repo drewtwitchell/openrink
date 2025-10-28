@@ -25,26 +25,13 @@ function AdminDashboard({ stats }) {
 
   return (
     <div className="space-y-6">
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="stat-card">
-          <div className="stat-label">Total Leagues</div>
-          <div className="stat-value">{stats.leagues}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Total Teams</div>
-          <div className="stat-value">{stats.teams}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Active Season</div>
-          <div className="stat-value">{leaguesList.filter(l => !l.archived).length}</div>
-        </div>
-      </div>
-
       {/* Leagues Section */}
       <div className="card">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="section-header mb-0">Leagues</h2>
+          <div>
+            <h2 className="section-header mb-0">Leagues</h2>
+            <p className="text-sm text-gray-600 mt-1">{stats.leagues} total, {stats.teams} teams</p>
+          </div>
           <Link to="/leagues" className="btn-primary">
             Create League
           </Link>

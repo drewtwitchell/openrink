@@ -48,6 +48,18 @@ export default function Teams() {
     }
   }
 
+  const handleDelete = async (teamId, teamName) => {
+    if (!window.confirm(`Are you sure you want to delete ${teamName}? This will also delete all players on this team.`)) {
+      return
+    }
+    try {
+      await teams.delete(teamId)
+      fetchData()
+    } catch (error) {
+      alert('Error deleting team: ' + error.message)
+    }
+  }
+
   const canManageTeams = () => {
     return currentUser?.role === 'admin' || currentUser?.role === 'league_manager'
   }
@@ -140,71 +152,70 @@ export default function Teams() {
       {teamsList.length === 0 ? (
         <div className="card">
           <div className="empty-state">
-            <h3 className="empty-state-title">No Teams Yet</h3>
-            {leaguesList.length > 0 ? (
-              <>
-                <p className="empty-state-description">
-                  Create your first team to get started
-                </p>
-                <button onClick={() => setShowForm(true)} className="btn-primary">
-                  Create Team
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="empty-state-description">
-                  You'll need a league before creating teams
-                </p>
-                <button onClick={() => window.location.href = '/dashboard'} className="btn-primary">
-                  Go to Dashboard
-                </button>
-              </>
+            <h3 className="empty-state-title">No Teams</h3>
+            <p className="empty-state-description">
+              {leaguesList.length > 0 ? 'Create your first team to get started' : 'Create a league before adding teams'}
+            </p>
+            {leaguesList.length > 0 && (
+              <button onClick={() => setShowForm(true)} className="btn-primary">
+                Create Team
+              </button>
             )}
           </div>
         </div>
       ) : (
-        <div className="grid md:grid-cols-3 gap-6">
-          {teamsList.map((team) => (
-            <div
-              key={team.id}
-              className="card cursor-pointer group"
-              onClick={() => navigate(`/teams/${team.id}/roster`)}
-            >
-              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200">
-                <div
-                  className="w-10 h-10 rounded-lg shadow-sm"
-                  style={{ backgroundColor: team.color }}
-                />
-                <h3 className="text-lg font-semibold text-gray-900">{team.name}</h3>
-              </div>
-              {team.league_name && (
-                <div className="mb-3 text-sm text-gray-600">
-                  <span className="font-medium">{team.league_name}</span>
-                </div>
-              )}
-              {team.captains && team.captains.length > 0 && (
-                <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="text-xs text-gray-600 font-medium mb-2">
-                    Captain{team.captains.length > 1 ? 's' : ''}
-                  </div>
-                  {team.captains.map((captain, idx) => (
-                    <div key={idx} className="text-sm font-medium text-gray-900">
-                      {captain.name}
+        <div className="card">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Team</th>
+                <th>League</th>
+                <th>Captain</th>
+                <th>Players</th>
+                <th className="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {teamsList.map((team) => (
+                <tr key={team.id}>
+                  <td>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-3 h-3 rounded"
+                        style={{ backgroundColor: team.color }}
+                      />
+                      <span className="font-medium">{team.name}</span>
                     </div>
-                  ))}
-                </div>
-              )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  navigate(`/teams/${team.id}/roster`)
-                }}
-                className="btn-secondary text-sm w-full"
-              >
-                View Roster
-              </button>
-            </div>
-          ))}
+                  </td>
+                  <td className="text-gray-600">{team.league_name || '-'}</td>
+                  <td className="text-gray-600">
+                    {team.captains && team.captains.length > 0
+                      ? team.captains.map(c => c.name).join(', ')
+                      : '-'}
+                  </td>
+                  <td className="text-gray-600">{team.player_count || 0}</td>
+                  <td>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => navigate(`/teams/${team.id}/roster`)}
+                        className="btn-secondary text-xs py-1 px-3"
+                      >
+                        View Roster
+                      </button>
+                      {canManageTeams() && (
+                        <button
+                          onClick={() => handleDelete(team.id, team.name)}
+                          className="btn-danger text-xs py-1 px-3"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
