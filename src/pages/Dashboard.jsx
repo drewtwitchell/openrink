@@ -14,7 +14,8 @@ function AdminDashboard({ stats }) {
 
   const fetchLeagues = async () => {
     try {
-      const data = await leagues.getAll()
+      // Show all leagues including archived ones
+      const data = await leagues.getAll(true)
       setLeaguesList(data)
     } catch (error) {
       console.error('Error fetching leagues:', error)
@@ -103,7 +104,8 @@ function LeagueManagerDashboard({ user }) {
 
   const fetchLeagueManagerData = async () => {
     try {
-      const allLeagues = await leagues.getAll()
+      // Show all leagues including archived ones
+      const allLeagues = await leagues.getAll(true)
       const managersData = await Promise.all(
         allLeagues.map(l => leagues.getManagers(l.id).catch(() => []))
       )
@@ -291,7 +293,7 @@ function PlayerDashboard({ user, userPlayerProfiles }) {
   const fetchPlayerLeagueData = async () => {
     try {
       const [allLeagues, allTeams] = await Promise.all([
-        leagues.getAll(),
+        leagues.getAll(true), // Show all leagues including archived
         teams.getAll(),
       ])
 
@@ -575,7 +577,7 @@ export default function Dashboard() {
   const fetchStats = async (currentUser) => {
     try {
       const [leaguesData, teamsData, playersData] = await Promise.all([
-        leagues.getAll(),
+        leagues.getAll(true), // Include archived leagues in stats
         teams.getAll(),
         players.getAll(),
       ])
