@@ -67,13 +67,13 @@ export default function Teams() {
 
       <div className="mb-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Teams</h1>
+          <h1 className="text-4xl font-black gradient-text">Teams</h1>
           {canManageTeams() && (
             <button
               onClick={() => setShowForm(!showForm)}
               className="btn-primary"
             >
-              {showForm ? 'Cancel' : '+ New Team'}
+              {showForm ? '✕ Cancel' : '+ New Team'}
             </button>
           )}
         </div>
@@ -147,14 +147,27 @@ export default function Teams() {
       )}
 
       {teamsList.length === 0 ? (
-        <div className="card text-center py-12">
-          <p className="text-gray-500 mb-4">No teams yet</p>
+        <div className="empty-state hero-section">
+          <div className="empty-state-icon animate-float">👥</div>
+          <h2 className="text-4xl font-black text-white mb-4">No Teams Yet</h2>
           {leaguesList.length > 0 ? (
-            <button onClick={() => setShowForm(true)} className="btn-primary">
-              Create Your First Team
-            </button>
+            <>
+              <p className="text-xl text-blue-100 mb-8">
+                Assemble your squad and hit the ice!
+              </p>
+              <button onClick={() => setShowForm(true)} className="btn-primary bg-white text-ice-600 hover:bg-gray-100">
+                🎯 Create First Team
+              </button>
+            </>
           ) : (
-            <p className="text-gray-400">Create a league first</p>
+            <>
+              <p className="text-xl text-blue-100 mb-8">
+                You'll need a league before creating teams
+              </p>
+              <button onClick={() => window.location.href = '/dashboard'} className="btn-primary bg-white text-ice-600 hover:bg-gray-100">
+                🏒 Create League
+              </button>
+            </>
           )}
         </div>
       ) : (
@@ -162,37 +175,42 @@ export default function Teams() {
           {teamsList.map((team) => (
             <div
               key={team.id}
-              className="card hover:shadow-lg transition-shadow"
+              className="card hover:scale-105 transition-all cursor-pointer group"
+              onClick={() => navigate(`/teams/${team.id}/roster`)}
             >
-              <div className="flex items-center mb-3">
+              <div className="flex items-center mb-4">
                 <div
-                  className="w-8 h-8 rounded-full mr-3"
+                  className="w-12 h-12 rounded-full mr-4 shadow-lg group-hover:shadow-xl transition-shadow"
                   style={{ backgroundColor: team.color }}
                 />
-                <h3 className="text-xl font-semibold">{team.name}</h3>
+                <h3 className="text-xl font-black gradient-text">{team.name}</h3>
               </div>
               {team.league_name && (
-                <p className="text-sm text-gray-500 mb-2">
-                  League: {team.league_name}
-                </p>
+                <div className="mb-3 flex items-center text-sm text-gray-600">
+                  <span className="mr-2">🏆</span>
+                  <span className="font-semibold">{team.league_name}</span>
+                </div>
               )}
               {team.captains && team.captains.length > 0 && (
-                <div className="mb-3 p-2 bg-ice-50 rounded">
-                  <div className="text-xs text-gray-600 font-medium mb-1">
-                    Captain{team.captains.length > 1 ? 's' : ''}:
+                <div className="mb-4 p-3 bg-gradient-to-br from-ice-50 to-blue-50 rounded-xl border border-ice-100">
+                  <div className="text-xs text-gray-600 font-bold mb-2 uppercase tracking-wide">
+                    Captain{team.captains.length > 1 ? 's' : ''}
                   </div>
                   {team.captains.map((captain, idx) => (
-                    <div key={idx} className="text-sm font-medium text-ice-700">
-                      ⭐ {captain.name}
+                    <div key={idx} className="text-sm font-bold text-ice-700 flex items-center">
+                      <span className="mr-2">⭐</span> {captain.name}
                     </div>
                   ))}
                 </div>
               )}
               <button
-                onClick={() => navigate(`/teams/${team.id}/roster`)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  navigate(`/teams/${team.id}/roster`)
+                }}
                 className="btn-primary text-sm w-full"
               >
-                View Roster
+                👥 View Roster
               </button>
             </div>
           ))}

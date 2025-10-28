@@ -232,53 +232,53 @@ export default function LeagueDetails() {
       <div className="mb-6">
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold mb-2">
+            <h1 className="text-4xl font-black gradient-text mb-2">
               {league.name}
               {league.archived === 1 && (
-                <span className="ml-3 text-sm bg-gray-200 text-gray-700 px-3 py-1 rounded-full">
+                <span className="ml-3 text-sm badge badge-warning">
                   Archived
                 </span>
               )}
             </h1>
-            {league.season && <p className="text-gray-600">Season: {league.season}</p>}
+            {league.season && <p className="text-gray-700 font-semibold">Season: {league.season}</p>}
             {league.description && <p className="text-gray-600 mt-2">{league.description}</p>}
           </div>
           <button
             onClick={handleArchive}
             className={league.archived === 1 ? "btn-primary" : "btn-secondary text-amber-600"}
           >
-            {league.archived === 1 ? 'Unarchive League' : 'Archive League'}
+            {league.archived === 1 ? '↩️ Unarchive League' : '📦 Archive League'}
           </button>
         </div>
       </div>
 
       {/* League Contacts */}
       {managers.length > 0 && (
-        <div className="card mb-6 bg-ice-50 border-ice-200">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-lg font-semibold flex items-center">
-              <span className="text-2xl mr-2">👥</span>
+        <div className="card mb-6 bg-gradient-to-br from-ice-50 to-blue-50 border-2 border-ice-200">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-black flex items-center text-ice-700">
+              <span className="text-3xl mr-3">👥</span>
               League Contact{managers.length > 1 ? 's' : ''}
             </h3>
             <button
               onClick={() => setShowContactModal(true)}
-              className="btn-primary text-sm"
+              className="btn-primary shadow-lg"
             >
               📧 Contact All Players
             </button>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {managers.map((manager) => (
-              <div key={manager.id} className="flex items-center justify-between p-3 bg-white rounded">
+              <div key={manager.id} className="flex items-center justify-between p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow">
                 <div>
-                  <div className="font-medium">{manager.name || 'No name'}</div>
-                  <div className="text-sm text-gray-600">
+                  <div className="font-bold text-lg">{manager.name || 'No name'}</div>
+                  <div className="text-sm text-gray-600 font-medium">
                     {manager.email}
                     {manager.phone && <span className="ml-2">• {manager.phone}</span>}
                   </div>
                 </div>
-                <a href={`mailto:${manager.email}`} className="btn-secondary text-xs">
-                  Email
+                <a href={`mailto:${manager.email}`} className="btn-secondary text-sm">
+                  ✉️ Email
                 </a>
               </div>
             ))}
@@ -362,7 +362,14 @@ export default function LeagueDetails() {
                 .sort((a, b) => new Date(a.game_date) - new Date(b.game_date))
 
               return upcomingGames.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No games scheduled this week</p>
+                <div className="empty-state">
+                  <div className="empty-state-icon animate-float">🏒</div>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2">No Games This Week</h3>
+                  <p className="text-gray-600 mb-6">Check back soon for upcoming matchups!</p>
+                  <button onClick={() => setActiveTab('schedule')} className="btn-secondary">
+                    View Full Schedule
+                  </button>
+                </div>
               ) : (
                 <div className="space-y-3">
                   {upcomingGames.map((game) => (
@@ -410,7 +417,16 @@ export default function LeagueDetails() {
               const completedGames = games.filter(g => g.home_score != null && g.away_score != null)
 
               if (completedGames.length === 0) {
-                return <p className="text-gray-500 text-center py-8">No completed games yet</p>
+                return (
+                  <div className="empty-state">
+                    <div className="empty-state-icon animate-float">🏆</div>
+                    <h3 className="text-2xl font-bold text-gray-800 mb-2">Season Just Started!</h3>
+                    <p className="text-gray-600 mb-6">Standings will appear once games are completed.</p>
+                    <button onClick={() => setActiveTab('schedule')} className="btn-secondary">
+                      View Schedule
+                    </button>
+                  </div>
+                )
               }
 
               const teamStats = {}

@@ -4,28 +4,144 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-gradient-to-br from-gray-50 via-blue-50 to-ice-50 text-gray-900 min-h-screen;
   }
 }
 
 @layer components {
+  /* Primary Button - Bold Gradient */
   .btn-primary {
-    @apply bg-ice-600 text-white px-4 py-2 rounded-lg hover:bg-ice-700 transition-colors font-medium;
+    @apply bg-gradient-to-r from-ice-600 to-blue-600 text-white px-6 py-3 rounded-xl hover:from-ice-700 hover:to-blue-700 transition-all duration-300 font-bold shadow-lg hover:shadow-xl transform hover:scale-105;
   }
 
+  /* Secondary Button - Modern Outline */
   .btn-secondary {
-    @apply bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors font-medium;
+    @apply bg-white border-2 border-gray-300 text-gray-700 px-6 py-3 rounded-xl hover:border-ice-500 hover:text-ice-600 hover:bg-ice-50 transition-all duration-300 font-semibold shadow-md hover:shadow-lg;
   }
 
+  /* Card - Enhanced with gradient border */
   .card {
-    @apply bg-white rounded-lg shadow-md p-6;
+    @apply bg-white rounded-2xl shadow-xl p-8 border border-gray-100 hover:shadow-2xl transition-all duration-300;
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(145deg, rgba(2,132,199,0.1), rgba(59,130,246,0.1)) border-box;
   }
 
+  /* Input - Modern with focus effects */
   .input {
-    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ice-500 focus:border-transparent;
+    @apply w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-ice-200 focus:border-ice-500 transition-all duration-200 bg-white font-medium;
   }
 
+  /* Label - Bold and clear */
   .label {
-    @apply block text-sm font-medium text-gray-700 mb-1;
+    @apply block text-sm font-bold text-gray-800 mb-2 uppercase tracking-wide;
+  }
+
+  /* Hero Section - For empty states */
+  .hero-section {
+    @apply relative overflow-hidden rounded-3xl p-12 text-center;
+    background: linear-gradient(135deg, #0284c7 0%, #3b82f6 50%, #0ea5e9 100%);
+  }
+
+  .hero-section::before {
+    content: '';
+    @apply absolute inset-0 opacity-10;
+    background-image:
+      radial-gradient(circle at 20% 50%, white 1px, transparent 1px),
+      radial-gradient(circle at 80% 50%, white 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+
+  /* Stats Card - Bold numbers */
+  .stat-card {
+    @apply bg-gradient-to-br from-white to-gray-50 rounded-2xl p-6 shadow-lg border-2 border-gray-100 hover:border-ice-300 transition-all duration-300 hover:scale-105;
+  }
+
+  /* Badge - Modern pill style */
+  .badge {
+    @apply inline-flex items-center px-4 py-2 rounded-full text-sm font-bold shadow-md;
+  }
+
+  .badge-success {
+    @apply bg-gradient-to-r from-green-500 to-emerald-500 text-white;
+  }
+
+  .badge-warning {
+    @apply bg-gradient-to-r from-amber-500 to-orange-500 text-white;
+  }
+
+  .badge-error {
+    @apply bg-gradient-to-r from-red-500 to-rose-500 text-white;
+  }
+
+  .badge-info {
+    @apply bg-gradient-to-r from-blue-500 to-cyan-500 text-white;
+  }
+
+  /* Page Header - Bold and prominent */
+  .page-header {
+    @apply mb-8 pb-6 border-b-4 border-gradient-to-r from-ice-500 to-blue-500;
+  }
+
+  /* Table - Modern styling */
+  .modern-table {
+    @apply w-full rounded-xl overflow-hidden shadow-lg;
+  }
+
+  .modern-table thead {
+    @apply bg-gradient-to-r from-ice-600 to-blue-600 text-white;
+  }
+
+  .modern-table th {
+    @apply px-6 py-4 text-left text-sm font-bold uppercase tracking-wider;
+  }
+
+  .modern-table td {
+    @apply px-6 py-4 border-b border-gray-100;
+  }
+
+  .modern-table tbody tr {
+    @apply hover:bg-ice-50 transition-colors duration-150;
+  }
+
+  /* Empty State - Engaging design */
+  .empty-state {
+    @apply text-center py-16 px-8;
+  }
+
+  .empty-state-icon {
+    @apply text-8xl mb-6 inline-block;
+    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.1));
+  }
+
+  /* Animation keyframes */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(2,132,199,0.3); }
+    50% { box-shadow: 0 0 40px rgba(2,132,199,0.6); }
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-ice-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent font-black;
+  }
+
+  /* Glass morphism effect */
+  .glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
   }
 }

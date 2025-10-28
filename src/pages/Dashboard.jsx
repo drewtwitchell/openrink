@@ -34,11 +34,31 @@ function AdminDashboard({ stats }) {
         {loading ? (
           <p className="text-gray-500 text-center py-8">Loading...</p>
         ) : leaguesList.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500 mb-4">No leagues yet</p>
-            <Link to="/leagues" className="btn-primary">
-              Create Your First League
-            </Link>
+          <div className="hero-section relative z-10">
+            <div className="relative z-10">
+              <div className="text-8xl mb-6 animate-float">🏒</div>
+              <h2 className="text-4xl font-black text-white mb-4">Welcome to OpenRink!</h2>
+              <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+                Get started by creating your first league. Manage teams, schedule games, and track everything in one place.
+              </p>
+              <Link to="/leagues" className="inline-block bg-white text-ice-600 px-8 py-4 rounded-2xl hover:bg-gray-100 transition-all duration-300 font-bold text-lg shadow-2xl hover:scale-105 transform">
+                🚀 Create Your First League
+              </Link>
+              <div className="mt-12 grid grid-cols-3 gap-6 max-w-3xl mx-auto">
+                <div className="glass rounded-2xl p-6">
+                  <div className="text-3xl mb-2">👥</div>
+                  <div className="text-white font-bold">Manage Teams</div>
+                </div>
+                <div className="glass rounded-2xl p-6">
+                  <div className="text-3xl mb-2">📅</div>
+                  <div className="text-white font-bold">Schedule Games</div>
+                </div>
+                <div className="glass rounded-2xl p-6">
+                  <div className="text-3xl mb-2">📊</div>
+                  <div className="text-white font-bold">Track Standings</div>
+                </div>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -132,13 +152,31 @@ function LeagueManagerDashboard({ user }) {
 
   if (assignedLeagues.length === 0) {
     return (
-      <div className="card text-center py-12">
-        <p className="text-gray-500 mb-4">
-          You are not assigned to manage any leagues yet
-        </p>
-        <p className="text-sm text-gray-400">
-          Contact an admin to be assigned as a league manager
-        </p>
+      <div className="hero-section relative z-10">
+        <div className="relative z-10">
+          <div className="text-8xl mb-6 animate-float">👋</div>
+          <h2 className="text-4xl font-black text-white mb-4">Welcome, League Manager!</h2>
+          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+            You haven't been assigned to any leagues yet. Contact your administrator to get started managing leagues.
+          </p>
+          <div className="glass rounded-2xl p-8 max-w-md mx-auto">
+            <h3 className="text-white font-bold text-lg mb-4">What you'll be able to do:</h3>
+            <div className="space-y-3 text-left">
+              <div className="flex items-center space-x-3 text-white">
+                <span className="text-2xl">⚙️</span>
+                <span>Manage league seasons</span>
+              </div>
+              <div className="flex items-center space-x-3 text-white">
+                <span className="text-2xl">💰</span>
+                <span>Track player payments</span>
+              </div>
+              <div className="flex items-center space-x-3 text-white">
+                <span className="text-2xl">📧</span>
+                <span>Contact all players</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }

@@ -182,7 +182,7 @@ export default function Games() {
 
       <div className="flex justify-between items-start mb-8">
         <div>
-          <h1 className="text-3xl font-bold mb-4">Games</h1>
+          <h1 className="text-4xl font-black gradient-text mb-4">Games</h1>
           {leaguesList.length > 0 && canScheduleGames() && (
             <div className="flex items-center gap-2">
               <label className="text-sm text-gray-600">League for CSV Upload:</label>
@@ -460,61 +460,82 @@ export default function Games() {
       )}
 
       {gamesList.length === 0 ? (
-        <div className="card text-center py-12">
-          <p className="text-gray-500 mb-4">No games scheduled</p>
+        <div className="empty-state hero-section">
+          <div className="empty-state-icon animate-float">🏒</div>
+          <h2 className="text-4xl font-black text-white mb-4">No Games Scheduled</h2>
           {teamsList.length > 0 && rinksList.length > 0 ? (
-            <button onClick={() => setShowForm(true)} className="btn-primary">
-              Schedule Your First Game
-            </button>
+            <>
+              <p className="text-xl text-blue-100 mb-8">
+                Ready to hit the ice? Schedule your first game!
+              </p>
+              <button onClick={() => setShowForm(true)} className="btn-primary bg-white text-ice-600 hover:bg-gray-100">
+                🎯 Schedule First Game
+              </button>
+            </>
           ) : (
-            <p className="text-gray-400">Create teams and rinks first</p>
+            <div>
+              <p className="text-xl text-blue-100 mb-8">
+                You'll need teams and rinks before scheduling games
+              </p>
+              <div className="flex gap-4 justify-center">
+                <button onClick={() => window.location.href = '/teams'} className="btn-primary bg-white text-ice-600 hover:bg-gray-100">
+                  👥 Create Teams
+                </button>
+                <button onClick={() => window.location.href = '/rinks'} className="btn-primary bg-white text-ice-600 hover:bg-gray-100">
+                  🏟️ Add Rinks
+                </button>
+              </div>
+            </div>
           )}
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {gamesList.map((game) => (
-            <div key={game.id} className="card">
+            <div key={game.id} className="card hover:scale-102 transition-transform">
               <div className="flex justify-between items-center">
                 <div className="flex-1">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-4">
                       <div
-                        className="w-6 h-6 rounded-full"
+                        className="w-8 h-8 rounded-full shadow-lg"
                         style={{ backgroundColor: game.home_team_color || '#0284c7' }}
                       />
-                      <span className="font-semibold">{game.home_team_name}</span>
+                      <span className="font-bold text-lg">{game.home_team_name}</span>
                     </div>
-                    <span className="text-2xl font-bold mx-4">
+                    <span className="text-3xl font-black gradient-text mx-6">
                       {game.home_score ?? '-'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-4">
                       <div
-                        className="w-6 h-6 rounded-full"
+                        className="w-8 h-8 rounded-full shadow-lg"
                         style={{ backgroundColor: game.away_team_color || '#0284c7' }}
                       />
-                      <span className="font-semibold">{game.away_team_name}</span>
+                      <span className="font-bold text-lg">{game.away_team_name}</span>
                     </div>
-                    <span className="text-2xl font-bold mx-4">
+                    <span className="text-3xl font-black gradient-text mx-6">
                       {game.away_score ?? '-'}
                     </span>
                   </div>
                 </div>
-                <div className="text-right ml-8">
-                  <div className="text-sm text-gray-600">
+                <div className="text-right ml-12 min-w-[200px]">
+                  <div className="text-sm font-bold text-gray-700 mb-1">
                     {formatDate(game.game_date)}
                   </div>
-                  <div className="text-sm text-gray-600">{game.game_time}</div>
-                  <div className="text-sm text-gray-500">
-                    {game.rink_name} - {game.surface_name}
+                  <div className="text-sm font-semibold text-ice-600">{game.game_time}</div>
+                  <div className="text-sm text-gray-500 mt-2">
+                    🏟️ {game.rink_name}
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    {game.surface_name} Surface
                   </div>
                   {!game.home_score && currentUser && (
                     <button
                       onClick={() => openSubRequestForm(game)}
-                      className="mt-2 text-sm text-ice-600 hover:text-ice-700 underline"
+                      className="mt-3 text-sm btn-secondary py-1 px-3 text-xs"
                     >
-                      Request Sub
+                      🔄 Request Sub
                     </button>
                   )}
                 </div>
