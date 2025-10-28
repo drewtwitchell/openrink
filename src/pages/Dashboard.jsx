@@ -372,7 +372,7 @@ function PlayerDashboard({ user, userPlayerProfiles }) {
                   rel="noopener noreferrer"
                   className="btn-primary text-sm inline-block"
                 >
-                  💰 Pay via Venmo
+                  Pay via Venmo
                 </a>
               )}
             </div>
