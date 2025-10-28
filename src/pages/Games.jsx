@@ -45,7 +45,7 @@ export default function Games() {
         games.getAll(),
         teams.getAll(),
         rinks.getAll(),
-        leagues.getAll(),
+        leagues.getAll(true), // Include archived leagues
         players.getAll(),
       ])
       setGamesList(gamesData)

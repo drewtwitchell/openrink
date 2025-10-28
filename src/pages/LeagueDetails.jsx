@@ -43,7 +43,7 @@ export default function LeagueDetails() {
   const fetchLeagueData = async () => {
     try {
       const [leaguesData, teamsData, gamesData, managersData, seasonsData] = await Promise.all([
-        leagues.getAll(),
+        leagues.getAll(true), // Include archived leagues
         teamsApi.getAll(),
         gamesApi.getAll(),
         leagues.getManagers(id).catch(() => []),

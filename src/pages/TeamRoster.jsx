@@ -41,7 +41,7 @@ export default function TeamRoster() {
 
       // Fetch league data if coming from a league
       if (leagueId) {
-        promises.push(leagues.getAll())
+        promises.push(leagues.getAll(true)) // Include archived leagues
       }
 
       const results = await Promise.all(promises)

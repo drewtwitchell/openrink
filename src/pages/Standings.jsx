@@ -20,7 +20,7 @@ export default function Standings() {
 
   const fetchLeagues = async () => {
     try {
-      const data = await leagues.getAll()
+      const data = await leagues.getAll(true) // Include archived leagues
       setLeaguesList(data)
       if (data && data.length > 0) {
         setSelectedLeague(data[0].id)
