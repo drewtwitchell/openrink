@@ -400,11 +400,8 @@ export default function TeamRoster() {
       )}
 
       {roster.length === 0 ? (
-        <div className="card text-center py-12">
-          <p className="text-gray-500 mb-4">No players on this roster yet</p>
-          <button onClick={() => setShowForm(true)} className="btn-primary">
-            Add Your First Player
-          </button>
+        <div className="card text-center py-12 text-gray-500">
+          <p>No players on this roster yet. Use the form above to add your first player.</p>
         </div>
       ) : (
         <div className="card">
