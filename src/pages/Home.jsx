@@ -58,6 +58,35 @@ export default function Home() {
         }
       }
 
+      // Fetch playoff brackets for each league
+      const leagueBrackets = {}
+      for (const league of leaguesData) {
+        try {
+          // First get active season
+          const seasonResponse = await fetch(`${API_URL}/api/seasons/league/${league.id}/active`)
+          if (seasonResponse.ok) {
+            const activeSeason = await seasonResponse.json()
+            if (activeSeason) {
+              // Then get active bracket for that season
+              const bracketResponse = await fetch(`${API_URL}/api/playoffs/league/${league.id}/season/${activeSeason.id}/active`)
+              if (bracketResponse.ok) {
+                const bracket = await bracketResponse.json()
+                if (bracket) {
+                  // Get full bracket details including matches
+                  const detailsResponse = await fetch(`${API_URL}/api/playoffs/${bracket.id}`)
+                  if (detailsResponse.ok) {
+                    const bracketData = await detailsResponse.json()
+                    leagueBrackets[league.id] = bracketData
+                  }
+                }
+              }
+            }
+          }
+        } catch (error) {
+          leagueBrackets[league.id] = null
+        }
+      }
+
       if (leaguesData.length > 0) {
         setHasLeagues(true)
 
@@ -142,7 +171,8 @@ export default function Home() {
             activeSeason,
             standings,
             upcomingGames,
-            announcements: leagueAnnouncements[league.id] || []
+            announcements: leagueAnnouncements[league.id] || [],
+            bracket: leagueBrackets[league.id] || null
           }
         }))
 
@@ -311,7 +341,7 @@ export default function Home() {
         )}
       </div>
 
-      {displayLeagues.map(({ league, activeSeason, standings, upcomingGames, announcements }) => (
+      {displayLeagues.map(({ league, activeSeason, standings, upcomingGames, announcements, bracket }) => (
         <div key={league.id} className="mb-12">
           {/* League Header - only show for multiple leagues */}
           {isMultipleLeagues && (
@@ -350,6 +380,123 @@ export default function Home() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Playoff Bracket */}
+          {bracket && bracket.bracket && bracket.matches && (
+            <div className="card mb-8">
+              <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {bracket.bracket.name}
+              </h3>
+              <div className="overflow-x-auto pb-4">
+                <div className="inline-flex gap-8 min-w-full">
+                  {(() => {
+                    const matchesByRound = {}
+                    bracket.matches.forEach(match => {
+                      if (!matchesByRound[match.round]) {
+                        matchesByRound[match.round] = []
+                      }
+                      matchesByRound[match.round].push(match)
+                    })
+                    const numRounds = Object.keys(matchesByRound).length
+
+                    return Object.keys(matchesByRound).sort((a, b) => parseInt(a) - parseInt(b)).map(round => (
+                      <div key={round} className="flex-1 min-w-[250px]">
+                        <h4 className="text-md font-semibold mb-3 text-center">
+                          {round === '1' ? 'Round 1' :
+                           round === '2' && numRounds === 2 ? 'Finals' :
+                           round === '2' && numRounds === 3 ? 'Semifinals' :
+                           round === '2' && numRounds === 4 ? 'Quarterfinals' :
+                           round === '3' && numRounds === 3 ? 'Finals' :
+                           round === '3' && numRounds === 4 ? 'Semifinals' :
+                           round === '4' ? 'Finals' :
+                           `Round ${round}`}
+                        </h4>
+                        <div className="space-y-6">
+                          {matchesByRound[round].map((match) => (
+                            <div key={match.id} className="bg-white border-2 border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                              {/* Team 1 */}
+                              <div className={`p-2 border-b ${
+                                match.winner_id === match.team1_id
+                                  ? 'bg-green-50 border-green-200'
+                                  : match.winner_id
+                                  ? 'bg-gray-50'
+                                  : 'bg-white'
+                              }`}>
+                                {match.team1_id ? (
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <div
+                                        className="w-3 h-3 rounded"
+                                        style={{ backgroundColor: match.team1_color || '#ccc' }}
+                                      />
+                                      <span className="text-sm font-medium">{match.team1_name}</span>
+                                      {match.winner_id === match.team1_id && (
+                                        <span className="text-green-600 text-xs">✓</span>
+                                      )}
+                                    </div>
+                                    {match.team1_score !== null && (
+                                      <span className="font-bold">{match.team1_score}</span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-gray-400 italic text-sm">TBD</span>
+                                )}
+                              </div>
+
+                              {/* Team 2 */}
+                              <div className={`p-2 ${
+                                match.winner_id === match.team2_id
+                                  ? 'bg-green-50'
+                                  : match.winner_id
+                                  ? 'bg-gray-50'
+                                  : 'bg-white'
+                              }`}>
+                                {match.team2_id ? (
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <div
+                                        className="w-3 h-3 rounded"
+                                        style={{ backgroundColor: match.team2_color || '#ccc' }}
+                                      />
+                                      <span className="text-sm font-medium">{match.team2_name}</span>
+                                      {match.winner_id === match.team2_id && (
+                                        <span className="text-green-600 text-xs">✓</span>
+                                      )}
+                                    </div>
+                                    {match.team2_score !== null && (
+                                      <span className="font-bold">{match.team2_score}</span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-gray-400 italic text-sm">TBD</span>
+                                )}
+                              </div>
+
+                              {/* Match Details */}
+                              {(match.game_date || match.rink_name) && (
+                                <div className="px-2 py-1 bg-gray-50 border-t text-xs text-gray-600">
+                                  {match.game_date && (
+                                    <div>
+                                      {new Date(match.game_date).toLocaleDateString()}
+                                      {match.game_time && ` ${match.game_time}`}
+                                    </div>
+                                  )}
+                                  {match.rink_name && <div>{match.rink_name}</div>}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  })()}
+                </div>
+              </div>
             </div>
           )}
 

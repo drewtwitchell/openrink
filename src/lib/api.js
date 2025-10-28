@@ -219,6 +219,27 @@ export const announcements = {
   }),
 }
 
+// Playoffs API
+export const playoffs = {
+  getByLeagueSeason: (leagueId, seasonId) => apiRequest(`/api/playoffs/league/${leagueId}/season/${seasonId}`),
+  getActive: (leagueId, seasonId) => apiRequest(`/api/playoffs/league/${leagueId}/season/${seasonId}/active`),
+  getById: (bracketId) => apiRequest(`/api/playoffs/${bracketId}`),
+  create: (data) => apiRequest('/api/playoffs', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  updateMatch: (matchId, data) => apiRequest(`/api/playoffs/matches/${matchId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  toggleActive: (bracketId) => apiRequest(`/api/playoffs/${bracketId}/toggle`, {
+    method: 'PUT',
+  }),
+  delete: (bracketId) => apiRequest(`/api/playoffs/${bracketId}`, {
+    method: 'DELETE',
+  }),
+}
+
 // CSV API
 export const csv = {
   downloadRosterTemplate: () => {

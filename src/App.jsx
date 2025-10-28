@@ -15,6 +15,8 @@ import Standings from './pages/Standings'
 import Settings from './pages/Settings'
 import Users from './pages/Users'
 import Announcements from './pages/Announcements'
+import Playoffs from './pages/Playoffs'
+import PlayoffBracketView from './pages/PlayoffBracketView'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -154,6 +156,8 @@ function App() {
             <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
             <Route path="/users" element={isAuthenticated ? <Users /> : <Navigate to="/login" />} />
             <Route path="/leagues/:leagueId/announcements" element={isAuthenticated ? <Announcements /> : <Navigate to="/login" />} />
+            <Route path="/leagues/:leagueId/playoffs" element={isAuthenticated ? <Playoffs /> : <Navigate to="/login" />} />
+            <Route path="/playoffs/:bracketId/view" element={isAuthenticated ? <PlayoffBracketView /> : <Navigate to="/login" />} />
           </Routes>
         </main>
       </div>
