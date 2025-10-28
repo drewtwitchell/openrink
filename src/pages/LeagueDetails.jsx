@@ -113,6 +113,18 @@ export default function LeagueDetails() {
     }
   }
 
+  const handleDeleteLeague = async () => {
+    if (!confirm(`Delete league "${league.name}"? This will permanently delete all associated seasons, teams, games, and players. This cannot be undone.`)) {
+      return
+    }
+    try {
+      await leagues.delete(id)
+      navigate('/leagues')
+    } catch (error) {
+      alert('Error deleting league: ' + error.message)
+    }
+  }
+
   const handleTeamSubmit = async (e) => {
     e.preventDefault()
     try {
@@ -204,6 +216,18 @@ export default function LeagueDetails() {
     }
   }
 
+  const handleDeleteTeam = async (teamId, teamName) => {
+    if (!confirm(`Delete team "${teamName}"? This will also delete all players on this team.`)) {
+      return
+    }
+    try {
+      await teamsApi.delete(teamId)
+      fetchLeagueData()
+    } catch (error) {
+      alert('Error deleting team: ' + error.message)
+    }
+  }
+
   if (loading) {
     return <div>Loading league details...</div>
   }
@@ -242,9 +266,15 @@ export default function LeagueDetails() {
         <div className="flex gap-2">
           <button
             onClick={handleArchive}
-            className={league.archived === 1 ? "btn-primary" : "btn-danger"}
+            className={league.archived === 1 ? "btn-primary" : "btn-secondary"}
           >
             {league.archived === 1 ? 'Unarchive League' : 'Archive League'}
+          </button>
+          <button
+            onClick={handleDeleteLeague}
+            className="btn-danger"
+          >
+            Delete League
           </button>
         </div>
       </div>
@@ -656,12 +686,20 @@ export default function LeagueDetails() {
                       ))}
                     </div>
                   )}
-                  <button
-                    onClick={() => navigate(`/teams/${team.id}/roster?league=${id}`)}
-                    className="btn-primary text-sm w-full"
-                  >
-                    View Roster
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => navigate(`/teams/${team.id}/roster?league=${id}`)}
+                      className="btn-primary text-sm flex-1"
+                    >
+                      View Roster
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTeam(team.id, team.name)}
+                      className="btn-danger text-sm px-3"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

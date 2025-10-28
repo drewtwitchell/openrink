@@ -447,9 +447,9 @@ export default function TeamRoster() {
                     <td className="py-3 px-4 text-center">
                       <button
                         onClick={() => handleDelete(player.id)}
-                        className="text-red-600 hover:text-red-800 text-sm"
+                        className="btn-danger text-xs py-1 px-3"
                       >
-                        Remove
+                        Delete
                       </button>
                     </td>
                   </tr>
