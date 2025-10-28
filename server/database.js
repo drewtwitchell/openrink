@@ -335,6 +335,50 @@ function initDatabase() {
       )
     `)
 
+    // Create playoff brackets table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS playoff_brackets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        league_id INTEGER NOT NULL,
+        season_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        format TEXT NOT NULL,
+        created_by INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        is_active INTEGER DEFAULT 1,
+        FOREIGN KEY (league_id) REFERENCES leagues(id) ON DELETE CASCADE,
+        FOREIGN KEY (season_id) REFERENCES seasons(id) ON DELETE CASCADE,
+        FOREIGN KEY (created_by) REFERENCES users(id)
+      )
+    `)
+
+    // Create playoff matches table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS playoff_matches (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        bracket_id INTEGER NOT NULL,
+        round INTEGER NOT NULL,
+        match_number INTEGER NOT NULL,
+        team1_id INTEGER,
+        team2_id INTEGER,
+        team1_score INTEGER,
+        team2_score INTEGER,
+        winner_id INTEGER,
+        game_date DATE,
+        game_time TIME,
+        rink_id INTEGER,
+        surface_name TEXT,
+        next_match_id INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (bracket_id) REFERENCES playoff_brackets(id) ON DELETE CASCADE,
+        FOREIGN KEY (team1_id) REFERENCES teams(id),
+        FOREIGN KEY (team2_id) REFERENCES teams(id),
+        FOREIGN KEY (winner_id) REFERENCES teams(id),
+        FOREIGN KEY (rink_id) REFERENCES rinks(id),
+        FOREIGN KEY (next_match_id) REFERENCES playoff_matches(id)
+      )
+    `)
+
     // Create default admin user if it doesn't exist
     db.get('SELECT id FROM users WHERE email = ?', ['admin@openrink.local'], async (err, row) => {
       if (err) {
