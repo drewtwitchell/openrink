@@ -13,10 +13,13 @@ import TeamRoster from './pages/TeamRoster'
 import Games from './pages/Games'
 import Standings from './pages/Standings'
 import Settings from './pages/Settings'
+import Users from './pages/Users'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const [user, setUser] = useState(null)
 
   useEffect(() => {
     // Check if user is authenticated
@@ -34,15 +37,18 @@ function App() {
       .then(data => {
         if (data.user) {
           localStorage.setItem('user', JSON.stringify(data.user))
+          setUser(data.user)
         }
       })
       .catch(err => {
         console.error('Failed to refresh user data:', err)
       })
+    } else {
+      setUser(null)
     }
 
     setLoading(false)
-  }, [])
+  }, [isAuthenticated])
 
   const handleSignOut = () => {
     auth.signOut()
@@ -66,42 +72,62 @@ function App() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-16">
               <div className="flex items-center space-x-8">
-                <Link to="/" className="text-2xl font-bold text-ice-600">
+                <Link to={isAuthenticated ? "/dashboard" : "/"} className="text-2xl font-bold text-ice-600">
                   🏒 OpenRink
                 </Link>
-                {isAuthenticated && (
-                  <>
-                    <Link to="/dashboard" className="text-gray-700 hover:text-ice-600">
-                      Dashboard
-                    </Link>
-                    <Link to="/leagues" className="text-gray-700 hover:text-ice-600">
-                      Leagues
-                    </Link>
-                    <Link to="/teams" className="text-gray-700 hover:text-ice-600">
-                      Teams
-                    </Link>
-                    <Link to="/games" className="text-gray-700 hover:text-ice-600">
-                      Games
-                    </Link>
-                    <Link to="/standings" className="text-gray-700 hover:text-ice-600">
-                      Standings
-                    </Link>
-                  </>
-                )}
               </div>
               <div className="flex items-center space-x-4">
                 {isAuthenticated ? (
-                  <>
-                    <Link to="/settings" className="text-gray-700 hover:text-ice-600">
-                      Settings
-                    </Link>
+                  <div className="relative">
                     <button
-                      onClick={handleSignOut}
-                      className="btn-secondary"
+                      onClick={() => setShowUserMenu(!showUserMenu)}
+                      className="flex items-center space-x-2 text-gray-700 hover:text-ice-600 focus:outline-none"
                     >
-                      Sign Out
+                      <div className="text-right">
+                        <div className="font-medium">{user?.name || user?.email}</div>
+                        <div className="text-xs text-gray-500">{user?.role?.replace('_', ' ')}</div>
+                      </div>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
                     </button>
-                  </>
+
+                    {showUserMenu && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-10"
+                          onClick={() => setShowUserMenu(false)}
+                        />
+                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20 border border-gray-200">
+                          <Link
+                            to="/settings"
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => setShowUserMenu(false)}
+                          >
+                            Profile Settings
+                          </Link>
+                          {user?.role === 'admin' && (
+                            <Link
+                              to="/users"
+                              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                              onClick={() => setShowUserMenu(false)}
+                            >
+                              User Management
+                            </Link>
+                          )}
+                          <button
+                            onClick={() => {
+                              setShowUserMenu(false)
+                              handleSignOut()
+                            }}
+                            className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                          >
+                            Sign Out
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 ) : (
                   <Link to="/login" className="btn-primary">
                     Sign In
@@ -125,6 +151,7 @@ function App() {
             <Route path="/games" element={isAuthenticated ? <Games /> : <Navigate to="/login" />} />
             <Route path="/standings" element={isAuthenticated ? <Standings /> : <Navigate to="/login" />} />
             <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
+            <Route path="/users" element={isAuthenticated ? <Users /> : <Navigate to="/login" />} />
           </Routes>
         </main>
       </div>

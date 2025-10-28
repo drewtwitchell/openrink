@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { teams, leagues as leaguesApi } from '../lib/api'
+import { teams, leagues as leaguesApi, auth } from '../lib/api'
+import Breadcrumbs from '../components/Breadcrumbs'
 
 export default function Teams() {
   const navigate = useNavigate()
@@ -8,6 +9,7 @@ export default function Teams() {
   const [leaguesList, setLeaguesList] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [currentUser, setCurrentUser] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     league_id: '',
@@ -15,6 +17,7 @@ export default function Teams() {
   })
 
   useEffect(() => {
+    setCurrentUser(auth.getUser())
     fetchData()
   }, [])
 
@@ -45,21 +48,53 @@ export default function Teams() {
     }
   }
 
+  const canManageTeams = () => {
+    return currentUser?.role === 'admin' || currentUser?.role === 'league_manager'
+  }
+
   if (loading) {
     return <div>Loading teams...</div>
   }
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Teams</h1>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="btn-primary"
-        >
-          {showForm ? 'Cancel' : '+ New Team'}
-        </button>
+      <Breadcrumbs
+        items={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Teams' }
+        ]}
+      />
+
+      <div className="mb-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Teams</h1>
+          {canManageTeams() && (
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="btn-primary"
+            >
+              {showForm ? 'Cancel' : '+ New Team'}
+            </button>
+          )}
+        </div>
+
+        {/* Tabs */}
+        <div className="border-b border-gray-200">
+          <nav className="flex space-x-8">
+            <div className="py-4 px-1 border-b-2 border-ice-600 font-medium text-sm text-ice-600">
+              All Teams
+            </div>
+          </nav>
+        </div>
       </div>
+
+      {!canManageTeams() && teamsList.length === 0 && (
+        <div className="card mb-6 bg-blue-50 border-blue-200">
+          <p className="text-sm text-gray-700">
+            Only Admins and League Managers can create teams. Contact your administrator for access.
+          </p>
+        </div>
+      )}
 
       {showForm && (
         <div className="card mb-8">
@@ -140,6 +175,18 @@ export default function Teams() {
                 <p className="text-sm text-gray-500 mb-2">
                   League: {team.league_name}
                 </p>
+              )}
+              {team.captains && team.captains.length > 0 && (
+                <div className="mb-3 p-2 bg-ice-50 rounded">
+                  <div className="text-xs text-gray-600 font-medium mb-1">
+                    Captain{team.captains.length > 1 ? 's' : ''}:
+                  </div>
+                  {team.captains.map((captain, idx) => (
+                    <div key={idx} className="text-sm font-medium text-ice-700">
+                      ⭐ {captain.name}
+                    </div>
+                  ))}
+                </div>
               )}
               <button
                 onClick={() => navigate(`/teams/${team.id}/roster`)}

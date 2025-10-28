@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { games, teams, rinks, leagues, csv } from '../lib/api'
+import { games, teams, rinks, leagues, csv, players, subRequests, auth } from '../lib/api'
+import Breadcrumbs from '../components/Breadcrumbs'
 
 export default function Games() {
   const [gamesList, setGamesList] = useState([])
@@ -11,6 +12,10 @@ export default function Games() {
   const [showForm, setShowForm] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadMessage, setUploadMessage] = useState('')
+  const [showSubRequestForm, setShowSubRequestForm] = useState(false)
+  const [selectedGameForSub, setSelectedGameForSub] = useState(null)
+  const [playersList, setPlayersList] = useState([])
+  const [currentUser, setCurrentUser] = useState(null)
   const fileInputRef = useRef(null)
   const [formData, setFormData] = useState({
     home_team_id: '',
@@ -20,23 +25,33 @@ export default function Games() {
     rink_id: '',
     surface_name: 'NHL',
   })
+  const [subRequestData, setSubRequestData] = useState({
+    requesting_player_id: '',
+    payment_required: false,
+    payment_amount: '',
+    venmo_link: '',
+    notes: '',
+  })
 
   useEffect(() => {
+    setCurrentUser(auth.getUser())
     fetchData()
   }, [])
 
   const fetchData = async () => {
     try {
-      const [gamesData, teamsData, rinksData, leaguesData] = await Promise.all([
+      const [gamesData, teamsData, rinksData, leaguesData, playersData] = await Promise.all([
         games.getAll(),
         teams.getAll(),
         rinks.getAll(),
         leagues.getAll(),
+        players.getAll(),
       ])
       setGamesList(gamesData)
       setTeamsList(teamsData)
       setRinksList(rinksData)
       setLeaguesList(leaguesData)
+      setPlayersList(playersData)
       if (leaguesData.length > 0 && !selectedLeague) {
         setSelectedLeague(leaguesData[0].id.toString())
       }
@@ -100,16 +115,62 @@ export default function Games() {
     }
   }
 
+  const openSubRequestForm = (game) => {
+    setSelectedGameForSub(game)
+    setShowSubRequestForm(true)
+    setSubRequestData({
+      requesting_player_id: '',
+      payment_required: false,
+      payment_amount: '',
+      venmo_link: '',
+      notes: '',
+    })
+  }
+
+  const handleSubRequestSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      await subRequests.create({
+        game_id: selectedGameForSub.id,
+        ...subRequestData,
+        payment_required: subRequestData.payment_required ? 1 : 0,
+      })
+      setShowSubRequestForm(false)
+      setSelectedGameForSub(null)
+      alert('Sub request created successfully! Team members will be notified.')
+    } catch (error) {
+      alert('Error creating sub request: ' + error.message)
+    }
+  }
+
+  const getPlayersForGame = (game) => {
+    if (!game) return []
+    return playersList.filter(p =>
+      p.team_id === game.home_team_id || p.team_id === game.away_team_id
+    )
+  }
+
+  const canScheduleGames = () => {
+    return currentUser?.role === 'admin' || currentUser?.role === 'league_manager'
+  }
+
   if (loading) {
     return <div>Loading games...</div>
   }
 
   return (
     <div>
+      <Breadcrumbs
+        items={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Games' }
+        ]}
+      />
+
       <div className="flex justify-between items-start mb-8">
         <div>
           <h1 className="text-3xl font-bold mb-4">Games</h1>
-          {leaguesList.length > 0 && (
+          {leaguesList.length > 0 && canScheduleGames() && (
             <div className="flex items-center gap-2">
               <label className="text-sm text-gray-600">League for CSV Upload:</label>
               <select
@@ -126,30 +187,40 @@ export default function Games() {
             </div>
           )}
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => setShowForm(!showForm)} className="btn-primary">
-            {showForm ? 'Cancel' : '+ Schedule Game'}
-          </button>
-          <button
-            onClick={() => csv.downloadScheduleTemplate()}
-            className="btn-secondary"
-            title="Download CSV Template"
-          >
-            📄 Template
-          </button>
-          <label className="btn-secondary cursor-pointer" title="Upload Schedule CSV">
-            📤 Upload CSV
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv"
-              onChange={handleCSVUpload}
-              className="hidden"
-              disabled={uploading || !selectedLeague}
-            />
-          </label>
-        </div>
+        {canScheduleGames() && (
+          <div className="flex gap-2">
+            <button onClick={() => setShowForm(!showForm)} className="btn-primary">
+              {showForm ? 'Cancel' : '+ Schedule Game'}
+            </button>
+            <button
+              onClick={() => csv.downloadScheduleTemplate()}
+              className="btn-secondary"
+              title="Download CSV Template"
+            >
+              📄 Template
+            </button>
+            <label className="btn-secondary cursor-pointer" title="Upload Schedule CSV">
+              📤 Upload CSV
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleCSVUpload}
+                className="hidden"
+                disabled={uploading || !selectedLeague}
+              />
+            </label>
+          </div>
+        )}
       </div>
+
+      {!canScheduleGames() && gamesList.length === 0 && (
+        <div className="card mb-6 bg-blue-50 border-blue-200">
+          <p className="text-sm text-gray-700">
+            Only Admins and League Managers can schedule games. You can still request substitutes for games once they're scheduled.
+          </p>
+        </div>
+      )}
 
       {uploadMessage && (
         <div className={`mb-6 p-4 rounded ${uploadMessage.includes('Error') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
@@ -160,6 +231,106 @@ export default function Games() {
       {uploading && (
         <div className="mb-6 p-4 bg-blue-100 text-blue-700 rounded">
           Uploading and processing CSV... This may take a moment.
+        </div>
+      )}
+
+      {showSubRequestForm && selectedGameForSub && (
+        <div className="card mb-8 border-2 border-ice-600">
+          <h2 className="text-xl font-semibold mb-4">Request a Substitute</h2>
+          <div className="mb-4 p-3 bg-gray-50 rounded">
+            <div className="font-semibold">
+              {selectedGameForSub.home_team_name} vs {selectedGameForSub.away_team_name}
+            </div>
+            <div className="text-sm text-gray-600">
+              {formatDate(selectedGameForSub.game_date)} at {selectedGameForSub.game_time}
+            </div>
+          </div>
+          <form onSubmit={handleSubRequestSubmit} className="space-y-4">
+            <div>
+              <label className="label">Who needs a sub? *</label>
+              <select
+                value={subRequestData.requesting_player_id}
+                onChange={(e) => setSubRequestData({ ...subRequestData, requesting_player_id: e.target.value })}
+                className="input"
+                required
+              >
+                <option value="">Select player</option>
+                {getPlayersForGame(selectedGameForSub).map((player) => (
+                  <option key={player.id} value={player.id}>
+                    {player.name} ({player.team_name})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="label">Notes</label>
+              <textarea
+                value={subRequestData.notes}
+                onChange={(e) => setSubRequestData({ ...subRequestData, notes: e.target.value })}
+                className="input"
+                placeholder="Add any additional details..."
+                rows="3"
+              />
+            </div>
+
+            <div className="border-t pt-4">
+              <div className="flex items-center mb-3">
+                <input
+                  type="checkbox"
+                  id="payment_required"
+                  checked={subRequestData.payment_required}
+                  onChange={(e) => setSubRequestData({ ...subRequestData, payment_required: e.target.checked })}
+                  className="mr-2"
+                />
+                <label htmlFor="payment_required" className="text-sm font-medium">
+                  Payment required from substitute
+                </label>
+              </div>
+
+              {subRequestData.payment_required && (
+                <div className="grid md:grid-cols-2 gap-4 ml-6">
+                  <div>
+                    <label className="label">Amount</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={subRequestData.payment_amount}
+                      onChange={(e) => setSubRequestData({ ...subRequestData, payment_amount: e.target.value })}
+                      className="input"
+                      placeholder="25.00"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Venmo Link</label>
+                    <input
+                      type="url"
+                      value={subRequestData.venmo_link}
+                      onChange={(e) => setSubRequestData({ ...subRequestData, venmo_link: e.target.value })}
+                      className="input"
+                      placeholder="https://venmo.com/u/yourhandle"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <button type="submit" className="btn-primary">
+                Request Substitute
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSubRequestForm(false)
+                  setSelectedGameForSub(null)
+                }}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
@@ -325,6 +496,14 @@ export default function Games() {
                   <div className="text-sm text-gray-500">
                     {game.rink_name} - {game.surface_name}
                   </div>
+                  {!game.home_score && currentUser && (
+                    <button
+                      onClick={() => openSubRequestForm(game)}
+                      className="mt-2 text-sm text-ice-600 hover:text-ice-700 underline"
+                    >
+                      Request Sub
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

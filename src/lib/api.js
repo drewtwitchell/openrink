@@ -77,6 +77,8 @@ export const auth = {
     return data
   },
 
+  searchUsers: (query) => apiRequest(`/api/auth/users/search?q=${encodeURIComponent(query)}`),
+
   getAllUsers: () => apiRequest('/api/auth/users'),
 
   updateUserRole: (userId, role) => apiRequest(`/api/auth/users/${userId}/role`, {
@@ -91,7 +93,7 @@ export const auth = {
 
 // Leagues API
 export const leagues = {
-  getAll: () => apiRequest('/api/leagues'),
+  getAll: (showArchived = false) => apiRequest(`/api/leagues${showArchived ? '?showArchived=true' : ''}`),
   getById: (id) => apiRequest(`/api/leagues/${id}`),
   getManagers: (id) => apiRequest(`/api/leagues/${id}/managers`),
   create: (data) => apiRequest('/api/leagues', {
@@ -101,6 +103,10 @@ export const leagues = {
   update: (id, data) => apiRequest(`/api/leagues/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
+  }),
+  archive: (id, archived) => apiRequest(`/api/leagues/${id}/archive`, {
+    method: 'PATCH',
+    body: JSON.stringify({ archived }),
   }),
   delete: (id) => apiRequest(`/api/leagues/${id}`, {
     method: 'DELETE',

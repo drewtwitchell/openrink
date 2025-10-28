@@ -1,4 +1,5 @@
 import sqlite3 from 'sqlite3'
+import bcrypt from 'bcrypt'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 
@@ -43,6 +44,15 @@ function initDatabase() {
       if (err && !err.message.includes('duplicate column')) {
         console.error('Error adding role column:', err)
       }
+
+      // Set default role for any existing users with NULL role
+      db.run(`UPDATE users SET role = 'player' WHERE role IS NULL`, (updateErr) => {
+        if (updateErr) {
+          console.error('Error setting default roles:', updateErr)
+        } else {
+          console.log('Updated NULL roles to player')
+        }
+      })
     })
 
     // League managers table
@@ -74,11 +84,34 @@ function initDatabase() {
         name TEXT NOT NULL,
         description TEXT,
         season TEXT,
+        season_dues DECIMAL(10,2),
+        venmo_link TEXT,
         created_by INTEGER REFERENCES users(id),
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `)
+
+    // Add season_dues column if it doesn't exist (migration)
+    db.run(`ALTER TABLE leagues ADD COLUMN season_dues DECIMAL(10,2)`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding season_dues column:', err)
+      }
+    })
+
+    // Add venmo_link column if it doesn't exist (migration)
+    db.run(`ALTER TABLE leagues ADD COLUMN venmo_link TEXT`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding venmo_link column:', err)
+      }
+    })
+
+    // Add archived column if it doesn't exist (migration)
+    db.run(`ALTER TABLE leagues ADD COLUMN archived INTEGER DEFAULT 0`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding archived column:', err)
+      }
+    })
 
     // Rinks table
     db.run(`
@@ -181,6 +214,38 @@ function initDatabase() {
       (1, 'IceCenter', '123 Hockey Lane, Ice Town, USA'),
       (2, 'Twin Rinks Arena', '456 Skate Street, Puck City, USA')
     `)
+
+    // Create default admin user if it doesn't exist
+    db.get('SELECT id FROM users WHERE email = ?', ['admin@openrink.local'], async (err, row) => {
+      if (err) {
+        console.error('Error checking for default admin:', err)
+        return
+      }
+
+      if (!row) {
+        try {
+          const hashedPassword = await bcrypt.hash('admin123', 10)
+          db.run(
+            'INSERT INTO users (email, password, name, role) VALUES (?, ?, ?, ?)',
+            ['admin@openrink.local', hashedPassword, 'Default Admin', 'admin'],
+            (insertErr) => {
+              if (insertErr) {
+                console.error('Error creating default admin:', insertErr)
+              } else {
+                console.log('✅ Default admin user created')
+                console.log('   Email: admin@openrink.local')
+                console.log('   Password: admin123')
+                console.log('   ⚠️  Please change this password in production!')
+              }
+            }
+          )
+        } catch (hashErr) {
+          console.error('Error hashing default admin password:', hashErr)
+        }
+      } else {
+        console.log('Default admin user already exists')
+      }
+    })
 
     console.log('Database initialized successfully')
   })

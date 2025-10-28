@@ -6,7 +6,12 @@ const router = express.Router()
 
 // Get all leagues (public - no auth required)
 router.get('/', (req, res) => {
-  db.all('SELECT * FROM leagues ORDER BY created_at DESC', [], (err, rows) => {
+  const showArchived = req.query.showArchived === 'true'
+  const query = showArchived
+    ? 'SELECT * FROM leagues ORDER BY created_at DESC'
+    : 'SELECT * FROM leagues WHERE archived = 0 ORDER BY created_at DESC'
+
+  db.all(query, [], (err, rows) => {
     if (err) {
       return res.status(500).json({ error: 'Error fetching leagues' })
     }
@@ -72,6 +77,22 @@ router.put('/:id', authenticateToken, (req, res) => {
         return res.status(500).json({ error: 'Error updating league' })
       }
       res.json({ message: 'League updated successfully' })
+    }
+  )
+})
+
+// Archive/Unarchive league
+router.patch('/:id/archive', authenticateToken, (req, res) => {
+  const { archived } = req.body // archived should be 1 (archive) or 0 (unarchive)
+
+  db.run(
+    'UPDATE leagues SET archived = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [archived ? 1 : 0, req.params.id],
+    function (err) {
+      if (err) {
+        return res.status(500).json({ error: 'Error updating league archive status' })
+      }
+      res.json({ message: archived ? 'League archived successfully' : 'League unarchived successfully' })
     }
   )
 })

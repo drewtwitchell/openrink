@@ -1,31 +1,31 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { teams, players, csv, payments } from '../lib/api'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { teams, players, csv, auth, leagues } from '../lib/api'
+import Breadcrumbs from '../components/Breadcrumbs'
 
 export default function TeamRoster() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const leagueId = searchParams.get('league')
   const [team, setTeam] = useState(null)
+  const [league, setLeague] = useState(null)
   const [roster, setRoster] = useState([])
-  const [teamPayments, setTeamPayments] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [showPaymentSetup, setShowPaymentSetup] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadMessage, setUploadMessage] = useState('')
+  const [userSearchResults, setUserSearchResults] = useState([])
+  const [showUserSearch, setShowUserSearch] = useState(false)
+  const [selectedUser, setSelectedUser] = useState(null)
   const fileInputRef = useRef(null)
+  const searchTimeoutRef = useRef(null)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     jersey_number: '',
     email_notifications: true,
-  })
-  const [paymentSetupData, setPaymentSetupData] = useState({
-    amount: '',
-    description: 'Season Dues',
-    venmo_link: '',
-    due_date: '',
   })
 
   useEffect(() => {
@@ -34,16 +34,28 @@ export default function TeamRoster() {
 
   const fetchData = async () => {
     try {
-      const [teamsData, playersData, paymentsData] = await Promise.all([
+      const promises = [
         teams.getAll(),
         players.getByTeam(id),
-        payments.getByTeam(id).catch(() => []),
-      ])
+      ]
+
+      // Fetch league data if coming from a league
+      if (leagueId) {
+        promises.push(leagues.getAll())
+      }
+
+      const results = await Promise.all(promises)
+      const [teamsData, playersData, leaguesData] = results
 
       const teamData = teamsData.find(t => t.id === parseInt(id))
       setTeam(teamData)
       setRoster(playersData)
-      setTeamPayments(paymentsData)
+
+      // Set league data if available
+      if (leaguesData && leagueId) {
+        const leagueData = leaguesData.find(l => l.id === parseInt(leagueId))
+        setLeague(leagueData)
+      }
     } catch (error) {
       console.error('Error fetching roster:', error)
     } finally {
@@ -54,13 +66,63 @@ export default function TeamRoster() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      await players.create({ ...formData, team_id: id })
+      const playerData = {
+        ...formData,
+        team_id: id,
+        user_id: selectedUser?.id || null
+      }
+      await players.create(playerData)
       setFormData({ name: '', email: '', phone: '', jersey_number: '', email_notifications: true })
+      setSelectedUser(null)
       setShowForm(false)
       fetchData()
     } catch (error) {
       alert('Error adding player: ' + error.message)
     }
+  }
+
+  const handleNameChange = async (e) => {
+    const value = e.target.value
+    setFormData({ ...formData, name: value })
+
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
+
+    // Don't search if less than 2 characters
+    if (value.length < 2) {
+      setUserSearchResults([])
+      setShowUserSearch(false)
+      return
+    }
+
+    // Debounce the search
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const results = await auth.searchUsers(value)
+        setUserSearchResults(results)
+        setShowUserSearch(results.length > 0)
+      } catch (error) {
+        console.error('Error searching users:', error)
+      }
+    }, 300)
+  }
+
+  const selectUser = (user) => {
+    setSelectedUser(user)
+    setFormData({
+      ...formData,
+      name: user.name || '',
+      email: user.email || '',
+      phone: user.phone || ''
+    })
+    setShowUserSearch(false)
+    setUserSearchResults([])
+  }
+
+  const clearUserSelection = () => {
+    setSelectedUser(null)
   }
 
   const handleDelete = async (playerId) => {
@@ -71,40 +133,6 @@ export default function TeamRoster() {
       fetchData()
     } catch (error) {
       alert('Error removing player: ' + error.message)
-    }
-  }
-
-  const handlePaymentSetup = async (e) => {
-    e.preventDefault()
-    try {
-      // Create payment records for all players
-      const promises = roster.map(player =>
-        payments.create({
-          player_id: player.id,
-          team_id: id,
-          amount: paymentSetupData.amount,
-          description: paymentSetupData.description,
-          venmo_link: paymentSetupData.venmo_link,
-          due_date: paymentSetupData.due_date,
-        })
-      )
-
-      await Promise.all(promises)
-      setPaymentSetupData({ amount: '', description: 'Season Dues', venmo_link: '', due_date: '' })
-      setShowPaymentSetup(false)
-      fetchData()
-      alert(`Payment records created for ${roster.length} players!`)
-    } catch (error) {
-      alert('Error setting up payments: ' + error.message)
-    }
-  }
-
-  const handleMarkPaid = async (paymentId) => {
-    try {
-      await payments.markPaid(paymentId)
-      fetchData()
-    } catch (error) {
-      alert('Error marking payment as paid: ' + error.message)
     }
   }
 
@@ -129,10 +157,6 @@ export default function TeamRoster() {
     }
   }
 
-  const getPlayerPayment = (playerId) => {
-    return teamPayments.find(p => p.player_id === playerId)
-  }
-
   if (loading) {
     return <div>Loading roster...</div>
   }
@@ -148,15 +172,24 @@ export default function TeamRoster() {
     )
   }
 
-  const paidCount = teamPayments.filter(p => p.status === 'paid').length
-  const pendingCount = teamPayments.filter(p => p.status === 'pending').length
+  const breadcrumbItems = leagueId
+    ? [
+        { label: 'Dashboard', href: '/dashboard' },
+        { label: 'Leagues', href: '/leagues' },
+        { label: league?.name || 'League', href: `/leagues/${leagueId}` },
+        { label: team?.name || 'Team Roster' }
+      ]
+    : [
+        { label: 'Dashboard', href: '/dashboard' },
+        { label: 'Teams', href: '/teams' },
+        { label: team?.name || 'Team Roster' }
+      ]
 
   return (
     <div>
+      <Breadcrumbs items={breadcrumbItems} />
+
       <div className="mb-6">
-        <button onClick={() => navigate('/teams')} className="text-ice-600 hover:underline mb-4">
-          ← Back to Teams
-        </button>
         <div className="flex justify-between items-start">
           <div className="flex items-center">
             <div
@@ -209,23 +242,32 @@ export default function TeamRoster() {
         </div>
       )}
 
-      {/* Payment Status Summary */}
-      {teamPayments.length > 0 && (
-        <div className="card mb-6">
-          <h3 className="text-lg font-semibold mb-3">Payment Status</h3>
-          <div className="flex gap-6">
-            <div>
-              <div className="text-2xl font-bold text-green-600">{paidCount}</div>
-              <div className="text-sm text-gray-600">Paid</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-orange-600">{pendingCount}</div>
-              <div className="text-sm text-gray-600">Pending</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-ice-600">{roster.length}</div>
-              <div className="text-sm text-gray-600">Total Players</div>
-            </div>
+      {/* Team Captain Section */}
+      {roster.filter(p => p.is_captain === 1).length > 0 && (
+        <div className="card mb-6 bg-ice-50 border-ice-200">
+          <h3 className="text-lg font-semibold mb-3 flex items-center">
+            <span className="text-2xl mr-2">⭐</span>
+            Team Captain{roster.filter(p => p.is_captain === 1).length > 1 ? 's' : ''}
+          </h3>
+          <div className="space-y-2">
+            {roster.filter(p => p.is_captain === 1).map((captain) => (
+              <div key={captain.id} className="flex items-center justify-between p-3 bg-white rounded">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-ice-600 text-white flex items-center justify-center font-bold">
+                    {captain.jersey_number || '?'}
+                  </div>
+                  <div>
+                    <div className="font-medium">{captain.name}</div>
+                    <div className="text-sm text-gray-600">
+                      {captain.email || captain.user_email || 'No email'}
+                      {(captain.phone || captain.user_phone) && (
+                        <span className="ml-2">• {captain.phone || captain.user_phone}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -233,18 +275,63 @@ export default function TeamRoster() {
       {showForm && (
         <div className="card mb-8">
           <h2 className="text-xl font-semibold mb-4">Add Player to Roster</h2>
+          {selectedUser && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-green-800">
+                  ✓ Linked to existing user: {selectedUser.email}
+                </div>
+                <div className="text-xs text-green-600">
+                  This player will be automatically linked to their account
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={clearUserSelection}
+                className="text-sm text-green-700 hover:text-green-900 underline"
+              >
+                Unlink
+              </button>
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
-              <div>
+              <div className="relative">
                 <label className="label">Player Name *</label>
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={handleNameChange}
+                  onFocus={(e) => {
+                    if (e.target.value.length >= 2 && userSearchResults.length > 0) {
+                      setShowUserSearch(true)
+                    }
+                  }}
                   className="input"
-                  placeholder="John Doe"
+                  placeholder="Start typing to search existing users..."
                   required
+                  autoComplete="off"
                 />
+                {showUserSearch && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                    <div className="p-2 text-xs text-gray-500 bg-gray-50 border-b">
+                      Found {userSearchResults.length} existing user(s)
+                    </div>
+                    {userSearchResults.map((user) => (
+                      <div
+                        key={user.id}
+                        onClick={() => selectUser(user)}
+                        className="p-3 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
+                      >
+                        <div className="font-medium text-sm">{user.name}</div>
+                        <div className="text-xs text-gray-600">{user.email}</div>
+                        {user.phone && (
+                          <div className="text-xs text-gray-500">{user.phone}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -270,7 +357,11 @@ export default function TeamRoster() {
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="input"
                   placeholder="player@example.com"
+                  disabled={!!selectedUser}
                 />
+                {selectedUser && (
+                  <p className="text-xs text-gray-500 mt-1">Auto-filled from user account</p>
+                )}
               </div>
 
               <div>
@@ -281,7 +372,11 @@ export default function TeamRoster() {
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   className="input"
                   placeholder="(555) 123-4567"
+                  disabled={!!selectedUser}
                 />
+                {selectedUser && (
+                  <p className="text-xs text-gray-500 mt-1">Auto-filled from user account</p>
+                )}
               </div>
             </div>
 
@@ -305,80 +400,6 @@ export default function TeamRoster() {
         </div>
       )}
 
-      {/* Payment Setup Form */}
-      {showPaymentSetup && (
-        <div className="card mb-8">
-          <h2 className="text-xl font-semibold mb-4">Set Up Season Dues</h2>
-          <p className="text-gray-600 mb-4">
-            This will create payment records for all {roster.length} players on the roster.
-          </p>
-          <form onSubmit={handlePaymentSetup} className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="label">Amount *</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={paymentSetupData.amount}
-                  onChange={(e) => setPaymentSetupData({ ...paymentSetupData, amount: e.target.value })}
-                  className="input"
-                  placeholder="150.00"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="label">Due Date</label>
-                <input
-                  type="date"
-                  value={paymentSetupData.due_date}
-                  onChange={(e) => setPaymentSetupData({ ...paymentSetupData, due_date: e.target.value })}
-                  className="input"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="label">Description</label>
-              <input
-                type="text"
-                value={paymentSetupData.description}
-                onChange={(e) => setPaymentSetupData({ ...paymentSetupData, description: e.target.value })}
-                className="input"
-                placeholder="Season Dues"
-              />
-            </div>
-
-            <div>
-              <label className="label">Venmo Link (optional)</label>
-              <input
-                type="url"
-                value={paymentSetupData.venmo_link}
-                onChange={(e) => setPaymentSetupData({ ...paymentSetupData, venmo_link: e.target.value })}
-                className="input"
-                placeholder="https://venmo.com/u/yourhandle"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Example: https://venmo.com/u/yourhandle or https://account.venmo.com/u/yourhandle
-              </p>
-            </div>
-
-            <div className="flex gap-2">
-              <button type="submit" className="btn-primary">
-                Create Payment Records
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowPaymentSetup(false)}
-                className="btn-secondary"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
       {roster.length === 0 ? (
         <div className="card text-center py-12">
           <div className="text-5xl mb-4">👥</div>
@@ -391,14 +412,6 @@ export default function TeamRoster() {
         <div className="card">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Roster ({roster.length} players)</h2>
-            {!showPaymentSetup && teamPayments.length === 0 && (
-              <button
-                onClick={() => setShowPaymentSetup(true)}
-                className="btn-primary text-sm"
-              >
-                💰 Set Up Season Dues
-              </button>
-            )}
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -408,96 +421,41 @@ export default function TeamRoster() {
                   <th className="text-left py-3 px-4">Name</th>
                   <th className="text-left py-3 px-4">Email</th>
                   <th className="text-left py-3 px-4">Phone</th>
-                  {teamPayments.length > 0 && (
-                    <>
-                      <th className="text-center py-3 px-4">Payment Status</th>
-                      <th className="text-center py-3 px-4">Payment</th>
-                    </>
-                  )}
                   <th className="text-center py-3 px-4">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {roster.map((player) => {
-                  const payment = getPlayerPayment(player.id)
-                  return (
-                    <tr key={player.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4 font-semibold">
-                        {player.jersey_number || '-'}
-                      </td>
-                      <td className="py-3 px-4 font-medium">
-                        <div className="flex items-center gap-2">
-                          {player.name}
-                          {player.is_captain === 1 && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-ice-100 text-ice-800">
-                              Captain
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-sm text-gray-600">
-                        {player.email || player.user_email || '-'}
-                      </td>
-                      <td className="py-3 px-4 text-sm text-gray-600">
-                        {player.phone || player.user_phone || '-'}
-                      </td>
-                      {teamPayments.length > 0 && (
-                        <>
-                          <td className="py-3 px-4 text-center">
-                            {payment ? (
-                              payment.status === 'paid' ? (
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                  ✓ Paid
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                                  ⚠ Pending
-                                </span>
-                              )
-                            ) : (
-                              <span className="text-gray-400 text-xs">No record</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            {payment && payment.status === 'pending' && (
-                              <div className="flex flex-col gap-1 items-center">
-                                {payment.venmo_link && (
-                                  <a
-                                    href={payment.venmo_link}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-ice-600 hover:text-ice-700 text-xs underline"
-                                  >
-                                    Pay via Venmo
-                                  </a>
-                                )}
-                                <button
-                                  onClick={() => handleMarkPaid(payment.id)}
-                                  className="text-green-600 hover:text-green-800 text-xs"
-                                >
-                                  Mark as Paid
-                                </button>
-                              </div>
-                            )}
-                            {payment && payment.status === 'paid' && payment.paid_date && (
-                              <span className="text-xs text-gray-500">
-                                {new Date(payment.paid_date).toLocaleDateString()}
-                              </span>
-                            )}
-                          </td>
-                        </>
-                      )}
-                      <td className="py-3 px-4 text-center">
-                        <button
-                          onClick={() => handleDelete(player.id)}
-                          className="text-red-600 hover:text-red-800 text-sm"
-                        >
-                          Remove
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
+                {roster.map((player) => (
+                  <tr key={player.id} className="border-b hover:bg-gray-50">
+                    <td className="py-3 px-4 font-semibold">
+                      {player.jersey_number || '-'}
+                    </td>
+                    <td className="py-3 px-4 font-medium">
+                      <div className="flex items-center gap-2">
+                        {player.name}
+                        {player.is_captain === 1 && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-ice-100 text-ice-800">
+                            Captain
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-sm text-gray-600">
+                      {player.email || player.user_email || '-'}
+                    </td>
+                    <td className="py-3 px-4 text-sm text-gray-600">
+                      {player.phone || player.user_phone || '-'}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <button
+                        onClick={() => handleDelete(player.id)}
+                        className="text-red-600 hover:text-red-800 text-sm"
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

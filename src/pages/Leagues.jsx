@@ -1,19 +1,24 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { leagues } from '../lib/api'
+import { leagues, auth } from '../lib/api'
+import Breadcrumbs from '../components/Breadcrumbs'
 
 export default function Leagues() {
   const navigate = useNavigate()
   const [leaguesList, setLeaguesList] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [currentUser, setCurrentUser] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     season: '',
+    season_dues: '',
+    venmo_link: '',
   })
 
   useEffect(() => {
+    setCurrentUser(auth.getUser())
     fetchLeagues()
   }, [])
 
@@ -32,12 +37,16 @@ export default function Leagues() {
     e.preventDefault()
     try {
       await leagues.create(formData)
-      setFormData({ name: '', description: '', season: '' })
+      setFormData({ name: '', description: '', season: '', season_dues: '', venmo_link: '' })
       setShowForm(false)
       fetchLeagues()
     } catch (error) {
       alert('Error creating league: ' + error.message)
     }
+  }
+
+  const canManageLeagues = () => {
+    return currentUser?.role === 'admin' || currentUser?.role === 'league_manager'
   }
 
   if (loading) {
@@ -46,15 +55,32 @@ export default function Leagues() {
 
   return (
     <div>
+      <Breadcrumbs
+        items={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Leagues' }
+        ]}
+      />
+
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Leagues</h1>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="btn-primary"
-        >
-          {showForm ? 'Cancel' : '+ New League'}
-        </button>
+        {canManageLeagues() && (
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="btn-primary"
+          >
+            {showForm ? 'Cancel' : '+ New League'}
+          </button>
+        )}
       </div>
+
+      {!canManageLeagues() && leaguesList.length === 0 && (
+        <div className="card mb-6 bg-blue-50 border-blue-200">
+          <p className="text-sm text-gray-700">
+            Only Admins and League Managers can create leagues. Contact your administrator to get league manager access.
+          </p>
+        </div>
+      )}
 
       {showForm && (
         <div className="card mb-8">
@@ -92,6 +118,31 @@ export default function Leagues() {
                 className="input"
                 placeholder="e.g., 2024 Winter"
               />
+            </div>
+
+            <div>
+              <label className="label">Season Dues (per player)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.season_dues}
+                onChange={(e) => setFormData({ ...formData, season_dues: e.target.value })}
+                className="input"
+                placeholder="e.g., 150.00"
+              />
+              <p className="text-xs text-gray-500 mt-1">Optional: Amount each player pays for the season</p>
+            </div>
+
+            <div>
+              <label className="label">Venmo Link for Dues</label>
+              <input
+                type="url"
+                value={formData.venmo_link}
+                onChange={(e) => setFormData({ ...formData, venmo_link: e.target.value })}
+                className="input"
+                placeholder="e.g., https://venmo.com/u/leaguename"
+              />
+              <p className="text-xs text-gray-500 mt-1">Optional: Venmo link for players to pay dues</p>
             </div>
 
             <button type="submit" className="btn-primary">
