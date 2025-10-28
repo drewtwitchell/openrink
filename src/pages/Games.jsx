@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { games, teams, rinks, leagues, csv, players, subRequests, auth } from '../lib/api'
+import { games, teams, rinks, leagues, csv, players, subRequests, auth, seasons } from '../lib/api'
 import Breadcrumbs from '../components/Breadcrumbs'
 
 export default function Games() {
@@ -8,6 +8,7 @@ export default function Games() {
   const [rinksList, setRinksList] = useState([])
   const [leaguesList, setLeaguesList] = useState([])
   const [selectedLeague, setSelectedLeague] = useState('')
+  const [activeSeason, setActiveSeason] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -54,6 +55,9 @@ export default function Games() {
       setPlayersList(playersData)
       if (leaguesData.length > 0 && !selectedLeague) {
         setSelectedLeague(leaguesData[0].id.toString())
+        // Fetch active season for the first league
+        const activeSeasonData = await seasons.getActive(leaguesData[0].id)
+        setActiveSeason(activeSeasonData)
       }
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -62,10 +66,19 @@ export default function Games() {
     }
   }
 
+  useEffect(() => {
+    if (selectedLeague) {
+      seasons.getActive(selectedLeague).then(setActiveSeason).catch(() => setActiveSeason(null))
+    }
+  }, [selectedLeague])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      await games.create(formData)
+      await games.create({
+        ...formData,
+        season_id: activeSeason?.id || null,
+      })
       setFormData({
         home_team_id: '',
         away_team_id: '',

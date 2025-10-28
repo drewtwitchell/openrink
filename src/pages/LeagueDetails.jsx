@@ -11,13 +11,30 @@ export default function LeagueDetails() {
   const [teams, setTeams] = useState([])
   const [games, setGames] = useState([])
   const [managers, setManagers] = useState([])
+  const [leagueSeasons, setLeagueSeasons] = useState([])
+  const [activeSeason, setActiveSeason] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'overview')
   const [showTeamForm, setShowTeamForm] = useState(false)
+  const [showSeasonForm, setShowSeasonForm] = useState(false)
+  const [editingSeasonId, setEditingSeasonId] = useState(null)
   const [teamFormData, setTeamFormData] = useState({
     name: '',
     color: '#0284c7',
   })
+  const [seasonFormData, setSeasonFormData] = useState({
+    name: '',
+    description: '',
+    season_dues: '',
+    venmo_link: '',
+    start_date: '',
+    end_date: '',
+    is_active: false,
+  })
+  const [paymentData, setPaymentData] = useState([])
+  const [paymentStats, setPaymentStats] = useState(null)
+  const [showContactModal, setShowContactModal] = useState(false)
+  const [contactMessage, setContactMessage] = useState('')
 
   useEffect(() => {
     fetchLeagueData()
@@ -25,11 +42,12 @@ export default function LeagueDetails() {
 
   const fetchLeagueData = async () => {
     try {
-      const [leaguesData, teamsData, gamesData, managersData] = await Promise.all([
+      const [leaguesData, teamsData, gamesData, managersData, seasonsData] = await Promise.all([
         leagues.getAll(),
         teamsApi.getAll(),
         gamesApi.getAll(),
         leagues.getManagers(id).catch(() => []),
+        seasons.getByLeague(id).catch(() => []),
       ])
 
       const leagueData = leaguesData.find(l => l.id === parseInt(id))
@@ -44,10 +62,33 @@ export default function LeagueDetails() {
 
       // Set managers/owners
       setManagers(managersData)
+
+      // Set seasons data
+      setLeagueSeasons(seasonsData)
+      const active = seasonsData.find(s => s.is_active === 1 && s.archived === 0)
+      setActiveSeason(active)
+
+      // Fetch payment data if there's an active season
+      if (active) {
+        fetchPaymentData(active.id)
+      }
     } catch (error) {
       console.error('Error fetching league data:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchPaymentData = async (seasonId) => {
+    try {
+      const [stats, players] = await Promise.all([
+        seasons.getPaymentStats(seasonId),
+        seasons.getPlayersPayments(seasonId),
+      ])
+      setPaymentStats(stats)
+      setPaymentData(players)
+    } catch (error) {
+      console.error('Error fetching payment data:', error)
     }
   }
 
@@ -78,12 +119,88 @@ export default function LeagueDetails() {
       await teamsApi.create({
         ...teamFormData,
         league_id: id,
+        season_id: activeSeason?.id || null,
       })
       setTeamFormData({ name: '', color: '#0284c7' })
       setShowTeamForm(false)
       fetchLeagueData()
     } catch (error) {
       alert('Error creating team: ' + error.message)
+    }
+  }
+
+  const handleSeasonSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      const data = {
+        ...seasonFormData,
+        league_id: id,
+      }
+
+      if (editingSeasonId) {
+        await seasons.update(editingSeasonId, data)
+      } else {
+        await seasons.create(data)
+      }
+
+      setSeasonFormData({
+        name: '',
+        description: '',
+        season_dues: '',
+        venmo_link: '',
+        start_date: '',
+        end_date: '',
+        is_active: false,
+      })
+      setEditingSeasonId(null)
+      setShowSeasonForm(false)
+      fetchLeagueData()
+    } catch (error) {
+      alert('Error saving season: ' + error.message)
+    }
+  }
+
+  const handleEditSeason = (season) => {
+    setSeasonFormData({
+      name: season.name,
+      description: season.description || '',
+      season_dues: season.season_dues || '',
+      venmo_link: season.venmo_link || '',
+      start_date: season.start_date || '',
+      end_date: season.end_date || '',
+      is_active: season.is_active === 1,
+    })
+    setEditingSeasonId(season.id)
+    setShowSeasonForm(true)
+  }
+
+  const handleArchiveSeason = async (seasonId, archived) => {
+    try {
+      await seasons.archive(seasonId, archived)
+      fetchLeagueData()
+    } catch (error) {
+      alert('Error archiving season: ' + error.message)
+    }
+  }
+
+  const handleSetActiveSeason = async (seasonId) => {
+    try {
+      await seasons.setActive(seasonId)
+      fetchLeagueData()
+    } catch (error) {
+      alert('Error setting active season: ' + error.message)
+    }
+  }
+
+  const handleDeleteSeason = async (seasonId) => {
+    if (!confirm('Are you sure you want to delete this season? This will also delete all associated teams, games, and payment records.')) {
+      return
+    }
+    try {
+      await seasons.delete(seasonId)
+      fetchLeagueData()
+    } catch (error) {
+      alert('Error deleting season: ' + error.message)
     }
   }
 
@@ -143,8 +260,11 @@ export default function LeagueDetails() {
               <span className="text-2xl mr-2">👥</span>
               League Contact{managers.length > 1 ? 's' : ''}
             </h3>
-            <button className="btn-primary text-sm">
-              📧 Contact All
+            <button
+              onClick={() => setShowContactModal(true)}
+              className="btn-primary text-sm"
+            >
+              📧 Contact All Players
             </button>
           </div>
           <div className="space-y-2">
@@ -584,14 +704,180 @@ export default function LeagueDetails() {
       {/* Seasons Tab */}
       {activeTab === 'seasons' && (
         <div>
-          <div className="card">
+          <div className="card mb-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Seasons</h2>
-              <button className="btn-primary">+ Create New Season</button>
+              <button
+                onClick={() => {
+                  setShowSeasonForm(!showSeasonForm)
+                  setEditingSeasonId(null)
+                  setSeasonFormData({
+                    name: '',
+                    description: '',
+                    season_dues: '',
+                    venmo_link: '',
+                    start_date: '',
+                    end_date: '',
+                    is_active: false,
+                  })
+                }}
+                className="btn-primary"
+              >
+                {showSeasonForm ? 'Cancel' : '+ Create New Season'}
+              </button>
             </div>
-            <div className="text-gray-500 text-center py-12">
-              Seasons management coming soon...
-            </div>
+
+            {showSeasonForm && (
+              <form onSubmit={handleSeasonSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h3 className="font-semibold mb-3">{editingSeasonId ? 'Edit Season' : 'Create New Season'}</h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Season Name *</label>
+                    <input
+                      type="text"
+                      value={seasonFormData.name}
+                      onChange={(e) => setSeasonFormData({ ...seasonFormData, name: e.target.value })}
+                      className="input"
+                      placeholder="e.g., Winter 2024"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Season Dues (per player)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={seasonFormData.season_dues}
+                      onChange={(e) => setSeasonFormData({ ...seasonFormData, season_dues: e.target.value })}
+                      className="input"
+                      placeholder="150.00"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Start Date</label>
+                    <input
+                      type="date"
+                      value={seasonFormData.start_date}
+                      onChange={(e) => setSeasonFormData({ ...seasonFormData, start_date: e.target.value })}
+                      className="input"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">End Date</label>
+                    <input
+                      type="date"
+                      value={seasonFormData.end_date}
+                      onChange={(e) => setSeasonFormData({ ...seasonFormData, end_date: e.target.value })}
+                      className="input"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="label">Description</label>
+                    <textarea
+                      value={seasonFormData.description}
+                      onChange={(e) => setSeasonFormData({ ...seasonFormData, description: e.target.value })}
+                      className="input"
+                      rows="2"
+                      placeholder="Season details..."
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="label">Venmo Link for Payment</label>
+                    <input
+                      type="url"
+                      value={seasonFormData.venmo_link}
+                      onChange={(e) => setSeasonFormData({ ...seasonFormData, venmo_link: e.target.value })}
+                      className="input"
+                      placeholder="https://venmo.com/u/username"
+                    />
+                  </div>
+                  <div className="md:col-span-2 flex items-center">
+                    <input
+                      type="checkbox"
+                      id="is_active"
+                      checked={seasonFormData.is_active}
+                      onChange={(e) => setSeasonFormData({ ...seasonFormData, is_active: e.target.checked })}
+                      className="mr-2"
+                    />
+                    <label htmlFor="is_active" className="text-sm">
+                      Set as active season (will deactivate other seasons)
+                    </label>
+                  </div>
+                </div>
+                <button type="submit" className="btn-primary mt-4">
+                  {editingSeasonId ? 'Update Season' : 'Create Season'}
+                </button>
+              </form>
+            )}
+
+            {leagueSeasons.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-500 mb-4">No seasons yet</p>
+                <button onClick={() => setShowSeasonForm(true)} className="btn-primary">
+                  Create First Season
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {leagueSeasons.map((season) => (
+                  <div key={season.id} className={`p-4 border rounded-lg ${season.is_active === 1 ? 'bg-green-50 border-green-200' : season.archived === 1 ? 'bg-gray-50 border-gray-300' : 'bg-white border-gray-200'}`}>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-lg">{season.name}</h3>
+                          {season.is_active === 1 && (
+                            <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded-full">
+                              Active
+                            </span>
+                          )}
+                          {season.archived === 1 && (
+                            <span className="text-xs bg-gray-400 text-white px-2 py-0.5 rounded-full">
+                              Archived
+                            </span>
+                          )}
+                        </div>
+                        {season.description && (
+                          <p className="text-sm text-gray-600 mt-1">{season.description}</p>
+                        )}
+                        <div className="flex gap-4 mt-2 text-sm text-gray-600">
+                          {season.start_date && <span>Start: {new Date(season.start_date).toLocaleDateString()}</span>}
+                          {season.end_date && <span>End: {new Date(season.end_date).toLocaleDateString()}</span>}
+                          {season.season_dues && <span>Dues: ${parseFloat(season.season_dues).toFixed(2)}</span>}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {season.is_active !== 1 && season.archived !== 1 && (
+                          <button
+                            onClick={() => handleSetActiveSeason(season.id)}
+                            className="btn-secondary text-xs"
+                          >
+                            Set Active
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleEditSeason(season)}
+                          className="btn-secondary text-xs"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleArchiveSeason(season.id, season.archived !== 1)}
+                          className={`btn-secondary text-xs ${season.archived === 1 ? '' : 'text-amber-600'}`}
+                        >
+                          {season.archived === 1 ? 'Unarchive' : 'Archive'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteSeason(season.id)}
+                          className="btn-secondary text-xs text-red-600"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -599,13 +885,217 @@ export default function LeagueDetails() {
       {/* Payments Tab */}
       {activeTab === 'payments' && (
         <div>
-          <div className="card">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Payment Tracking</h2>
-              <button className="btn-primary">📧 Send Payment Reminder</button>
+          {!activeSeason ? (
+            <div className="card text-center py-12">
+              <p className="text-gray-500 mb-4">No active season</p>
+              <p className="text-sm text-gray-400 mb-4">Create a season first to track payments</p>
+              <button onClick={() => setActiveTab('seasons')} className="btn-primary">
+                Go to Seasons
+              </button>
             </div>
-            <div className="text-gray-500 text-center py-12">
-              Payment tracking coming soon...
+          ) : (
+            <div className="card">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h2 className="text-xl font-semibold">Payment Tracking</h2>
+                  <p className="text-sm text-gray-600">Active Season: {activeSeason.name}</p>
+                </div>
+                <button
+                  onClick={() => setShowContactModal(true)}
+                  className="btn-primary"
+                >
+                  📧 Send Payment Reminder
+                </button>
+              </div>
+
+              {/* Payment Stats */}
+              {paymentStats && (
+                <div className="grid grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <div className="text-sm text-gray-600">Total Players</div>
+                    <div className="text-2xl font-bold">{paymentStats.total_players}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-600">Paid</div>
+                    <div className="text-2xl font-bold text-green-600">{paymentStats.players_paid}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-600">Unpaid</div>
+                    <div className="text-2xl font-bold text-red-600">{paymentStats.players_unpaid}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-600">Total Collected</div>
+                    <div className="text-2xl font-bold text-green-600">
+                      ${parseFloat(paymentStats.total_collected || 0).toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Payment List */}
+              {paymentData.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">No players in this season yet</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-3 px-4">Player</th>
+                        <th className="text-left py-3 px-4">Team</th>
+                        <th className="text-left py-3 px-4">Email</th>
+                        <th className="text-center py-3 px-4">Amount</th>
+                        <th className="text-center py-3 px-4">Status</th>
+                        <th className="text-center py-3 px-4">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paymentData.map((player) => (
+                        <tr key={player.id} className="border-b hover:bg-gray-50">
+                          <td className="py-3 px-4 font-medium">{player.name}</td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-4 h-4 rounded-full"
+                                style={{ backgroundColor: player.team_color }}
+                              />
+                              {player.team_name}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-600">{player.email || '-'}</td>
+                          <td className="py-3 px-4 text-center">
+                            ${parseFloat(activeSeason.season_dues || 0).toFixed(2)}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            {player.payment_status === 'paid' ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                                ✓ Paid
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800">
+                                ✗ Unpaid
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            {player.payment_status === 'paid' ? (
+                              <span className="text-xs text-gray-500">
+                                {new Date(player.paid_date).toLocaleDateString()}
+                              </span>
+                            ) : (
+                              <button className="text-xs text-ice-600 hover:text-ice-700 hover:underline">
+                                Mark Paid
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {activeSeason.venmo_link && (
+                <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <h3 className="font-semibold mb-2">Payment Link</h3>
+                  <a
+                    href={activeSeason.venmo_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-ice-600 hover:text-ice-700 hover:underline"
+                  >
+                    {activeSeason.venmo_link}
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Mass Contact Modal */}
+      {showContactModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">Contact All Players</h2>
+                <button
+                  onClick={() => {
+                    setShowContactModal(false)
+                    setContactMessage('')
+                  }}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                <p className="text-sm text-gray-700">
+                  This will open your default email client with all player emails in the BCC field.
+                  You can then compose and send your message.
+                </p>
+              </div>
+
+              <div className="mb-4">
+                <label className="label">Recipients</label>
+                <div className="text-sm text-gray-600">
+                  {paymentData.length} player(s) will receive this message
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="label">Quick Message Template</label>
+                <textarea
+                  value={contactMessage}
+                  onChange={(e) => setContactMessage(e.target.value)}
+                  className="input"
+                  rows="6"
+                  placeholder="Type your message here (optional)..."
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    const emails = paymentData
+                      .filter(p => p.email)
+                      .map(p => p.email)
+                      .join(',')
+
+                    const subject = `${league.name} - League Update`
+                    const body = contactMessage || ''
+
+                    window.location.href = `mailto:?bcc=${encodeURIComponent(emails)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+
+                    setShowContactModal(false)
+                    setContactMessage('')
+                  }}
+                  className="btn-primary flex-1"
+                >
+                  Open Email Client
+                </button>
+                <button
+                  onClick={() => {
+                    setShowContactModal(false)
+                    setContactMessage('')
+                  }}
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              <div className="mt-4 text-xs text-gray-500">
+                Note: Players without email addresses will not be included.
+                {paymentData.filter(p => !p.email).length > 0 && (
+                  <span className="block mt-1 text-amber-600">
+                    ⚠ {paymentData.filter(p => !p.email).length} player(s) do not have email addresses.
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>

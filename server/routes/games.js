@@ -35,6 +35,7 @@ router.post('/', authenticateToken, (req, res) => {
     game_time,
     rink_id,
     surface_name,
+    season_id,
   } = req.body
 
   if (!home_team_id || !away_team_id || !game_date || !game_time) {
@@ -42,8 +43,8 @@ router.post('/', authenticateToken, (req, res) => {
   }
 
   db.run(
-    'INSERT INTO games (home_team_id, away_team_id, game_date, game_time, rink_id, surface_name) VALUES (?, ?, ?, ?, ?, ?)',
-    [home_team_id, away_team_id, game_date, game_time, rink_id, surface_name || 'NHL'],
+    'INSERT INTO games (home_team_id, away_team_id, game_date, game_time, rink_id, surface_name, season_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [home_team_id, away_team_id, game_date, game_time, rink_id, surface_name || 'NHL', season_id || null],
     function (err) {
       if (err) {
         return res.status(500).json({ error: 'Error creating game' })

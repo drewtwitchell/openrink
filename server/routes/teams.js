@@ -52,20 +52,20 @@ router.get('/', (req, res) => {
 
 // Create team
 router.post('/', authenticateToken, (req, res) => {
-  const { name, league_id, color } = req.body
+  const { name, league_id, season_id, color } = req.body
 
   if (!name || !league_id) {
     return res.status(400).json({ error: 'Team name and league required' })
   }
 
   db.run(
-    'INSERT INTO teams (name, league_id, color) VALUES (?, ?, ?)',
-    [name, league_id, color || '#0284c7'],
+    'INSERT INTO teams (name, league_id, season_id, color) VALUES (?, ?, ?, ?)',
+    [name, league_id, season_id || null, color || '#0284c7'],
     function (err) {
       if (err) {
         return res.status(500).json({ error: 'Error creating team' })
       }
-      res.json({ id: this.lastID, name, league_id, color })
+      res.json({ id: this.lastID, name, league_id, season_id, color })
     }
   )
 })
