@@ -792,11 +792,8 @@ export default function LeagueDetails() {
             )}
 
             {leagueSeasons.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-500 mb-4">No seasons yet</p>
-                <button onClick={() => setShowSeasonForm(true)} className="btn-primary">
-                  Create First Season
-                </button>
+              <div className="text-center py-12 text-gray-500">
+                <p>No seasons yet. Click "Create Season" above to get started.</p>
               </div>
             ) : (
               <div className="space-y-3">
