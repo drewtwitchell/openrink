@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom'
 function AdminDashboard({ stats }) {
   const navigate = useNavigate()
   const [leaguesList, setLeaguesList] = useState([])
+  const [leagueDetails, setLeagueDetails] = useState({})
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState({
@@ -22,6 +23,38 @@ function AdminDashboard({ stats }) {
       // Show all leagues including archived ones
       const data = await leagues.getAll(true)
       setLeaguesList(data)
+
+      // Fetch additional details for each league
+      const [allTeams] = await Promise.all([
+        teams.getAll()
+      ])
+
+      const details = {}
+      for (const league of data) {
+        // Get teams for this league
+        const leagueTeams = allTeams.filter(t => t.league_id === league.id)
+
+        // Get active season
+        let activeSeason = null
+        let paymentStats = null
+        try {
+          activeSeason = await seasons.getActive(league.id)
+          // Get payment stats for active season
+          if (activeSeason) {
+            paymentStats = await seasons.getPaymentStats(activeSeason.id)
+          }
+        } catch (error) {
+          // No active season
+        }
+
+        details[league.id] = {
+          teams: leagueTeams,
+          activeSeason,
+          paymentStats
+        }
+      }
+
+      setLeagueDetails(details)
     } catch (error) {
       console.error('Error fetching leagues:', error)
     } finally {
@@ -106,31 +139,94 @@ function AdminDashboard({ stats }) {
             <p>No leagues yet. Click "Create League" above to get started.</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {leaguesList.map((league) => (
-              <div
-                key={league.id}
-                onClick={() => navigate(`/leagues/${league.id}`)}
-                className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-gray-300 hover:shadow-sm cursor-pointer transition-all"
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-3">
-                    <h3 className="font-semibold text-gray-900">{league.name}</h3>
-                    {league.archived === 1 && (
-                      <span className="badge badge-neutral">Archived</span>
+          <div className="space-y-4">
+            {leaguesList.map((league) => {
+              const details = leagueDetails[league.id] || {}
+              const { teams: leagueTeams = [], activeSeason, paymentStats } = details
+
+              return (
+                <div
+                  key={league.id}
+                  onClick={() => navigate(`/leagues/${league.id}`)}
+                  className="border border-gray-200 rounded-lg hover:border-gray-300 hover:shadow-md cursor-pointer transition-all overflow-hidden"
+                >
+                  {/* Header */}
+                  <div className="p-4 bg-gray-50 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <h3 className="font-semibold text-gray-900 text-lg">{league.name}</h3>
+                        {league.archived === 1 && (
+                          <span className="badge badge-neutral">Archived</span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </div>
+                    {league.description && (
+                      <p className="text-sm text-gray-600 mt-1">{league.description}</p>
                     )}
                   </div>
-                  {league.description && (
-                    <p className="text-sm text-gray-600 mt-1">{league.description}</p>
-                  )}
+
+                  {/* Details */}
+                  <div className="p-4">
+                    <div className="grid grid-cols-3 gap-4 mb-4">
+                      {/* Active Season */}
+                      <div>
+                        <div className="text-xs text-gray-500 mb-1">Active Season</div>
+                        <div className="font-semibold">
+                          {activeSeason ? (
+                            <span className="text-green-700">{activeSeason.name}</span>
+                          ) : (
+                            <span className="text-gray-400">None</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Teams Count */}
+                      <div>
+                        <div className="text-xs text-gray-500 mb-1">Teams</div>
+                        <div className="font-semibold text-gray-900">
+                          {leagueTeams.length} {leagueTeams.length === 1 ? 'team' : 'teams'}
+                        </div>
+                      </div>
+
+                      {/* Payment Status */}
+                      <div>
+                        <div className="text-xs text-gray-500 mb-1">Unpaid Players</div>
+                        <div className="font-semibold">
+                          {paymentStats ? (
+                            <span className={paymentStats.players_unpaid > 0 ? 'text-red-600' : 'text-green-600'}>
+                              {paymentStats.players_unpaid} / {paymentStats.total_players}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Payment Progress Bar */}
+                    {paymentStats && paymentStats.total_players > 0 && (
+                      <div>
+                        <div className="flex justify-between text-xs text-gray-600 mb-1">
+                          <span>Payment Progress</span>
+                          <span>{Math.round((paymentStats.players_paid / paymentStats.total_players) * 100)}%</span>
+                        </div>
+                        <div className="progress-bar">
+                          <div
+                            className="progress-fill"
+                            style={{ width: `${(paymentStats.players_paid / paymentStats.total_players) * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="text-sm text-gray-500">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
