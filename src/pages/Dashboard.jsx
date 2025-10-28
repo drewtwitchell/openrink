@@ -83,30 +83,38 @@ function PlayerDashboard({ user, userPlayerProfiles }) {
 
   useEffect(() => {
     fetchPlayerLeagueData()
-  }, [userPlayerProfiles])
+  }, [userPlayerProfiles, user])
 
   const fetchPlayerLeagueData = async () => {
     try {
-      if (userPlayerProfiles.length === 0) {
-        setLoading(false)
-        return
-      }
-
-      // Get league info from user's first team
-      const firstProfile = userPlayerProfiles[0]
       const [allLeagues, allTeams] = await Promise.all([
         leagues.getAll(),
         teams.getAll(),
       ])
 
-      const team = allTeams.find(t => t.id === firstProfile.team_id)
-      if (team) {
-        const league = allLeagues.find(l => l.id === team.league_id)
-        setLeagueData(league)
+      // For league managers, find their first league
+      if (user?.role === 'league_manager') {
+        // League managers see the first available league
+        if (allLeagues.length > 0) {
+          const firstLeague = allLeagues[0]
+          setLeagueData(firstLeague)
 
-        // Get all teams in this league
-        const leagueTeams = allTeams.filter(t => t.league_id === team.league_id)
-        setTeamsData(leagueTeams)
+          // Get all teams in this league
+          const leagueTeams = allTeams.filter(t => t.league_id === firstLeague.id)
+          setTeamsData(leagueTeams)
+        }
+      } else if (userPlayerProfiles.length > 0) {
+        // For players/captains, get league from their team
+        const firstProfile = userPlayerProfiles[0]
+        const team = allTeams.find(t => t.id === firstProfile.team_id)
+        if (team) {
+          const league = allLeagues.find(l => l.id === team.league_id)
+          setLeagueData(league)
+
+          // Get all teams in this league
+          const leagueTeams = allTeams.filter(t => t.league_id === team.league_id)
+          setTeamsData(leagueTeams)
+        }
       }
     } catch (error) {
       console.error('Error fetching player league data:', error)
@@ -119,11 +127,19 @@ function PlayerDashboard({ user, userPlayerProfiles }) {
     return <div className="card"><p className="text-gray-500 text-center py-8">Loading...</p></div>
   }
 
-  if (userPlayerProfiles.length === 0) {
+  if (!leagueData) {
     return (
       <div className="card text-center py-12">
-        <p className="text-gray-500 mb-4">You are not assigned to any teams yet</p>
-        <p className="text-sm text-gray-400">Contact your league manager to be added to a team</p>
+        <p className="text-gray-500 mb-4">
+          {user?.role === 'league_manager'
+            ? 'No leagues available. Contact an admin to create leagues.'
+            : 'You are not assigned to any teams yet'}
+        </p>
+        <p className="text-sm text-gray-400">
+          {user?.role === 'league_manager'
+            ? ''
+            : 'Contact your league manager to be added to a team'}
+        </p>
       </div>
     )
   }
@@ -176,41 +192,43 @@ function PlayerDashboard({ user, userPlayerProfiles }) {
         </div>
       )}
 
-      {/* My Teams */}
-      <div className="card mb-6">
-        <h2 className="text-xl font-semibold mb-4">My Teams</h2>
-        <div className="space-y-3">
-          {userPlayerProfiles.map((profile) => (
-            <div key={profile.id} className="p-4 bg-gray-50 rounded-lg flex items-center justify-between">
-              <div className="flex items-center">
-                <div
-                  className="w-12 h-12 rounded-full mr-4 flex items-center justify-center text-white font-bold text-lg"
-                  style={{ backgroundColor: profile.team_color || '#0284c7' }}
-                >
-                  {profile.jersey_number || '?'}
-                </div>
-                <div>
-                  <div className="font-semibold text-lg">{profile.team_name}</div>
-                  <div className="text-sm text-gray-600">
-                    {profile.name}
-                    {profile.is_captain === 1 && (
-                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-ice-100 text-ice-800">
-                        ⭐ Captain
-                      </span>
-                    )}
+      {/* My Teams - Only show if user has player profiles */}
+      {userPlayerProfiles.length > 0 && (
+        <div className="card mb-6">
+          <h2 className="text-xl font-semibold mb-4">My Teams</h2>
+          <div className="space-y-3">
+            {userPlayerProfiles.map((profile) => (
+              <div key={profile.id} className="p-4 bg-gray-50 rounded-lg flex items-center justify-between">
+                <div className="flex items-center">
+                  <div
+                    className="w-12 h-12 rounded-full mr-4 flex items-center justify-center text-white font-bold text-lg"
+                    style={{ backgroundColor: profile.team_color || '#0284c7' }}
+                  >
+                    {profile.jersey_number || '?'}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-lg">{profile.team_name}</div>
+                    <div className="text-sm text-gray-600">
+                      {profile.name}
+                      {profile.is_captain === 1 && (
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-ice-100 text-ice-800">
+                          ⭐ Captain
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
+                <button
+                  onClick={() => navigate(`/teams/${profile.team_id}/roster`)}
+                  className="btn-primary"
+                >
+                  View Roster
+                </button>
               </div>
-              <button
-                onClick={() => navigate(`/teams/${profile.team_id}/roster`)}
-                className="btn-primary"
-              >
-                View Roster
-              </button>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* League Teams */}
       {teamsData.length > 0 && (
