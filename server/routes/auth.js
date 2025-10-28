@@ -181,4 +181,26 @@ router.put('/users/:id/role', authenticateToken, (req, res) => {
   })
 })
 
+// Delete user (admin only)
+router.delete('/users/:id', authenticateToken, (req, res) => {
+  // Check if user is admin
+  db.get('SELECT role FROM users WHERE id = ?', [req.user.id], (err, user) => {
+    if (err || !user || user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' })
+    }
+
+    // Prevent deleting yourself
+    if (parseInt(req.params.id) === req.user.id) {
+      return res.status(400).json({ error: 'Cannot delete your own account' })
+    }
+
+    db.run('DELETE FROM users WHERE id = ?', [req.params.id], function (err) {
+      if (err) {
+        return res.status(500).json({ error: 'Error deleting user' })
+      }
+      res.json({ message: 'User deleted successfully' })
+    })
+  })
+})
+
 export default router

@@ -468,66 +468,91 @@ function UsersManagementCard() {
   const handleRoleChange = async (userId, newRole) => {
     try {
       await auth.updateUserRole(userId, newRole)
-      setMessage('Role updated successfully!')
+      setMessage('Role updated')
       fetchUsers()
-      setTimeout(() => setMessage(''), 3000)
+      setTimeout(() => setMessage(''), 2000)
     } catch (error) {
-      setMessage('Error updating role: ' + error.message)
+      setMessage('Error: ' + error.message)
+    }
+  }
+
+  const handleDeleteUser = async (userId, userName) => {
+    if (!window.confirm(`Delete user "${userName}"? This cannot be undone.`)) {
+      return
+    }
+    try {
+      await auth.deleteUser(userId)
+      setMessage('User deleted')
+      fetchUsers()
+      setTimeout(() => setMessage(''), 2000)
+    } catch (error) {
+      setMessage('Error: ' + error.message)
     }
   }
 
   const currentUser = auth.getUser()
 
   if (loading) {
-    return <p className="text-gray-500 text-center py-8">Loading users...</p>
+    return <p className="text-gray-500 text-center py-8">Loading...</p>
   }
 
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">User Management</h2>
-        <span className="text-sm text-gray-600">{allUsers.length} users</span>
+        <h2 className="section-header mb-0">Users</h2>
+        <span className="text-sm text-gray-600">{allUsers.length} total</span>
       </div>
 
       {message && (
-        <div className="mb-4 p-3 bg-blue-100 text-blue-700 rounded text-sm">
+        <div className="alert alert-info mb-4">
           {message}
         </div>
       )}
 
-      <div className="space-y-2 max-h-96 overflow-y-auto">
-        {allUsers.map((u) => (
-          <div key={u.id} className="p-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm truncate">{u.name || 'No name'}</div>
-                <div className="text-xs text-gray-600 truncate">{u.email}</div>
-              </div>
-              <div className="flex flex-col items-end gap-2">
+      <table className="data-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th className="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {allUsers.map((u) => (
+            <tr key={u.id}>
+              <td className="font-medium">{u.name || '-'}</td>
+              <td className="text-gray-600">{u.email}</td>
+              <td>
                 <select
                   value={u.role}
                   onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                  className="input text-xs py-1 px-2"
+                  className="input text-sm py-1 px-2"
                 >
                   <option value="player">Player</option>
                   <option value="team_captain">Team Captain</option>
                   <option value="league_manager">League Manager</option>
                   <option value="admin">Admin</option>
                 </select>
-                {u.id === currentUser?.id && (
-                  <span className="text-xs text-amber-600">⚠️ You</span>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-4 pt-4 border-t">
-        <Link to="/users" className="text-sm text-ice-600 hover:text-ice-700 hover:underline">
-          View full user management →
-        </Link>
-      </div>
+              </td>
+              <td>
+                <div className="flex items-center justify-end gap-2">
+                  {u.id === currentUser?.id ? (
+                    <span className="text-xs text-gray-500">Current User</span>
+                  ) : (
+                    <button
+                      onClick={() => handleDeleteUser(u.id, u.name || u.email)}
+                      className="btn-danger text-xs py-1 px-3"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

@@ -358,10 +358,8 @@ export default function LeagueDetails() {
                 .sort((a, b) => new Date(a.game_date) - new Date(b.game_date))
 
               return upcomingGames.length === 0 ? (
-                <div className="empty-state">
-                  <div className="empty-state-icon animate-float">🏒</div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2">No Games This Week</h3>
-                  <p className="text-gray-600 mb-6">Check back soon for upcoming matchups!</p>
+                <div className="text-center py-8">
+                  <p className="text-gray-500 mb-4">No games scheduled this week</p>
                   <button onClick={() => setActiveTab('schedule')} className="btn-secondary">
                     View Full Schedule
                   </button>
@@ -414,10 +412,8 @@ export default function LeagueDetails() {
 
               if (completedGames.length === 0) {
                 return (
-                  <div className="empty-state">
-                    <div className="empty-state-icon animate-float">🏆</div>
-                    <h3 className="text-2xl font-bold text-gray-800 mb-2">Season Just Started!</h3>
-                    <p className="text-gray-600 mb-6">Standings will appear once games are completed.</p>
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 mb-4">Standings will appear once games are completed</p>
                     <button onClick={() => setActiveTab('schedule')} className="btn-secondary">
                       View Schedule
                     </button>
@@ -521,17 +517,14 @@ export default function LeagueDetails() {
 
           <div className="grid md:grid-cols-3 gap-6 mb-8">
             <div className="card">
-              <div className="text-3xl mb-2">👥</div>
               <div className="text-3xl font-bold text-ice-600">{teams.length}</div>
               <div className="text-gray-600">Teams</div>
             </div>
             <div className="card">
-              <div className="text-3xl mb-2">🏒</div>
               <div className="text-3xl font-bold text-ice-600">{games.length}</div>
               <div className="text-gray-600">Games Scheduled</div>
             </div>
             <div className="card">
-              <div className="text-3xl mb-2">✅</div>
               <div className="text-3xl font-bold text-ice-600">
                 {games.filter(g => g.home_score != null).length}
               </div>
@@ -556,7 +549,7 @@ export default function LeagueDetails() {
                   rel="noopener noreferrer"
                   className="btn-primary inline-block"
                 >
-                  💰 Pay via Venmo
+                  Pay via Venmo
                 </a>
               )}
             </div>
@@ -580,7 +573,7 @@ export default function LeagueDetails() {
                         href={`mailto:${manager.email}`}
                         className="btn-secondary text-sm"
                       >
-                        📧 Contact
+                        Contact
                       </a>
                     )}
                   </div>
@@ -658,7 +651,7 @@ export default function LeagueDetails() {
                       </div>
                       {team.captains.map((captain, idx) => (
                         <div key={idx} className="text-sm font-medium text-ice-700">
-                          ⭐ {captain.name}
+                          {captain.name}
                         </div>
                       ))}
                     </div>
@@ -916,7 +909,7 @@ export default function LeagueDetails() {
                   onClick={() => setShowContactModal(true)}
                   className="btn-primary"
                 >
-                  📧 Send Payment Reminder
+                  Send Payment Reminder
                 </button>
               </div>
 
@@ -981,13 +974,9 @@ export default function LeagueDetails() {
                           </td>
                           <td className="py-3 px-4 text-center">
                             {player.payment_status === 'paid' ? (
-                              <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
-                                ✓ Paid
-                              </span>
+                              <span className="badge badge-success">Paid</span>
                             ) : (
-                              <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800">
-                                ✗ Unpaid
-                              </span>
+                              <span className="badge badge-error">Unpaid</span>
                             )}
                           </td>
                           <td className="py-3 px-4 text-center">
@@ -1038,9 +1027,9 @@ export default function LeagueDetails() {
                     setShowContactModal(false)
                     setContactMessage('')
                   }}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
                 >
-                  ✕
+                  ×
                 </button>
               </div>
 
@@ -1104,7 +1093,7 @@ export default function LeagueDetails() {
                 Note: Players without email addresses will not be included.
                 {paymentData.filter(p => !p.email).length > 0 && (
                   <span className="block mt-1 text-amber-600">
-                    ⚠ {paymentData.filter(p => !p.email).length} player(s) do not have email addresses.
+                    {paymentData.filter(p => !p.email).length} player(s) do not have email addresses.
                   </span>
                 )}
               </div>

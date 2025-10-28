@@ -213,10 +213,10 @@ export default function TeamRoster() {
               className="btn-secondary"
               title="Download CSV Template"
             >
-              📄 Template
+              Template
             </button>
             <label className="btn-secondary cursor-pointer" title="Upload Roster CSV">
-              📤 Upload CSV
+              Upload CSV
               <input
                 ref={fileInputRef}
                 type="file"
@@ -245,8 +245,7 @@ export default function TeamRoster() {
       {/* Team Captain Section */}
       {roster.filter(p => p.is_captain === 1).length > 0 && (
         <div className="card mb-6 bg-ice-50 border-ice-200">
-          <h3 className="text-lg font-semibold mb-3 flex items-center">
-            <span className="text-2xl mr-2">⭐</span>
+          <h3 className="text-lg font-semibold mb-3">
             Team Captain{roster.filter(p => p.is_captain === 1).length > 1 ? 's' : ''}
           </h3>
           <div className="space-y-2">
@@ -402,7 +401,6 @@ export default function TeamRoster() {
 
       {roster.length === 0 ? (
         <div className="card text-center py-12">
-          <div className="text-5xl mb-4">👥</div>
           <p className="text-gray-500 mb-4">No players on this roster yet</p>
           <button onClick={() => setShowForm(true)} className="btn-primary">
             Add Your First Player

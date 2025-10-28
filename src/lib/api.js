@@ -86,6 +86,10 @@ export const auth = {
     body: JSON.stringify({ role }),
   }),
 
+  deleteUser: (userId) => apiRequest(`/api/auth/users/${userId}`, {
+    method: 'DELETE',
+  }),
+
   isAuthenticated: () => {
     return !!getToken()
   },

@@ -50,8 +50,20 @@ export default function Leagues() {
     return currentUser?.role === 'admin' || currentUser?.role === 'league_manager'
   }
 
+  const handleDelete = async (leagueId, leagueName) => {
+    if (!window.confirm(`Delete league "${leagueName}"? This will also delete all associated seasons, teams, games, and players.`)) {
+      return
+    }
+    try {
+      await leagues.delete(leagueId)
+      fetchLeagues()
+    } catch (error) {
+      alert('Error deleting league: ' + error.message)
+    }
+  }
+
   if (loading) {
-    return <div>Loading leagues...</div>
+    return <div>Loading...</div>
   }
 
   return (
@@ -63,36 +75,32 @@ export default function Leagues() {
         ]}
       />
 
-      <div className="flex justify-between items-center mb-8">
+      <div className="page-header">
         <div>
-          <h1 className="text-3xl font-bold">Leagues</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            {showArchived ? 'Viewing archived leagues (completed seasons)' : 'Viewing active leagues'}
-          </p>
+          <h1 className="page-title">Leagues</h1>
+          <p className="page-subtitle">{leaguesList.length} {showArchived ? 'archived' : 'active'}</p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setShowArchived(!showArchived)}
-            className="btn-secondary text-sm"
+            className="btn-secondary"
           >
-            {showArchived ? '📋 Show Active' : '📦 Show Archived'}
+            {showArchived ? 'Show Active' : 'Show Archived'}
           </button>
           {canManageLeagues() && (
             <button
               onClick={() => setShowForm(!showForm)}
               className="btn-primary"
             >
-              {showForm ? 'Cancel' : '+ New League'}
+              {showForm ? 'Cancel' : 'New League'}
             </button>
           )}
         </div>
       </div>
 
       {!canManageLeagues() && leaguesList.length === 0 && (
-        <div className="card mb-6 bg-blue-50 border-blue-200">
-          <p className="text-sm text-gray-700">
-            Only Admins and League Managers can create leagues. Contact your administrator to get league manager access.
-          </p>
+        <div className="alert alert-info">
+          Only Admins and League Managers can create leagues.
         </div>
       )}
 
@@ -169,35 +177,59 @@ export default function Leagues() {
       {leaguesList.length === 0 ? (
         <div className="card text-center py-12">
           <p className="text-gray-500 mb-4">No leagues yet</p>
-          <button onClick={() => setShowForm(true)} className="btn-primary">
-            Create Your First League
-          </button>
+          {canManageLeagues() && (
+            <button onClick={() => setShowForm(true)} className="btn-primary">
+              Create Your First League
+            </button>
+          )}
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 gap-6">
-          {leaguesList.map((league) => (
-            <div key={league.id} className={`card hover:shadow-lg transition-shadow ${league.archived === 1 ? 'bg-gray-50 border-gray-300' : ''}`}>
-              <div className="flex items-start justify-between mb-2">
-                <h3 className="text-xl font-semibold">{league.name}</h3>
-                {league.archived === 1 && (
-                  <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full">
-                    Archived
-                  </span>
-                )}
-              </div>
-              {league.season && (
-                <p className="text-sm text-gray-500 mb-2">Season: {league.season}</p>
-              )}
-              {league.description && (
-                <p className="text-gray-600 mb-4">{league.description}</p>
-              )}
-              <div className="flex space-x-2">
-                <button onClick={() => navigate(`/leagues/${league.id}`)} className="btn-primary text-sm">
-                  View Details
-                </button>
-              </div>
-            </div>
-          ))}
+        <div className="card">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>League Name</th>
+                <th>Season</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th className="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {leaguesList.map((league) => (
+                <tr key={league.id}>
+                  <td className="font-medium">{league.name}</td>
+                  <td className="text-gray-600">{league.season || '-'}</td>
+                  <td className="text-gray-600">{league.description || '-'}</td>
+                  <td>
+                    {league.archived === 1 ? (
+                      <span className="badge badge-neutral">Archived</span>
+                    ) : (
+                      <span className="badge badge-success">Active</span>
+                    )}
+                  </td>
+                  <td>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => navigate(`/leagues/${league.id}`)}
+                        className="btn-primary text-xs py-1 px-3"
+                      >
+                        View Details
+                      </button>
+                      {canManageLeagues() && (
+                        <button
+                          onClick={() => handleDelete(league.id, league.name)}
+                          className="btn-danger text-xs py-1 px-3"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
