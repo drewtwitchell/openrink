@@ -79,9 +79,20 @@ function App() {
                   🏒 OpenRink
                 </Link>
                 {isAuthenticated && (
-                  <Link to="/dashboard" className="text-gray-700 hover:text-ice-600 font-medium">
-                    Dashboard
-                  </Link>
+                  <div className="flex items-center space-x-4">
+                    <Link
+                      to="/"
+                      className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-ice-600 hover:bg-gray-100"
+                    >
+                      Home
+                    </Link>
+                    <Link
+                      to="/dashboard"
+                      className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-ice-600 hover:bg-gray-100"
+                    >
+                      Dashboard
+                    </Link>
+                  </div>
                 )}
               </div>
               <div className="flex items-center space-x-4">
