@@ -5,6 +5,7 @@ import dotenv from 'dotenv'
 // Import routes
 import authRoutes from './routes/auth.js'
 import leagueRoutes from './routes/leagues.js'
+import seasonRoutes from './routes/seasons.js'
 import teamRoutes from './routes/teams.js'
 import gameRoutes from './routes/games.js'
 import rinkRoutes from './routes/rinks.js'
@@ -25,6 +26,7 @@ app.use(express.json())
 // Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/leagues', leagueRoutes)
+app.use('/api/seasons', seasonRoutes)
 app.use('/api/teams', teamRoutes)
 app.use('/api/games', gameRoutes)
 app.use('/api/rinks', rinkRoutes)

@@ -113,6 +113,33 @@ export const leagues = {
   }),
 }
 
+// Seasons API
+export const seasons = {
+  getByLeague: (leagueId) => apiRequest(`/api/seasons/league/${leagueId}`),
+  getActive: (leagueId) => apiRequest(`/api/seasons/league/${leagueId}/active`),
+  getById: (id) => apiRequest(`/api/seasons/${id}`),
+  create: (data) => apiRequest('/api/seasons', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  update: (id, data) => apiRequest(`/api/seasons/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  archive: (id, archived) => apiRequest(`/api/seasons/${id}/archive`, {
+    method: 'PATCH',
+    body: JSON.stringify({ archived }),
+  }),
+  setActive: (id) => apiRequest(`/api/seasons/${id}/set-active`, {
+    method: 'PATCH',
+  }),
+  delete: (id) => apiRequest(`/api/seasons/${id}`, {
+    method: 'DELETE',
+  }),
+  getPaymentStats: (id) => apiRequest(`/api/seasons/${id}/payment-stats`),
+  getPlayersPayments: (id) => apiRequest(`/api/seasons/${id}/players-payments`),
+}
+
 // Teams API
 export const teams = {
   getAll: () => apiRequest('/api/teams'),

@@ -113,6 +113,75 @@ function initDatabase() {
       }
     })
 
+    // Seasons table (multiple seasons per league)
+    db.run(`
+      CREATE TABLE IF NOT EXISTS seasons (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        league_id INTEGER REFERENCES leagues(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        description TEXT,
+        season_dues DECIMAL(10,2),
+        venmo_link TEXT,
+        start_date DATE,
+        end_date DATE,
+        is_active INTEGER DEFAULT 1,
+        archived INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `, (err) => {
+      if (err) {
+        console.error('Error creating seasons table:', err)
+      } else {
+        // Migrate existing leagues to have a default season
+        db.all('SELECT * FROM leagues', [], (err, leagues) => {
+          if (err) {
+            console.error('Error fetching leagues for migration:', err)
+            return
+          }
+
+          leagues.forEach((league) => {
+            // Check if this league already has a season
+            db.get('SELECT id FROM seasons WHERE league_id = ?', [league.id], (err, existingSeason) => {
+              if (err || existingSeason) return
+
+              // Create default season for this league
+              db.run(
+                `INSERT INTO seasons (league_id, name, description, season_dues, venmo_link, is_active, archived)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [
+                  league.id,
+                  league.season || 'Default Season',
+                  league.description || '',
+                  league.season_dues || null,
+                  league.venmo_link || null,
+                  1,
+                  league.archived || 0
+                ],
+                function(err) {
+                  if (err) {
+                    console.error('Error creating default season for league:', err)
+                  } else {
+                    const seasonId = this.lastID
+                    // Update teams to reference this season
+                    db.run('UPDATE teams SET season_id = ? WHERE league_id = ? AND season_id IS NULL',
+                      [seasonId, league.id]
+                    )
+                    // Update games to reference this season
+                    db.run(`UPDATE games SET season_id = ?
+                            WHERE season_id IS NULL AND home_team_id IN
+                            (SELECT id FROM teams WHERE league_id = ?)`,
+                      [seasonId, league.id]
+                    )
+                  }
+                }
+              )
+            })
+          })
+        })
+      }
+    })
+
     // Rinks table
     db.run(`
       CREATE TABLE IF NOT EXISTS rinks (
@@ -134,6 +203,13 @@ function initDatabase() {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `)
+
+    // Add season_id column to teams if it doesn't exist (migration)
+    db.run(`ALTER TABLE teams ADD COLUMN season_id INTEGER REFERENCES seasons(id) ON DELETE CASCADE`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding season_id column to teams:', err)
+      }
+    })
 
     // Players table
     db.run(`
@@ -175,6 +251,13 @@ function initDatabase() {
       )
     `)
 
+    // Add season_id column to games if it doesn't exist (migration)
+    db.run(`ALTER TABLE games ADD COLUMN season_id INTEGER REFERENCES seasons(id) ON DELETE CASCADE`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding season_id column to games:', err)
+      }
+    })
+
     // Payments table
     db.run(`
       CREATE TABLE IF NOT EXISTS payments (
@@ -190,6 +273,13 @@ function initDatabase() {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `)
+
+    // Add season_id column to payments if it doesn't exist (migration)
+    db.run(`ALTER TABLE payments ADD COLUMN season_id INTEGER REFERENCES seasons(id) ON DELETE CASCADE`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding season_id column to payments:', err)
+      }
+    })
 
     // Sub requests table
     db.run(`
