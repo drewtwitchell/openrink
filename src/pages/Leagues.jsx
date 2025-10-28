@@ -62,6 +62,19 @@ export default function Leagues() {
     }
   }
 
+  const handleArchive = async (leagueId, leagueName, currentlyArchived) => {
+    const action = currentlyArchived ? 'unarchive' : 'archive'
+    if (!window.confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} league "${leagueName}"?`)) {
+      return
+    }
+    try {
+      await leagues.archive(leagueId, !currentlyArchived)
+      fetchLeagues()
+    } catch (error) {
+      alert(`Error ${action}ing league: ${error.message}`)
+    }
+  }
+
   if (loading) {
     return <div>Loading...</div>
   }
@@ -217,12 +230,20 @@ export default function Leagues() {
                         View Details
                       </button>
                       {canManageLeagues() && (
-                        <button
-                          onClick={() => handleDelete(league.id, league.name)}
-                          className="btn-danger text-xs py-1 px-3"
-                        >
-                          Delete
-                        </button>
+                        <>
+                          <button
+                            onClick={() => handleArchive(league.id, league.name, league.archived === 1)}
+                            className="btn-secondary text-xs py-1 px-3"
+                          >
+                            {league.archived === 1 ? 'Unarchive' : 'Archive'}
+                          </button>
+                          <button
+                            onClick={() => handleDelete(league.id, league.name)}
+                            className="btn-danger text-xs py-1 px-3"
+                          >
+                            Delete
+                          </button>
+                        </>
                       )}
                     </div>
                   </td>
