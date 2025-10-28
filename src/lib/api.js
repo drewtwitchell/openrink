@@ -193,6 +193,10 @@ export const players = {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
+  transfer: (id, teamId) => apiRequest(`/api/players/${id}/transfer`, {
+    method: 'PATCH',
+    body: JSON.stringify({ team_id: teamId }),
+  }),
   delete: (id) => apiRequest(`/api/players/${id}`, {
     method: 'DELETE',
   }),

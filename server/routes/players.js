@@ -123,6 +123,26 @@ router.put('/:id', authenticateToken, (req, res) => {
   }
 })
 
+// Transfer player to another team
+router.patch('/:id/transfer', authenticateToken, (req, res) => {
+  const { team_id } = req.body
+
+  if (!team_id) {
+    return res.status(400).json({ error: 'Destination team ID required' })
+  }
+
+  db.run(
+    'UPDATE players SET team_id = ? WHERE id = ?',
+    [team_id, req.params.id],
+    function (err) {
+      if (err) {
+        return res.status(500).json({ error: 'Error transferring player' })
+      }
+      res.json({ message: 'Player transferred successfully' })
+    }
+  )
+})
+
 // Delete player
 router.delete('/:id', authenticateToken, (req, res) => {
   db.run('DELETE FROM players WHERE id = ?', [req.params.id], function (err) {

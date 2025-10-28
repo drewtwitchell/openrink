@@ -18,6 +18,10 @@ export default function TeamRoster() {
   const [userSearchResults, setUserSearchResults] = useState([])
   const [showUserSearch, setShowUserSearch] = useState(false)
   const [selectedUser, setSelectedUser] = useState(null)
+  const [showTransferModal, setShowTransferModal] = useState(false)
+  const [playerToTransfer, setPlayerToTransfer] = useState(null)
+  const [allTeams, setAllTeams] = useState([])
+  const [selectedTeamId, setSelectedTeamId] = useState('')
   const fileInputRef = useRef(null)
   const searchTimeoutRef = useRef(null)
   const [formData, setFormData] = useState({
@@ -51,6 +55,7 @@ export default function TeamRoster() {
       const teamData = teamsData.find(t => t.id === parseInt(id))
       setTeam(teamData)
       setRoster(playersData)
+      setAllTeams(teamsData.filter(t => t.id !== parseInt(id))) // Exclude current team
 
       // Set league data if available
       if (leaguesData && leagueId) {
@@ -135,6 +140,33 @@ export default function TeamRoster() {
       fetchData()
     } catch (error) {
       alert('Error removing player: ' + error.message)
+    }
+  }
+
+  const openTransferModal = (player) => {
+    setPlayerToTransfer(player)
+    setSelectedTeamId('')
+    setShowTransferModal(true)
+  }
+
+  const closeTransferModal = () => {
+    setShowTransferModal(false)
+    setPlayerToTransfer(null)
+    setSelectedTeamId('')
+  }
+
+  const handleTransfer = async () => {
+    if (!selectedTeamId) {
+      alert('Please select a destination team')
+      return
+    }
+
+    try {
+      await players.transfer(playerToTransfer.id, selectedTeamId)
+      closeTransferModal()
+      fetchData()
+    } catch (error) {
+      alert('Error transferring player: ' + error.message)
     }
   }
 
@@ -472,17 +504,66 @@ export default function TeamRoster() {
                       {player.phone || player.user_phone || '-'}
                     </td>
                     <td className="py-3 px-4 text-center">
-                      <button
-                        onClick={() => handleDelete(player.id)}
-                        className="btn-danger text-xs py-1 px-3"
-                      >
-                        Delete
-                      </button>
+                      <div className="flex gap-2 justify-center">
+                        <button
+                          onClick={() => openTransferModal(player)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white text-xs py-1 px-3 rounded"
+                        >
+                          Transfer
+                        </button>
+                        <button
+                          onClick={() => handleDelete(player.id)}
+                          className="btn-danger text-xs py-1 px-3"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Transfer Modal */}
+      {showTransferModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-semibold mb-4">Transfer Player</h3>
+            <p className="text-gray-600 mb-4">
+              Transfer <strong>{playerToTransfer?.name}</strong> to another team
+            </p>
+            <div className="mb-6">
+              <label className="label">Select Destination Team</label>
+              <select
+                value={selectedTeamId}
+                onChange={(e) => setSelectedTeamId(e.target.value)}
+                className="input"
+              >
+                <option value="">-- Select a team --</option>
+                {allTeams.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={closeTransferModal}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleTransfer}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+              >
+                Transfer Player
+              </button>
+            </div>
           </div>
         </div>
       )}
