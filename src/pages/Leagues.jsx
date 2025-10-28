@@ -38,7 +38,7 @@ export default function Leagues() {
       setFormData({ name: '', description: '' })
       setShowForm(false)
       // Redirect to league details to create a season
-      navigate(`/leagues/${response.league.id}?tab=seasons`)
+      navigate(`/leagues/${response.id}?tab=seasons`)
     } catch (error) {
       alert('Error creating league: ' + error.message)
     }

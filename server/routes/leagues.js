@@ -47,31 +47,31 @@ router.get('/:id/managers', (req, res) => {
 
 // Create league
 router.post('/', authenticateToken, (req, res) => {
-  const { name, description, season } = req.body
+  const { name, description } = req.body
 
   if (!name) {
     return res.status(400).json({ error: 'League name required' })
   }
 
   db.run(
-    'INSERT INTO leagues (name, description, season, created_by) VALUES (?, ?, ?, ?)',
-    [name, description, season, req.user.id],
+    'INSERT INTO leagues (name, description, created_by) VALUES (?, ?, ?)',
+    [name, description, req.user.id],
     function (err) {
       if (err) {
         return res.status(500).json({ error: 'Error creating league' })
       }
-      res.json({ id: this.lastID, name, description, season })
+      res.json({ id: this.lastID, name, description })
     }
   )
 })
 
 // Update league
 router.put('/:id', authenticateToken, (req, res) => {
-  const { name, description, season } = req.body
+  const { name, description } = req.body
 
   db.run(
-    'UPDATE leagues SET name = ?, description = ?, season = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-    [name, description, season, req.params.id],
+    'UPDATE leagues SET name = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [name, description, req.params.id],
     function (err) {
       if (err) {
         return res.status(500).json({ error: 'Error updating league' })
