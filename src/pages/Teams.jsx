@@ -65,34 +65,25 @@ export default function Teams() {
         ]}
       />
 
-      <div className="mb-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-4xl font-black gradient-text">Teams</h1>
-          {canManageTeams() && (
-            <button
-              onClick={() => setShowForm(!showForm)}
-              className="btn-primary"
-            >
-              {showForm ? '✕ Cancel' : '+ New Team'}
-            </button>
-          )}
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Teams</h1>
+          <p className="page-subtitle">{teamsList.length} team{teamsList.length !== 1 ? 's' : ''}</p>
         </div>
-
-        {/* Tabs */}
-        <div className="border-b border-gray-200">
-          <nav className="flex space-x-8">
-            <div className="py-4 px-1 border-b-2 border-ice-600 font-medium text-sm text-ice-600">
-              All Teams
-            </div>
-          </nav>
-        </div>
+        {canManageTeams() && (
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="btn-primary"
+          >
+            {showForm ? 'Cancel' : 'New Team'}
+          </button>
+        )}
       </div>
 
+
       {!canManageTeams() && teamsList.length === 0 && (
-        <div className="card mb-6 bg-blue-50 border-blue-200">
-          <p className="text-sm text-gray-700">
-            Only Admins and League Managers can create teams. Contact your administrator for access.
-          </p>
+        <div className="alert alert-info">
+          Only Admins and League Managers can create teams. Contact your administrator for access.
         </div>
       )}
 
@@ -147,58 +138,58 @@ export default function Teams() {
       )}
 
       {teamsList.length === 0 ? (
-        <div className="empty-state hero-section">
-          <div className="empty-state-icon animate-float">👥</div>
-          <h2 className="text-4xl font-black text-white mb-4">No Teams Yet</h2>
-          {leaguesList.length > 0 ? (
-            <>
-              <p className="text-xl text-blue-100 mb-8">
-                Assemble your squad and hit the ice!
-              </p>
-              <button onClick={() => setShowForm(true)} className="btn-primary bg-white text-ice-600 hover:bg-gray-100">
-                🎯 Create First Team
-              </button>
-            </>
-          ) : (
-            <>
-              <p className="text-xl text-blue-100 mb-8">
-                You'll need a league before creating teams
-              </p>
-              <button onClick={() => window.location.href = '/dashboard'} className="btn-primary bg-white text-ice-600 hover:bg-gray-100">
-                🏒 Create League
-              </button>
-            </>
-          )}
+        <div className="card">
+          <div className="empty-state">
+            <h3 className="empty-state-title">No Teams Yet</h3>
+            {leaguesList.length > 0 ? (
+              <>
+                <p className="empty-state-description">
+                  Create your first team to get started
+                </p>
+                <button onClick={() => setShowForm(true)} className="btn-primary">
+                  Create Team
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="empty-state-description">
+                  You'll need a league before creating teams
+                </p>
+                <button onClick={() => window.location.href = '/dashboard'} className="btn-primary">
+                  Go to Dashboard
+                </button>
+              </>
+            )}
+          </div>
         </div>
       ) : (
         <div className="grid md:grid-cols-3 gap-6">
           {teamsList.map((team) => (
             <div
               key={team.id}
-              className="card hover:scale-105 transition-all cursor-pointer group"
+              className="card cursor-pointer group"
               onClick={() => navigate(`/teams/${team.id}/roster`)}
             >
-              <div className="flex items-center mb-4">
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200">
                 <div
-                  className="w-12 h-12 rounded-full mr-4 shadow-lg group-hover:shadow-xl transition-shadow"
+                  className="w-10 h-10 rounded-lg shadow-sm"
                   style={{ backgroundColor: team.color }}
                 />
-                <h3 className="text-xl font-black gradient-text">{team.name}</h3>
+                <h3 className="text-lg font-semibold text-gray-900">{team.name}</h3>
               </div>
               {team.league_name && (
-                <div className="mb-3 flex items-center text-sm text-gray-600">
-                  <span className="mr-2">🏆</span>
-                  <span className="font-semibold">{team.league_name}</span>
+                <div className="mb-3 text-sm text-gray-600">
+                  <span className="font-medium">{team.league_name}</span>
                 </div>
               )}
               {team.captains && team.captains.length > 0 && (
-                <div className="mb-4 p-3 bg-gradient-to-br from-ice-50 to-blue-50 rounded-xl border border-ice-100">
-                  <div className="text-xs text-gray-600 font-bold mb-2 uppercase tracking-wide">
+                <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="text-xs text-gray-600 font-medium mb-2">
                     Captain{team.captains.length > 1 ? 's' : ''}
                   </div>
                   {team.captains.map((captain, idx) => (
-                    <div key={idx} className="text-sm font-bold text-ice-700 flex items-center">
-                      <span className="mr-2">⭐</span> {captain.name}
+                    <div key={idx} className="text-sm font-medium text-gray-900">
+                      {captain.name}
                     </div>
                   ))}
                 </div>
@@ -208,9 +199,9 @@ export default function Teams() {
                   e.stopPropagation()
                   navigate(`/teams/${team.id}/roster`)
                 }}
-                className="btn-primary text-sm w-full"
+                className="btn-secondary text-sm w-full"
               >
-                👥 View Roster
+                View Roster
               </button>
             </div>
           ))}

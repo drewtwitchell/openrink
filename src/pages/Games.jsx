@@ -180,40 +180,24 @@ export default function Games() {
         ]}
       />
 
-      <div className="flex justify-between items-start mb-8">
+      <div className="page-header">
         <div>
-          <h1 className="text-4xl font-black gradient-text mb-4">Games</h1>
-          {leaguesList.length > 0 && canScheduleGames() && (
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600">League for CSV Upload:</label>
-              <select
-                value={selectedLeague}
-                onChange={(e) => setSelectedLeague(e.target.value)}
-                className="input text-sm py-1"
-              >
-                {leaguesList.map((league) => (
-                  <option key={league.id} value={league.id}>
-                    {league.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          <h1 className="page-title">Games</h1>
+          <p className="page-subtitle">{gamesList.length} scheduled game{gamesList.length !== 1 ? 's' : ''}</p>
         </div>
         {canScheduleGames() && (
           <div className="flex gap-2">
             <button onClick={() => setShowForm(!showForm)} className="btn-primary">
-              {showForm ? 'Cancel' : '+ Schedule Game'}
+              {showForm ? 'Cancel' : 'Schedule Game'}
             </button>
             <button
               onClick={() => csv.downloadScheduleTemplate()}
               className="btn-secondary"
-              title="Download CSV Template"
             >
-              📄 Template
+              Download Template
             </button>
-            <label className="btn-secondary cursor-pointer" title="Upload Schedule CSV">
-              📤 Upload CSV
+            <label className="btn-secondary cursor-pointer">
+              Upload CSV
               <input
                 ref={fileInputRef}
                 type="file"
@@ -227,22 +211,37 @@ export default function Games() {
         )}
       </div>
 
+      {leaguesList.length > 0 && canScheduleGames() && (
+        <div className="mb-6">
+          <label className="label">League for CSV Upload</label>
+          <select
+            value={selectedLeague}
+            onChange={(e) => setSelectedLeague(e.target.value)}
+            className="input max-w-xs"
+          >
+            {leaguesList.map((league) => (
+              <option key={league.id} value={league.id}>
+                {league.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {!canScheduleGames() && gamesList.length === 0 && (
-        <div className="card mb-6 bg-blue-50 border-blue-200">
-          <p className="text-sm text-gray-700">
-            Only Admins and League Managers can schedule games. You can still request substitutes for games once they're scheduled.
-          </p>
+        <div className="alert alert-info">
+          Only Admins and League Managers can schedule games. You can still request substitutes for games once they're scheduled.
         </div>
       )}
 
       {uploadMessage && (
-        <div className={`mb-6 p-4 rounded ${uploadMessage.includes('Error') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+        <div className={uploadMessage.includes('Error') ? 'alert alert-error' : 'alert alert-success'}>
           {uploadMessage}
         </div>
       )}
 
       {uploading && (
-        <div className="mb-6 p-4 bg-blue-100 text-blue-700 rounded">
+        <div className="alert alert-info">
           Uploading and processing CSV... This may take a moment.
         </div>
       )}
@@ -460,82 +459,83 @@ export default function Games() {
       )}
 
       {gamesList.length === 0 ? (
-        <div className="empty-state hero-section">
-          <div className="empty-state-icon animate-float">🏒</div>
-          <h2 className="text-4xl font-black text-white mb-4">No Games Scheduled</h2>
-          {teamsList.length > 0 && rinksList.length > 0 ? (
-            <>
-              <p className="text-xl text-blue-100 mb-8">
-                Ready to hit the ice? Schedule your first game!
-              </p>
-              <button onClick={() => setShowForm(true)} className="btn-primary bg-white text-ice-600 hover:bg-gray-100">
-                🎯 Schedule First Game
-              </button>
-            </>
-          ) : (
-            <div>
-              <p className="text-xl text-blue-100 mb-8">
-                You'll need teams and rinks before scheduling games
-              </p>
-              <div className="flex gap-4 justify-center">
-                <button onClick={() => window.location.href = '/teams'} className="btn-primary bg-white text-ice-600 hover:bg-gray-100">
-                  👥 Create Teams
+        <div className="card">
+          <div className="empty-state">
+            <h3 className="empty-state-title">No Games Scheduled</h3>
+            {teamsList.length > 0 && rinksList.length > 0 ? (
+              <>
+                <p className="empty-state-description">
+                  Schedule your first game to get started
+                </p>
+                <button onClick={() => setShowForm(true)} className="btn-primary">
+                  Schedule Game
                 </button>
-                <button onClick={() => window.location.href = '/rinks'} className="btn-primary bg-white text-ice-600 hover:bg-gray-100">
-                  🏟️ Add Rinks
-                </button>
-              </div>
-            </div>
-          )}
+              </>
+            ) : (
+              <>
+                <p className="empty-state-description">
+                  You'll need teams and rinks before scheduling games
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <button onClick={() => window.location.href = '/teams'} className="btn-primary">
+                    Create Teams
+                  </button>
+                  <button onClick={() => window.location.href = '/rinks'} className="btn-primary">
+                    Add Rinks
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {gamesList.map((game) => (
-            <div key={game.id} className="card hover:scale-102 transition-transform">
+            <div key={game.id} className="card">
               <div className="flex justify-between items-center">
                 <div className="flex-1">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-4">
+                  <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-100">
+                    <div className="flex items-center gap-3">
                       <div
-                        className="w-8 h-8 rounded-full shadow-lg"
+                        className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: game.home_team_color || '#0284c7' }}
                       />
-                      <span className="font-bold text-lg">{game.home_team_name}</span>
+                      <span className="font-semibold text-gray-900">{game.home_team_name}</span>
                     </div>
-                    <span className="text-3xl font-black gradient-text mx-6">
+                    <span className="text-2xl font-bold text-gray-900 min-w-[40px] text-center">
                       {game.home_score ?? '-'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center gap-3">
                       <div
-                        className="w-8 h-8 rounded-full shadow-lg"
+                        className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: game.away_team_color || '#0284c7' }}
                       />
-                      <span className="font-bold text-lg">{game.away_team_name}</span>
+                      <span className="font-semibold text-gray-900">{game.away_team_name}</span>
                     </div>
-                    <span className="text-3xl font-black gradient-text mx-6">
+                    <span className="text-2xl font-bold text-gray-900 min-w-[40px] text-center">
                       {game.away_score ?? '-'}
                     </span>
                   </div>
                 </div>
-                <div className="text-right ml-12 min-w-[200px]">
-                  <div className="text-sm font-bold text-gray-700 mb-1">
+                <div className="ml-8 pl-8 border-l border-gray-200 min-w-[180px]">
+                  <div className="text-sm font-medium text-gray-900 mb-1">
                     {formatDate(game.game_date)}
                   </div>
-                  <div className="text-sm font-semibold text-ice-600">{game.game_time}</div>
-                  <div className="text-sm text-gray-500 mt-2">
-                    🏟️ {game.rink_name}
+                  <div className="text-sm text-gray-600 mb-3">{game.game_time}</div>
+                  <div className="text-xs text-gray-500 mb-1">
+                    {game.rink_name}
                   </div>
                   <div className="text-xs text-gray-400">
-                    {game.surface_name} Surface
+                    {game.surface_name}
                   </div>
                   {!game.home_score && currentUser && (
                     <button
                       onClick={() => openSubRequestForm(game)}
-                      className="mt-3 text-sm btn-secondary py-1 px-3 text-xs"
+                      className="mt-3 btn-secondary text-xs py-1 px-2 w-full"
                     >
-                      🔄 Request Sub
+                      Request Sub
                     </button>
                   )}
                 </div>

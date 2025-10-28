@@ -229,56 +229,52 @@ export default function LeagueDetails() {
         ]}
       />
 
-      <div className="mb-6">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-4xl font-black gradient-text mb-2">
-              {league.name}
-              {league.archived === 1 && (
-                <span className="ml-3 text-sm badge badge-warning">
-                  Archived
-                </span>
-              )}
-            </h1>
-            {league.season && <p className="text-gray-700 font-semibold">Season: {league.season}</p>}
-            {league.description && <p className="text-gray-600 mt-2">{league.description}</p>}
+      <div className="page-header mb-6">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="page-title">{league.name}</h1>
+            {league.archived === 1 && (
+              <span className="badge badge-warning">Archived</span>
+            )}
           </div>
+          {league.description && <p className="page-subtitle">{league.description}</p>}
+        </div>
+        <div className="flex gap-2">
           <button
             onClick={handleArchive}
-            className={league.archived === 1 ? "btn-primary" : "btn-secondary text-amber-600"}
+            className={league.archived === 1 ? "btn-primary" : "btn-danger"}
           >
-            {league.archived === 1 ? '↩️ Unarchive League' : '📦 Archive League'}
+            {league.archived === 1 ? 'Unarchive League' : 'Archive League'}
           </button>
         </div>
       </div>
 
       {/* League Contacts */}
       {managers.length > 0 && (
-        <div className="card mb-6 bg-gradient-to-br from-ice-50 to-blue-50 border-2 border-ice-200">
+        <div className="card mb-6">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-black flex items-center text-ice-700">
-              <span className="text-3xl mr-3">👥</span>
+            <h3 className="section-header mb-0">
               League Contact{managers.length > 1 ? 's' : ''}
             </h3>
             <button
               onClick={() => setShowContactModal(true)}
-              className="btn-primary shadow-lg"
+              className="btn-primary"
             >
-              📧 Contact All Players
+              Contact All Players
             </button>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {managers.map((manager) => (
-              <div key={manager.id} className="flex items-center justify-between p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow">
+              <div key={manager.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
-                  <div className="font-bold text-lg">{manager.name || 'No name'}</div>
-                  <div className="text-sm text-gray-600 font-medium">
+                  <div className="font-semibold text-gray-900">{manager.name || 'No name'}</div>
+                  <div className="text-sm text-gray-600">
                     {manager.email}
                     {manager.phone && <span className="ml-2">• {manager.phone}</span>}
                   </div>
                 </div>
                 <a href={`mailto:${manager.email}`} className="btn-secondary text-sm">
-                  ✉️ Email
+                  Email
                 </a>
               </div>
             ))}

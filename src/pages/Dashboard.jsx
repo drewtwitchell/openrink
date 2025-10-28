@@ -24,70 +24,78 @@ function AdminDashboard({ stats }) {
   }
 
   return (
-    <div>
+    <div className="space-y-6">
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="stat-card">
+          <div className="stat-label">Total Leagues</div>
+          <div className="stat-value">{stats.leagues}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Total Teams</div>
+          <div className="stat-value">{stats.teams}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Active Season</div>
+          <div className="stat-value">{leaguesList.filter(l => !l.archived).length}</div>
+        </div>
+      </div>
+
+      {/* Leagues Section */}
       <div className="card">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Leagues</h2>
-          <span className="text-sm text-gray-600">{stats.leagues} total</span>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="section-header mb-0">Leagues</h2>
+          <Link to="/leagues" className="btn-primary">
+            Create League
+          </Link>
         </div>
 
         {loading ? (
-          <p className="text-gray-500 text-center py-8">Loading...</p>
+          <div className="empty-state">
+            <p className="text-gray-500">Loading...</p>
+          </div>
         ) : leaguesList.length === 0 ? (
-          <div className="hero-section relative z-10">
-            <div className="relative z-10">
-              <div className="text-8xl mb-6 animate-float">🏒</div>
-              <h2 className="text-4xl font-black text-white mb-4">Welcome to OpenRink!</h2>
-              <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-                Get started by creating your first league. Manage teams, schedule games, and track everything in one place.
-              </p>
-              <Link to="/leagues" className="inline-block bg-white text-ice-600 px-8 py-4 rounded-2xl hover:bg-gray-100 transition-all duration-300 font-bold text-lg shadow-2xl hover:scale-105 transform">
-                🚀 Create Your First League
-              </Link>
-              <div className="mt-12 grid grid-cols-3 gap-6 max-w-3xl mx-auto">
-                <div className="glass rounded-2xl p-6">
-                  <div className="text-3xl mb-2">👥</div>
-                  <div className="text-white font-bold">Manage Teams</div>
-                </div>
-                <div className="glass rounded-2xl p-6">
-                  <div className="text-3xl mb-2">📅</div>
-                  <div className="text-white font-bold">Schedule Games</div>
-                </div>
-                <div className="glass rounded-2xl p-6">
-                  <div className="text-3xl mb-2">📊</div>
-                  <div className="text-white font-bold">Track Standings</div>
-                </div>
-              </div>
-            </div>
+          <div className="empty-state">
+            <h3 className="empty-state-title">No Leagues Yet</h3>
+            <p className="empty-state-description">
+              Create your first league to start managing teams and games
+            </p>
+            <Link to="/leagues" className="btn-primary">
+              Create League
+            </Link>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="space-y-3">
             {leaguesList.map((league) => (
               <div
                 key={league.id}
                 onClick={() => navigate(`/leagues/${league.id}`)}
-                className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors border border-gray-200"
+                className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-gray-300 hover:shadow-sm cursor-pointer transition-all"
               >
-                <div className="font-semibold text-lg mb-1">{league.name}</div>
-                {league.season && (
-                  <div className="text-sm text-gray-600 mb-2">{league.season}</div>
-                )}
-                {league.description && (
-                  <div className="text-sm text-gray-500 line-clamp-2">{league.description}</div>
-                )}
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <h3 className="font-semibold text-gray-900">{league.name}</h3>
+                    {league.archived === 1 && (
+                      <span className="badge badge-neutral">Archived</span>
+                    )}
+                  </div>
+                  {league.description && (
+                    <p className="text-sm text-gray-600 mt-1">{league.description}</p>
+                  )}
+                </div>
+                <div className="text-sm text-gray-500">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
               </div>
             ))}
           </div>
         )}
-
-        <div className="mt-6 pt-4 border-t">
-          <Link to="/leagues" className="text-sm text-ice-600 hover:text-ice-700 hover:underline">
-            Manage all leagues →
-          </Link>
-        </div>
       </div>
 
-      <div className="mt-6 card">
+      {/* User Management */}
+      <div className="card">
         <UsersManagementCard />
       </div>
     </div>
@@ -152,28 +160,41 @@ function LeagueManagerDashboard({ user }) {
 
   if (assignedLeagues.length === 0) {
     return (
-      <div className="hero-section relative z-10">
-        <div className="relative z-10">
-          <div className="text-8xl mb-6 animate-float">👋</div>
-          <h2 className="text-4xl font-black text-white mb-4">Welcome, League Manager!</h2>
-          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            You haven't been assigned to any leagues yet. Contact your administrator to get started managing leagues.
+      <div className="card">
+        <div className="empty-state">
+          <h3 className="empty-state-title">No Leagues Assigned</h3>
+          <p className="empty-state-description">
+            You haven't been assigned to any leagues yet. Contact your administrator to get started.
           </p>
-          <div className="glass rounded-2xl p-8 max-w-md mx-auto">
-            <h3 className="text-white font-bold text-lg mb-4">What you'll be able to do:</h3>
-            <div className="space-y-3 text-left">
-              <div className="flex items-center space-x-3 text-white">
-                <span className="text-2xl">⚙️</span>
-                <span>Manage league seasons</span>
-              </div>
-              <div className="flex items-center space-x-3 text-white">
-                <span className="text-2xl">💰</span>
-                <span>Track player payments</span>
-              </div>
-              <div className="flex items-center space-x-3 text-white">
-                <span className="text-2xl">📧</span>
-                <span>Contact all players</span>
-              </div>
+          <div className="mt-8 max-w-md mx-auto">
+            <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+              <h4 className="font-semibold text-gray-900 mb-4">Available Capabilities:</h4>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li className="flex items-start">
+                  <svg className="w-5 h-5 text-ice-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Manage multiple seasons per league
+                </li>
+                <li className="flex items-start">
+                  <svg className="w-5 h-5 text-ice-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Track player payments and dues
+                </li>
+                <li className="flex items-start">
+                  <svg className="w-5 h-5 text-ice-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Contact all league players
+                </li>
+                <li className="flex items-start">
+                  <svg className="w-5 h-5 text-ice-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Archive individual seasons or entire leagues
+                </li>
+              </ul>
             </div>
           </div>
         </div>
@@ -182,76 +203,83 @@ function LeagueManagerDashboard({ user }) {
   }
 
   return (
-    <div>
+    <div className="space-y-6">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">My Leagues</h1>
+          <p className="page-subtitle">Manage {assignedLeagues.length} league{assignedLeagues.length !== 1 ? 's' : ''}</p>
+        </div>
+      </div>
+
       <div className="grid md:grid-cols-2 gap-6">
         {assignedLeagues.map((league) => {
           const leagueSeasonsList = leagueSeasons[league.id] || []
           const activeSeason = leagueSeasonsList.find(s => s.is_active === 1 && s.archived === 0)
           const stats = paymentStats[league.id]
+          const paymentRate = stats ? (stats.players_paid / stats.total_players * 100) : 0
 
           return (
-            <div key={league.id} className="card hover:shadow-lg transition-shadow">
+            <div key={league.id} className="card">
               <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-xl font-semibold mb-1">{league.name}</h3>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">{league.name}</h3>
                   {activeSeason && (
-                    <p className="text-sm text-gray-600">
-                      Active Season: {activeSeason.name}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <span className="badge badge-info">{activeSeason.name}</span>
+                    </div>
                   )}
                 </div>
                 <button
                   onClick={() => navigate(`/leagues/${league.id}`)}
-                  className="btn-primary text-sm"
+                  className="btn-secondary text-sm"
                 >
                   Manage
                 </button>
               </div>
 
-              {league.description && (
-                <p className="text-gray-600 text-sm mb-4">{league.description}</p>
-              )}
-
-              {/* Payment Tracking */}
+              {/* Payment Stats */}
               {stats && (
-                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                  <h4 className="font-semibold text-sm mb-2">Payment Tracking</h4>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-gray-600">Payment Collection</span>
+                      <span className="font-medium text-gray-900">{stats.players_paid} / {stats.total_players} players</span>
+                    </div>
+                    <div className="progress-bar">
+                      <div className="progress-fill" style={{ width: `${paymentRate}%` }}></div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
                     <div>
-                      <div className="text-gray-600">Total Players</div>
-                      <div className="text-lg font-bold">{stats.total_players}</div>
+                      <div className="text-xs text-gray-600 mb-1">Paid</div>
+                      <div className="text-lg font-semibold text-green-600">{stats.players_paid}</div>
                     </div>
                     <div>
-                      <div className="text-gray-600">Collected</div>
-                      <div className="text-lg font-bold text-green-600">
-                        ${parseFloat(stats.total_collected || 0).toFixed(2)}
-                      </div>
+                      <div className="text-xs text-gray-600 mb-1">Unpaid</div>
+                      <div className="text-lg font-semibold text-red-600">{stats.players_unpaid}</div>
                     </div>
                     <div>
-                      <div className="text-green-600">Paid</div>
-                      <div className="font-bold">{stats.players_paid}</div>
-                    </div>
-                    <div>
-                      <div className="text-red-600">Unpaid</div>
-                      <div className="font-bold">{stats.players_unpaid}</div>
+                      <div className="text-xs text-gray-600 mb-1">Collected</div>
+                      <div className="text-lg font-semibold text-gray-900">${parseFloat(stats.total_collected || 0).toFixed(0)}</div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Season Management */}
-              <div className="mt-4 pt-3 border-t flex gap-2">
+              {/* Actions */}
+              <div className="mt-6 pt-4 border-t flex gap-2">
                 <button
                   onClick={() => navigate(`/leagues/${league.id}`, { state: { activeTab: 'seasons' } })}
-                  className="btn-secondary text-xs"
+                  className="btn-secondary text-sm flex-1"
                 >
-                  Manage Seasons
+                  Seasons
                 </button>
                 <button
                   onClick={() => navigate(`/leagues/${league.id}`, { state: { activeTab: 'payments' } })}
-                  className="btn-secondary text-xs"
+                  className="btn-secondary text-sm flex-1"
                 >
-                  View Payments
+                  Payments
                 </button>
               </div>
             </div>
