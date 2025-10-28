@@ -54,12 +54,23 @@ export default function Home() {
         const today = new Date()
         const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
 
-        const allLeagueData = leaguesData.map(league => {
+        const allLeagueData = await Promise.all(leaguesData.map(async (league) => {
           const leagueTeams = teamsData.filter(t => t.league_id === league.id)
           const completedGames = gamesData.filter(g =>
             g.home_score != null && g.away_score != null &&
             leagueTeams.some(t => t.id === g.home_team_id || t.id === g.away_team_id)
           )
+
+          // Fetch active season
+          let activeSeason = null
+          try {
+            const seasonResponse = await fetch(`${API_URL}/api/seasons/league/${league.id}/active`)
+            if (seasonResponse.ok) {
+              activeSeason = await seasonResponse.json()
+            }
+          } catch (error) {
+            // No active season
+          }
 
           // Calculate standings
           const teamStats = {}
@@ -117,10 +128,11 @@ export default function Home() {
 
           return {
             league,
+            activeSeason,
             standings,
             upcomingGames
           }
-        })
+        }))
 
         setLeagueData(allLeagueData)
       }
@@ -260,9 +272,21 @@ export default function Home() {
       <div className="mb-8 text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-2">
           {isSingleLeague && displayLeagues[0]?.league.name
-            ? `${displayLeagues[0].league.name}${displayLeagues[0].league.season ? ` - ${displayLeagues[0].league.season}` : ''}`
+            ? displayLeagues[0].league.name
             : 'League Standings & Schedule'}
         </h1>
+        {isSingleLeague && displayLeagues[0]?.activeSeason && (
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <span className="badge badge-success text-sm">
+              {displayLeagues[0].activeSeason.name}
+            </span>
+            {displayLeagues[0].activeSeason.start_date && displayLeagues[0].activeSeason.end_date && (
+              <span className="text-sm text-gray-500">
+                {new Date(displayLeagues[0].activeSeason.start_date).toLocaleDateString()} - {new Date(displayLeagues[0].activeSeason.end_date).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+        )}
         <p className="text-gray-600">
           {isSingleLeague && displayLeagues[0]?.league.description
             ? displayLeagues[0].league.description
@@ -275,7 +299,7 @@ export default function Home() {
         )}
       </div>
 
-      {displayLeagues.map(({ league, standings, upcomingGames }) => (
+      {displayLeagues.map(({ league, activeSeason, standings, upcomingGames }) => (
         <div key={league.id} className="mb-12">
           {/* League Header - only show for multiple leagues */}
           {isMultipleLeagues && (
