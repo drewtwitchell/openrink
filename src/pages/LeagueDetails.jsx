@@ -7,6 +7,7 @@ export default function LeagueDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
+  const searchParams = new URLSearchParams(location.search)
   const [league, setLeague] = useState(null)
   const [teams, setTeams] = useState([])
   const [games, setGames] = useState([])
@@ -14,7 +15,7 @@ export default function LeagueDetails() {
   const [leagueSeasons, setLeagueSeasons] = useState([])
   const [activeSeason, setActiveSeason] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'overview')
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || location.state?.activeTab || 'overview')
   const [showTeamForm, setShowTeamForm] = useState(false)
   const [showSeasonForm, setShowSeasonForm] = useState(false)
   const [editingSeasonId, setEditingSeasonId] = useState(null)
@@ -38,6 +39,10 @@ export default function LeagueDetails() {
 
   useEffect(() => {
     fetchLeagueData()
+    // Auto-open season form if coming from league creation
+    if (searchParams.get('tab') === 'seasons') {
+      setShowSeasonForm(true)
+    }
   }, [id])
 
   const fetchLeagueData = async () => {

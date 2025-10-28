@@ -13,9 +13,6 @@ export default function Leagues() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    season: '',
-    season_dues: '',
-    venmo_link: '',
   })
 
   useEffect(() => {
@@ -37,10 +34,11 @@ export default function Leagues() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      await leagues.create(formData)
-      setFormData({ name: '', description: '', season: '', season_dues: '', venmo_link: '' })
+      const response = await leagues.create(formData)
+      setFormData({ name: '', description: '' })
       setShowForm(false)
-      fetchLeagues()
+      // Redirect to league details to create a season
+      navigate(`/leagues/${response.league.id}?tab=seasons`)
     } catch (error) {
       alert('Error creating league: ' + error.message)
     }
@@ -128,7 +126,7 @@ export default function Leagues() {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="input"
-                placeholder="e.g., Winter 2024"
+                placeholder="e.g., Monday Night Hockey League"
                 required
               />
             </div>
@@ -140,44 +138,12 @@ export default function Leagues() {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="input"
                 rows="3"
-                placeholder="League details..."
+                placeholder="Brief description of your league..."
               />
             </div>
 
-            <div>
-              <label className="label">Season</label>
-              <input
-                type="text"
-                value={formData.season}
-                onChange={(e) => setFormData({ ...formData, season: e.target.value })}
-                className="input"
-                placeholder="e.g., 2024 Winter"
-              />
-            </div>
-
-            <div>
-              <label className="label">Season Dues (per player)</label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.season_dues}
-                onChange={(e) => setFormData({ ...formData, season_dues: e.target.value })}
-                className="input"
-                placeholder="e.g., 150.00"
-              />
-              <p className="text-xs text-gray-500 mt-1">Optional: Amount each player pays for the season</p>
-            </div>
-
-            <div>
-              <label className="label">Venmo Link for Dues</label>
-              <input
-                type="url"
-                value={formData.venmo_link}
-                onChange={(e) => setFormData({ ...formData, venmo_link: e.target.value })}
-                className="input"
-                placeholder="e.g., https://venmo.com/u/leaguename"
-              />
-              <p className="text-xs text-gray-500 mt-1">Optional: Venmo link for players to pay dues</p>
+            <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded">
+              After creating the league, you'll be taken to add seasons with payment details, teams, and schedules.
             </div>
 
             <button type="submit" className="btn-primary">
