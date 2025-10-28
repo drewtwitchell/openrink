@@ -16,6 +16,7 @@ import subRequestRoutes from './routes/sub-requests.js'
 import calendarRoutes from './routes/calendar.js'
 import announcementRoutes from './routes/announcements.js'
 import playoffRoutes from './routes/playoffs.js'
+import teamCaptainsRoutes from './routes/team-captains.js'
 
 dotenv.config()
 
@@ -40,6 +41,7 @@ app.use('/api/sub-requests', subRequestRoutes)
 app.use('/api/calendar', calendarRoutes)
 app.use('/api/announcements', announcementRoutes)
 app.use('/api/playoffs', playoffRoutes)
+app.use('/api/team-captains', teamCaptainsRoutes)
 
 // Health check
 app.get('/api/health', (req, res) => {

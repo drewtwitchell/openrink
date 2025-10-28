@@ -341,6 +341,22 @@ export default function Home() {
         )}
       </div>
 
+      {/* Need a Sub? - only for non-authenticated users */}
+      {!isAuthenticated && isSingleLeague && (
+        <div className="card bg-red-50 border-red-200 mb-8">
+          <h3 className="text-xl font-semibold mb-3 text-red-900">Need a Sub?</h3>
+          <p className="text-gray-700 mb-4">
+            Can't make it to a game? Sign in to request a substitute and notify your team captain and league owners.
+          </p>
+          <Link
+            to="/login?intent=request-sub"
+            className="btn-primary w-full block text-center bg-red-600 hover:bg-red-700"
+          >
+            Sign In to Request Sub
+          </Link>
+        </div>
+      )}
+
       {displayLeagues.map(({ league, activeSeason, standings, upcomingGames, announcements, bracket }) => (
         <div key={league.id} className="mb-12">
           {/* League Header - only show for multiple leagues */}
@@ -624,18 +640,6 @@ export default function Home() {
         </p>
       </div>
 
-      {/* Sub Requests */}
-      {!isAuthenticated && (
-        <div className="card bg-ice-50">
-          <h3 className="text-xl font-semibold mb-3">Need a Sub?</h3>
-          <p className="text-gray-600 mb-4">
-            Log in to request a substitute for an upcoming game and notify your team.
-          </p>
-          <Link to="/login" className="btn-primary w-full block text-center">
-            Sign In to Request Sub
-          </Link>
-        </div>
-      )}
     </div>
   )
 }
