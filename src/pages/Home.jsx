@@ -47,6 +47,17 @@ export default function Home() {
         fetch(`${API_URL}/api/games`).then(r => r.json()).catch(() => []),
       ])
 
+      // Fetch announcements for each league
+      const leagueAnnouncements = {}
+      for (const league of leaguesData) {
+        try {
+          const announcements = await fetch(`${API_URL}/api/announcements/league/${league.id}`).then(r => r.json())
+          leagueAnnouncements[league.id] = announcements
+        } catch (error) {
+          leagueAnnouncements[league.id] = []
+        }
+      }
+
       if (leaguesData.length > 0) {
         setHasLeagues(true)
 
@@ -130,7 +141,8 @@ export default function Home() {
             league,
             activeSeason,
             standings,
-            upcomingGames
+            upcomingGames,
+            announcements: leagueAnnouncements[league.id] || []
           }
         }))
 
@@ -299,7 +311,7 @@ export default function Home() {
         )}
       </div>
 
-      {displayLeagues.map(({ league, activeSeason, standings, upcomingGames }) => (
+      {displayLeagues.map(({ league, activeSeason, standings, upcomingGames, announcements }) => (
         <div key={league.id} className="mb-12">
           {/* League Header - only show for multiple leagues */}
           {isMultipleLeagues && (
@@ -311,6 +323,33 @@ export default function Home() {
               {league.description && (
                 <p className="text-gray-600 mt-1">{league.description}</p>
               )}
+            </div>
+          )}
+
+          {/* Announcements */}
+          {announcements && announcements.length > 0 && (
+            <div className="mb-8 space-y-3">
+              {announcements.map((announcement) => (
+                <div key={announcement.id} className="card bg-amber-50 border-amber-200">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 text-amber-600">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 mb-1">{announcement.title}</h4>
+                      <p className="text-gray-700 text-sm mb-2">{announcement.message}</p>
+                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                        <span>Posted {new Date(announcement.created_at).toLocaleDateString()}</span>
+                        {announcement.expires_at && (
+                          <span>Expires {new Date(announcement.expires_at).toLocaleDateString()}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 

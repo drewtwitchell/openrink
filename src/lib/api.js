@@ -202,6 +202,23 @@ export const players = {
   }),
 }
 
+// Announcements API
+export const announcements = {
+  getActive: (leagueId) => apiRequest(`/api/announcements/league/${leagueId}`),
+  getAll: (leagueId) => apiRequest(`/api/announcements/league/${leagueId}/all`),
+  create: (data) => apiRequest('/api/announcements', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  update: (id, data) => apiRequest(`/api/announcements/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  delete: (id) => apiRequest(`/api/announcements/${id}`, {
+    method: 'DELETE',
+  }),
+}
+
 // CSV API
 export const csv = {
   downloadRosterTemplate: () => {
