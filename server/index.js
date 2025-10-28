@@ -14,6 +14,7 @@ import csvUploadRoutes from './routes/csv-upload.js'
 import paymentRoutes from './routes/payments.js'
 import subRequestRoutes from './routes/sub-requests.js'
 import calendarRoutes from './routes/calendar.js'
+import announcementRoutes from './routes/announcements.js'
 
 dotenv.config()
 
@@ -36,6 +37,7 @@ app.use('/api/csv', csvUploadRoutes)
 app.use('/api/payments', paymentRoutes)
 app.use('/api/sub-requests', subRequestRoutes)
 app.use('/api/calendar', calendarRoutes)
+app.use('/api/announcements', announcementRoutes)
 
 // Health check
 app.get('/api/health', (req, res) => {

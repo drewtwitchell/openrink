@@ -319,6 +319,22 @@ function initDatabase() {
       (2, 'Twin Rinks Arena', '456 Skate Street, Puck City, USA')
     `)
 
+    // Create announcements table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS announcements (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        league_id INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        created_by INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        expires_at DATETIME,
+        is_active INTEGER DEFAULT 1,
+        FOREIGN KEY (league_id) REFERENCES leagues(id) ON DELETE CASCADE,
+        FOREIGN KEY (created_by) REFERENCES users(id)
+      )
+    `)
+
     // Create default admin user if it doesn't exist
     db.get('SELECT id FROM users WHERE email = ?', ['admin@openrink.local'], async (err, row) => {
       if (err) {
