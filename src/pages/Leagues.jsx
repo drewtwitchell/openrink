@@ -8,6 +8,7 @@ export default function Leagues() {
   const [leaguesList, setLeaguesList] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [showArchived, setShowArchived] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
@@ -20,11 +21,11 @@ export default function Leagues() {
   useEffect(() => {
     setCurrentUser(auth.getUser())
     fetchLeagues()
-  }, [])
+  }, [showArchived])
 
   const fetchLeagues = async () => {
     try {
-      const data = await leagues.getAll()
+      const data = await leagues.getAll(showArchived)
       setLeaguesList(data)
     } catch (error) {
       console.error('Error fetching leagues:', error)
@@ -63,15 +64,28 @@ export default function Leagues() {
       />
 
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Leagues</h1>
-        {canManageLeagues() && (
+        <div>
+          <h1 className="text-3xl font-bold">Leagues</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            {showArchived ? 'Viewing archived leagues (completed seasons)' : 'Viewing active leagues'}
+          </p>
+        </div>
+        <div className="flex gap-2">
           <button
-            onClick={() => setShowForm(!showForm)}
-            className="btn-primary"
+            onClick={() => setShowArchived(!showArchived)}
+            className="btn-secondary text-sm"
           >
-            {showForm ? 'Cancel' : '+ New League'}
+            {showArchived ? '📋 Show Active' : '📦 Show Archived'}
           </button>
-        )}
+          {canManageLeagues() && (
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="btn-primary"
+            >
+              {showForm ? 'Cancel' : '+ New League'}
+            </button>
+          )}
+        </div>
       </div>
 
       {!canManageLeagues() && leaguesList.length === 0 && (
@@ -162,8 +176,15 @@ export default function Leagues() {
       ) : (
         <div className="grid md:grid-cols-2 gap-6">
           {leaguesList.map((league) => (
-            <div key={league.id} className="card hover:shadow-lg transition-shadow">
-              <h3 className="text-xl font-semibold mb-2">{league.name}</h3>
+            <div key={league.id} className={`card hover:shadow-lg transition-shadow ${league.archived === 1 ? 'bg-gray-50 border-gray-300' : ''}`}>
+              <div className="flex items-start justify-between mb-2">
+                <h3 className="text-xl font-semibold">{league.name}</h3>
+                {league.archived === 1 && (
+                  <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full">
+                    Archived
+                  </span>
+                )}
+              </div>
               {league.season && (
                 <p className="text-sm text-gray-500 mb-2">Season: {league.season}</p>
               )}

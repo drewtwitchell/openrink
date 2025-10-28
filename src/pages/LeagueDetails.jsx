@@ -55,7 +55,11 @@ export default function LeagueDetails() {
     const isArchived = league.archived === 1
     const action = isArchived ? 'unarchive' : 'archive'
 
-    if (!confirm(`Are you sure you want to ${action} this league?`)) {
+    const message = isArchived
+      ? `Are you sure you want to unarchive this league?\n\nThis will restore "${league.name}" and make all its teams, games, and schedules visible again.`
+      : `Are you sure you want to archive this league?\n\nArchiving "${league.name}" will:\n• Hide this league and its season data from active views\n• Preserve all teams, games, and player data\n• Allow you to unarchive it later if needed\n\nThis is useful for completed seasons you want to keep but not display.`
+
+    if (!confirm(message)) {
       return
     }
 

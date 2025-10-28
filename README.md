@@ -5,7 +5,7 @@ Free, self-hosted hockey league management system.
 ## Features
 
 - **League Management** - Create and manage multiple leagues with seasons
-- **League Archiving** - Archive past seasons while preserving data
+- **League Archiving** - Archive completed leagues/seasons while preserving all data (teams, games, schedules)
 - **Team Rosters** - Track players with contact information and jersey numbers
 - **User Accounts** - Link players to user accounts for automatic roster updates
 - **Role-Based Access** - Admin, League Manager, Team Captain, and Player roles
@@ -23,7 +23,7 @@ Free, self-hosted hockey league management system.
 ## User Roles
 
 - **Admin**: Full access to all features, user management, and all leagues
-- **League Manager**: Manage assigned leagues, teams, games, and schedules
+- **League Manager**: Create and manage leagues, teams, games, and schedules
 - **Team Captain**: Manage team roster, request substitutes, and update team information
 - **Player**: View schedules, standings, and personal team information
 
@@ -80,6 +80,17 @@ The first user to sign up automatically becomes the admin with full access to al
 - Complete league standings with stats
 - Team management and game schedules
 - League-specific information and season dues
+
+## League Archiving
+
+Archive completed leagues/seasons to keep your dashboard clean while preserving all historical data:
+
+- **What gets archived**: The entire league including all teams, games, player rosters, and schedules
+- **Access archived data**: Toggle "Show Archived" on the Leagues page to view past seasons
+- **Restore anytime**: Unarchive a league to make it active again
+- **Use case**: Archive a "Winter 2024" league when the season ends, then create a new "Spring 2025" league
+
+Each league represents a season of play. To track multiple seasons, create separate leagues (e.g., "Winter League 2024", "Winter League 2025").
 
 ## Technology Stack
 
