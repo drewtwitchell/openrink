@@ -22,6 +22,8 @@ export default function TeamRoster() {
   const [playerToTransfer, setPlayerToTransfer] = useState(null)
   const [allTeams, setAllTeams] = useState([])
   const [selectedTeamId, setSelectedTeamId] = useState('')
+  const [showNewTeamForm, setShowNewTeamForm] = useState(false)
+  const [newTeamData, setNewTeamData] = useState({ name: '', color: '#0284c7' })
   const fileInputRef = useRef(null)
   const searchTimeoutRef = useRef(null)
   const [formData, setFormData] = useState({
@@ -146,6 +148,8 @@ export default function TeamRoster() {
   const openTransferModal = (player) => {
     setPlayerToTransfer(player)
     setSelectedTeamId('')
+    setShowNewTeamForm(false)
+    setNewTeamData({ name: '', color: '#0284c7' })
     setShowTransferModal(true)
   }
 
@@ -153,9 +157,39 @@ export default function TeamRoster() {
     setShowTransferModal(false)
     setPlayerToTransfer(null)
     setSelectedTeamId('')
+    setShowNewTeamForm(false)
+    setNewTeamData({ name: '', color: '#0284c7' })
+  }
+
+  const handleCreateNewTeam = async () => {
+    if (!newTeamData.name.trim()) {
+      alert('Please enter a team name')
+      return
+    }
+
+    try {
+      // Create the new team with the current team's league_id
+      const newTeam = await teams.create({
+        name: newTeamData.name,
+        color: newTeamData.color,
+        league_id: team.league_id
+      })
+
+      // Transfer player to the newly created team
+      await players.transfer(playerToTransfer.id, newTeam.id)
+      closeTransferModal()
+      fetchData()
+    } catch (error) {
+      alert('Error creating team and transferring player: ' + error.message)
+    }
   }
 
   const handleTransfer = async () => {
+    if (showNewTeamForm) {
+      handleCreateNewTeam()
+      return
+    }
+
     if (!selectedTeamId) {
       alert('Please select a destination team')
       return
@@ -535,21 +569,79 @@ export default function TeamRoster() {
             <p className="text-gray-600 mb-4">
               Transfer <strong>{playerToTransfer?.name}</strong> to another team
             </p>
-            <div className="mb-6">
-              <label className="label">Select Destination Team</label>
-              <select
-                value={selectedTeamId}
-                onChange={(e) => setSelectedTeamId(e.target.value)}
-                className="input"
+
+            {/* Toggle between existing and new team */}
+            <div className="mb-4 flex gap-2">
+              <button
+                onClick={() => setShowNewTeamForm(false)}
+                className={`flex-1 py-2 px-4 rounded ${
+                  !showNewTeamForm
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
               >
-                <option value="">-- Select a team --</option>
-                {allTeams.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
+                Select Existing Team
+              </button>
+              <button
+                onClick={() => setShowNewTeamForm(true)}
+                className={`flex-1 py-2 px-4 rounded ${
+                  showNewTeamForm
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Create New Team
+              </button>
             </div>
+
+            {/* Existing team selection */}
+            {!showNewTeamForm ? (
+              <div className="mb-6">
+                <label className="label">Select Destination Team</label>
+                <select
+                  value={selectedTeamId}
+                  onChange={(e) => setSelectedTeamId(e.target.value)}
+                  className="input"
+                >
+                  <option value="">-- Select a team --</option>
+                  {allTeams.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              /* New team creation form */
+              <div className="mb-6 space-y-4">
+                <div>
+                  <label className="label">New Team Name *</label>
+                  <input
+                    type="text"
+                    value={newTeamData.name}
+                    onChange={(e) => setNewTeamData({ ...newTeamData, name: e.target.value })}
+                    className="input"
+                    placeholder="Enter team name"
+                  />
+                </div>
+                <div>
+                  <label className="label">Team Color</label>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="color"
+                      value={newTeamData.color}
+                      onChange={(e) => setNewTeamData({ ...newTeamData, color: e.target.value })}
+                      className="h-10 w-20 rounded border border-gray-300"
+                    />
+                    <div
+                      className="h-10 flex-1 rounded border border-gray-300"
+                      style={{ backgroundColor: newTeamData.color }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-3 justify-end">
               <button
                 onClick={closeTransferModal}
@@ -561,7 +653,7 @@ export default function TeamRoster() {
                 onClick={handleTransfer}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
               >
-                Transfer Player
+                {showNewTeamForm ? 'Create Team & Transfer' : 'Transfer Player'}
               </button>
             </div>
           </div>
