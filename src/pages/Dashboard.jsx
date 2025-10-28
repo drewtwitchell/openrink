@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { auth, leagues, teams, games, players } from '../lib/api'
+import { auth, leagues, teams, games, players, seasons } from '../lib/api'
 import { Link, useNavigate } from 'react-router-dom'
 
 // Admin Dashboard: Shows list of leagues
@@ -74,7 +74,157 @@ function AdminDashboard({ stats }) {
   )
 }
 
-// Player/Captain/Manager Dashboard: Shows their league info with roster details
+// League Manager Dashboard: Shows assigned leagues with payment tracking
+function LeagueManagerDashboard({ user }) {
+  const navigate = useNavigate()
+  const [assignedLeagues, setAssignedLeagues] = useState([])
+  const [leagueSeasons, setLeagueSeasons] = useState({})
+  const [paymentStats, setPaymentStats] = useState({})
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchLeagueManagerData()
+  }, [user])
+
+  const fetchLeagueManagerData = async () => {
+    try {
+      const allLeagues = await leagues.getAll()
+      const managersData = await Promise.all(
+        allLeagues.map(l => leagues.getManagers(l.id).catch(() => []))
+      )
+
+      // Filter leagues where this user is a manager
+      const userManagedLeagues = allLeagues.filter((league, index) => {
+        const managers = managersData[index]
+        return managers.some(m => m.user_id === user?.id)
+      })
+
+      setAssignedLeagues(userManagedLeagues)
+
+      // Fetch seasons and payment stats for each league
+      const seasonsData = {}
+      const statsData = {}
+
+      for (const league of userManagedLeagues) {
+        const leagueSeasons = await seasons.getByLeague(league.id)
+        seasonsData[league.id] = leagueSeasons
+
+        // Get payment stats for active season
+        const activeSeason = leagueSeasons.find(s => s.is_active === 1 && s.archived === 0)
+        if (activeSeason) {
+          const stats = await seasons.getPaymentStats(activeSeason.id)
+          statsData[league.id] = stats
+        }
+      }
+
+      setLeagueSeasons(seasonsData)
+      setPaymentStats(statsData)
+    } catch (error) {
+      console.error('Error fetching league manager data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return <div className="card"><p className="text-gray-500 text-center py-8">Loading...</p></div>
+  }
+
+  if (assignedLeagues.length === 0) {
+    return (
+      <div className="card text-center py-12">
+        <p className="text-gray-500 mb-4">
+          You are not assigned to manage any leagues yet
+        </p>
+        <p className="text-sm text-gray-400">
+          Contact an admin to be assigned as a league manager
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div className="grid md:grid-cols-2 gap-6">
+        {assignedLeagues.map((league) => {
+          const leagueSeasonsList = leagueSeasons[league.id] || []
+          const activeSeason = leagueSeasonsList.find(s => s.is_active === 1 && s.archived === 0)
+          const stats = paymentStats[league.id]
+
+          return (
+            <div key={league.id} className="card hover:shadow-lg transition-shadow">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-xl font-semibold mb-1">{league.name}</h3>
+                  {activeSeason && (
+                    <p className="text-sm text-gray-600">
+                      Active Season: {activeSeason.name}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => navigate(`/leagues/${league.id}`)}
+                  className="btn-primary text-sm"
+                >
+                  Manage
+                </button>
+              </div>
+
+              {league.description && (
+                <p className="text-gray-600 text-sm mb-4">{league.description}</p>
+              )}
+
+              {/* Payment Tracking */}
+              {stats && (
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                  <h4 className="font-semibold text-sm mb-2">Payment Tracking</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <div className="text-gray-600">Total Players</div>
+                      <div className="text-lg font-bold">{stats.total_players}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-600">Collected</div>
+                      <div className="text-lg font-bold text-green-600">
+                        ${parseFloat(stats.total_collected || 0).toFixed(2)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-green-600">Paid</div>
+                      <div className="font-bold">{stats.players_paid}</div>
+                    </div>
+                    <div>
+                      <div className="text-red-600">Unpaid</div>
+                      <div className="font-bold">{stats.players_unpaid}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Season Management */}
+              <div className="mt-4 pt-3 border-t flex gap-2">
+                <button
+                  onClick={() => navigate(`/leagues/${league.id}`, { state: { activeTab: 'seasons' } })}
+                  className="btn-secondary text-xs"
+                >
+                  Manage Seasons
+                </button>
+                <button
+                  onClick={() => navigate(`/leagues/${league.id}`, { state: { activeTab: 'payments' } })}
+                  className="btn-secondary text-xs"
+                >
+                  View Payments
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// Player/Captain Dashboard: Shows their league info with roster details
 function PlayerDashboard({ user, userPlayerProfiles }) {
   const navigate = useNavigate()
   const [leagueData, setLeagueData] = useState(null)
@@ -92,19 +242,8 @@ function PlayerDashboard({ user, userPlayerProfiles }) {
         teams.getAll(),
       ])
 
-      // For league managers, find their first league
-      if (user?.role === 'league_manager') {
-        // League managers see the first available league
-        if (allLeagues.length > 0) {
-          const firstLeague = allLeagues[0]
-          setLeagueData(firstLeague)
-
-          // Get all teams in this league
-          const leagueTeams = allTeams.filter(t => t.league_id === firstLeague.id)
-          setTeamsData(leagueTeams)
-        }
-      } else if (userPlayerProfiles.length > 0) {
-        // For players/captains, get league from their team
+      // For players/captains, get league from their team
+      if (userPlayerProfiles.length > 0) {
         const firstProfile = userPlayerProfiles[0]
         const team = allTeams.find(t => t.id === firstProfile.team_id)
         if (team) {
@@ -131,14 +270,10 @@ function PlayerDashboard({ user, userPlayerProfiles }) {
     return (
       <div className="card text-center py-12">
         <p className="text-gray-500 mb-4">
-          {user?.role === 'league_manager'
-            ? 'No leagues available. Contact an admin to create leagues.'
-            : 'You are not assigned to any teams yet'}
+          You are not assigned to any teams yet
         </p>
         <p className="text-sm text-gray-400">
-          {user?.role === 'league_manager'
-            ? ''
-            : 'Contact your league manager to be added to a team'}
+          Contact your league manager to be added to a team
         </p>
       </div>
     )
@@ -388,8 +523,9 @@ export default function Dashboard() {
     return <div>Loading dashboard...</div>
   }
 
-  // Admin view (or admin + player shows admin view)
+  // Determine dashboard type based on role
   const isAdmin = user?.role === 'admin'
+  const isLeagueManager = user?.role === 'league_manager'
 
   return (
     <div>
@@ -400,6 +536,8 @@ export default function Dashboard() {
 
       {isAdmin ? (
         <AdminDashboard stats={stats} />
+      ) : isLeagueManager ? (
+        <LeagueManagerDashboard user={user} />
       ) : (
         <PlayerDashboard user={user} userPlayerProfiles={userPlayerProfiles} />
       )}

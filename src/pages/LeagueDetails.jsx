@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { leagues, teams as teamsApi, games as gamesApi } from '../lib/api'
+import { leagues, teams as teamsApi, games as gamesApi, seasons, auth } from '../lib/api'
 import Breadcrumbs from '../components/Breadcrumbs'
 
 export default function LeagueDetails() {
@@ -135,6 +135,37 @@ export default function LeagueDetails() {
         </div>
       </div>
 
+      {/* League Contacts */}
+      {managers.length > 0 && (
+        <div className="card mb-6 bg-ice-50 border-ice-200">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-lg font-semibold flex items-center">
+              <span className="text-2xl mr-2">👥</span>
+              League Contact{managers.length > 1 ? 's' : ''}
+            </h3>
+            <button className="btn-primary text-sm">
+              📧 Contact All
+            </button>
+          </div>
+          <div className="space-y-2">
+            {managers.map((manager) => (
+              <div key={manager.id} className="flex items-center justify-between p-3 bg-white rounded">
+                <div>
+                  <div className="font-medium">{manager.name || 'No name'}</div>
+                  <div className="text-sm text-gray-600">
+                    {manager.email}
+                    {manager.phone && <span className="ml-2">• {manager.phone}</span>}
+                  </div>
+                </div>
+                <a href={`mailto:${manager.email}`} className="btn-secondary text-xs">
+                  Email
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="border-b border-gray-200 mb-6">
         <nav className="flex space-x-8">
@@ -167,6 +198,26 @@ export default function LeagueDetails() {
             }`}
           >
             Schedule ({games.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('seasons')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'seasons'
+                ? 'border-ice-600 text-ice-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Seasons
+          </button>
+          <button
+            onClick={() => setActiveTab('payments')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'payments'
+                ? 'border-ice-600 text-ice-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Payments
           </button>
         </nav>
       </div>
