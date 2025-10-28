@@ -7,6 +7,14 @@ function AdminDashboard({ stats }) {
   const navigate = useNavigate()
   const [leaguesList, setLeaguesList] = useState([])
   const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    season: '',
+    season_dues: '',
+    venmo_link: '',
+  })
 
   useEffect(() => {
     fetchLeagues()
@@ -24,6 +32,18 @@ function AdminDashboard({ stats }) {
     }
   }
 
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      await leagues.create(formData)
+      setFormData({ name: '', description: '', season: '', season_dues: '', venmo_link: '' })
+      setShowForm(false)
+      fetchLeagues()
+    } catch (error) {
+      alert('Error creating league: ' + error.message)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Leagues Section */}
@@ -33,10 +53,81 @@ function AdminDashboard({ stats }) {
             <h2 className="section-header mb-0">Leagues</h2>
             <p className="text-sm text-gray-600 mt-1">{stats.leagues} total, {stats.teams} teams</p>
           </div>
-          <Link to="/leagues" className="btn-primary">
-            Create League
-          </Link>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="btn-primary"
+          >
+            {showForm ? 'Cancel' : 'Create League'}
+          </button>
         </div>
+
+        {showForm && (
+          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <h3 className="text-lg font-semibold mb-4">Create New League</h3>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="label">League Name</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="input"
+                  placeholder="e.g., Winter 2024"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="label">Description</label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="input"
+                  rows="3"
+                  placeholder="League details..."
+                />
+              </div>
+
+              <div>
+                <label className="label">Season</label>
+                <input
+                  type="text"
+                  value={formData.season}
+                  onChange={(e) => setFormData({ ...formData, season: e.target.value })}
+                  className="input"
+                  placeholder="e.g., 2024 Winter"
+                />
+              </div>
+
+              <div>
+                <label className="label">Season Dues (per player)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.season_dues}
+                  onChange={(e) => setFormData({ ...formData, season_dues: e.target.value })}
+                  className="input"
+                  placeholder="e.g., 150.00"
+                />
+              </div>
+
+              <div>
+                <label className="label">Venmo Link for Dues</label>
+                <input
+                  type="url"
+                  value={formData.venmo_link}
+                  onChange={(e) => setFormData({ ...formData, venmo_link: e.target.value })}
+                  className="input"
+                  placeholder="e.g., https://venmo.com/u/leaguename"
+                />
+              </div>
+
+              <button type="submit" className="btn-primary">
+                Create League
+              </button>
+            </form>
+          </div>
+        )}
 
         {loading ? (
           <div className="empty-state">
@@ -48,9 +139,9 @@ function AdminDashboard({ stats }) {
             <p className="empty-state-description">
               Create your first league to start managing teams and games
             </p>
-            <Link to="/leagues" className="btn-primary">
+            <button onClick={() => setShowForm(true)} className="btn-primary">
               Create League
-            </Link>
+            </button>
           </div>
         ) : (
           <div className="space-y-3">
