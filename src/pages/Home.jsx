@@ -138,84 +138,106 @@ export default function Home() {
 
   if (!hasLeagues) {
     return (
-      <div className="text-center">
-        <div className="mb-12">
-          <h1 className="text-5xl font-bold text-gray-900 mb-4">
+      <div className="max-w-5xl mx-auto">
+        {/* Hero Section */}
+        <div className="text-center mb-16">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             Welcome to OpenRink
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Free, lightweight hockey league management system. Track teams, games, standings, and more.
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
+            Free, lightweight hockey league management system. Track teams, games, standings, and player payments all in one place.
           </p>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-8 mb-12">
-          <div className="card text-left">
-            <div className="text-3xl mb-3">🏒</div>
-            <h3 className="text-xl font-semibold mb-2">League Management</h3>
-            <p className="text-gray-600">
-              Create and manage multiple leagues with teams, rosters, and schedules.
-            </p>
-          </div>
-
-          <div className="card text-left">
-            <div className="text-3xl mb-3">📊</div>
-            <h3 className="text-xl font-semibold mb-2">Live Standings</h3>
-            <p className="text-gray-600">
-              Automatic standings calculation based on game results and scores.
-            </p>
-          </div>
-
-          <div className="card text-left">
-            <div className="text-3xl mb-3">📧</div>
-            <h3 className="text-xl font-semibold mb-2">Notifications</h3>
-            <p className="text-gray-600">
-              Email reminders for upcoming games and league announcements.
-            </p>
-          </div>
-
-          <div className="card text-left">
-            <div className="text-3xl mb-3">🏟️</div>
-            <h3 className="text-xl font-semibold mb-2">Rink Management</h3>
-            <p className="text-gray-600">
-              Track games across multiple rinks and ice surfaces.
-            </p>
-          </div>
-
-          <div className="card text-left">
-            <div className="text-3xl mb-3">💰</div>
-            <h3 className="text-xl font-semibold mb-2">Dues Collection</h3>
-            <p className="text-gray-600">
-              Easy payment tracking with Venmo integration.
-            </p>
-          </div>
-
-          <div className="card text-left">
-            <div className="text-3xl mb-3">🔄</div>
-            <h3 className="text-xl font-semibold mb-2">Sub Requests</h3>
-            <p className="text-gray-600">
-              Request substitutes with automatic notifications to players.
-            </p>
+          <div className="flex gap-4 justify-center">
+            {isAuthenticated ? (
+              <Link to="/dashboard" className="btn-primary">
+                Go to Dashboard
+              </Link>
+            ) : (
+              <Link to="/login" className="btn-primary">
+                Get Started
+              </Link>
+            )}
+            <a
+              href="https://github.com/drewtwitchell/openrink"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary"
+            >
+              View on GitHub
+            </a>
           </div>
         </div>
 
-        <div className="space-x-4">
+        {/* Features Grid */}
+        <div className="card mb-12">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Everything You Need to Manage Your League</h2>
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">League & Season Management</h3>
+                <p className="text-gray-600 text-sm">
+                  Create multiple leagues with distinct seasons. Track payment periods, dues, and manage team rosters independently for each season.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Live Standings</h3>
+                <p className="text-gray-600 text-sm">
+                  Automatic standings calculation based on game results. Track wins, losses, ties, goals for, goals against, and points.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Payment Tracking</h3>
+                <p className="text-gray-600 text-sm">
+                  Track player dues by season with Venmo integration. See who's paid and who hasn't at a glance with visual progress indicators.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Team & Player Management</h3>
+                <p className="text-gray-600 text-sm">
+                  Manage team rosters, assign jersey numbers, link players to user accounts, and transfer players between teams seamlessly.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Schedule & Rink Management</h3>
+                <p className="text-gray-600 text-sm">
+                  Schedule games across multiple rinks and ice surfaces. Track game times, locations, and results all in one place.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Substitute Requests</h3>
+                <p className="text-gray-600 text-sm">
+                  Request substitutes for upcoming games with optional payment handling. Notify team members automatically.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Getting Started */}
+        <div className="card bg-ice-50 text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">Ready to Get Started?</h2>
+          <p className="text-gray-600 mb-6 max-w-xl mx-auto">
+            {isAuthenticated
+              ? "Head to your dashboard to create your first league and start managing your hockey season."
+              : "Sign in to create your first league and start managing your hockey season in minutes."
+            }
+          </p>
           {isAuthenticated ? (
-            <Link to="/dashboard" className="btn-primary inline-block">
-              Go to Dashboard
+            <Link to="/dashboard" className="btn-primary">
+              Create Your First League
             </Link>
           ) : (
-            <Link to="/login" className="btn-primary inline-block">
-              Get Started
+            <Link to="/login" className="btn-primary">
+              Sign In to Get Started
             </Link>
           )}
-          <a
-            href="https://github.com/drewtwitchell/openrink"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-secondary inline-block"
-          >
-            View on GitHub
-          </a>
         </div>
       </div>
     )
