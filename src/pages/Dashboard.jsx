@@ -102,14 +102,8 @@ function AdminDashboard({ stats }) {
             <p className="text-gray-500">Loading...</p>
           </div>
         ) : leaguesList.length === 0 ? (
-          <div className="empty-state">
-            <h3 className="empty-state-title">No Leagues Yet</h3>
-            <p className="empty-state-description">
-              Create your first league to start managing teams and games
-            </p>
-            <button onClick={() => setShowForm(true)} className="btn-primary">
-              Create League
-            </button>
+          <div className="text-center py-8 text-gray-500">
+            <p>No leagues yet. Click "Create League" above to get started.</p>
           </div>
         ) : (
           <div className="space-y-3">
