@@ -40,7 +40,13 @@ function App() {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) {
+          // If auth fails, clear everything and log out
+          throw new Error('Authentication failed')
+        }
+        return r.json()
+      })
       .then(data => {
         if (data.user) {
           localStorage.setItem('user', JSON.stringify(data.user))
@@ -54,6 +60,11 @@ function App() {
       })
       .catch(err => {
         console.error('Failed to refresh user data:', err)
+        // Clear invalid auth state
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        setIsAuthenticated(false)
+        setUser(null)
       })
     }
 
