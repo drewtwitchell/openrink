@@ -121,12 +121,9 @@ export default function Dashboard() {
     const currentUser = auth.getUser()
     setUser(currentUser)
 
-    // Redirect regular players to home page
-    // Only admins and users with managed leagues can access dashboard
-    if (currentUser && currentUser.role !== 'admin') {
-      // We'll check if they manage any leagues after data loads
-      fetchDashboardData(currentUser)
-    } else if (currentUser && currentUser.role === 'admin') {
+    // All authenticated users can access dashboard
+    // They'll see different content based on their role and permissions
+    if (currentUser) {
       fetchDashboardData(currentUser)
     } else {
       navigate('/')
@@ -195,13 +192,7 @@ export default function Dashboard() {
 
         setManagedLeagues(userManagedLeagues)
 
-        // Redirect regular players who don't manage any leagues to home page
-        if (currentUser.role !== 'admin' && userManagedLeagues.length === 0) {
-          navigate('/')
-          return
-        }
-
-        // Fetch seasons and payment stats for managed leagues
+        // Fetch seasons and payment stats for managed leagues (only for admins and league managers)
         const seasonsData = {}
         const statsData = {}
 
