@@ -707,7 +707,7 @@ export default function LeagueDetails() {
 
       {/* Main Tabs - Primary Navigation */}
       <div className="bg-gray-50 border-b-2 border-gray-300 mb-1">
-        <nav className="flex space-x-2">
+        <nav className="flex space-x-2 px-4">
           <button
             onClick={() => setMainTab('overview')}
             className={`py-4 px-6 font-bold text-lg transition-all ${
