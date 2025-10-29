@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { leagues, teams as teamsApi, games as gamesApi, seasons, auth, announcements } from '../lib/api'
+import { leagues, teams as teamsApi, games as gamesApi, seasons, auth, announcements, players } from '../lib/api'
 
 export default function LeagueDetails() {
   const { id } = useParams()
@@ -46,6 +46,11 @@ export default function LeagueDetails() {
     message: '',
     expires_at: '',
   })
+  const [expandedTeamId, setExpandedTeamId] = useState(null)
+  const [teamPlayers, setTeamPlayers] = useState({})
+  const [showTransferModal, setShowTransferModal] = useState(false)
+  const [playerToTransfer, setPlayerToTransfer] = useState(null)
+  const [selectedTeamId, setSelectedTeamId] = useState('')
 
   // Check if current user can manage this league
   const canManage = currentUser?.role === 'admin' ||
@@ -187,6 +192,70 @@ export default function LeagueDetails() {
       fetchAnnouncements()
     } catch (error) {
       alert('Error updating announcement: ' + error.message)
+    }
+  }
+
+  const toggleTeamRoster = async (teamId) => {
+    if (expandedTeamId === teamId) {
+      setExpandedTeamId(null)
+    } else {
+      setExpandedTeamId(teamId)
+      if (!teamPlayers[teamId]) {
+        await fetchTeamPlayers(teamId)
+      }
+    }
+  }
+
+  const fetchTeamPlayers = async (teamId) => {
+    try {
+      const playersData = await players.getByTeam(teamId)
+      setTeamPlayers(prev => ({ ...prev, [teamId]: playersData }))
+    } catch (error) {
+      console.error('Error fetching team players:', error)
+    }
+  }
+
+  const handlePlayerDelete = async (playerId, playerName, teamId) => {
+    if (!confirm(`Remove ${playerName} from the roster?`)) return
+
+    try {
+      await players.delete(playerId)
+      await fetchTeamPlayers(teamId)
+    } catch (error) {
+      alert('Error removing player: ' + error.message)
+    }
+  }
+
+  const openTransferModal = (player) => {
+    setPlayerToTransfer(player)
+    setSelectedTeamId('')
+    setShowTransferModal(true)
+  }
+
+  const closeTransferModal = () => {
+    setShowTransferModal(false)
+    setPlayerToTransfer(null)
+    setSelectedTeamId('')
+  }
+
+  const handlePlayerTransfer = async () => {
+    if (!selectedTeamId) {
+      alert('Please select a destination team')
+      return
+    }
+
+    try {
+      await players.transfer(playerToTransfer.id, selectedTeamId)
+      closeTransferModal()
+      // Refresh both teams' rosters
+      if (teamPlayers[playerToTransfer.team_id]) {
+        await fetchTeamPlayers(playerToTransfer.team_id)
+      }
+      if (teamPlayers[selectedTeamId]) {
+        await fetchTeamPlayers(selectedTeamId)
+      }
+    } catch (error) {
+      alert('Error transferring player: ' + error.message)
     }
   }
 
@@ -773,42 +842,89 @@ export default function LeagueDetails() {
               <p className="text-sm text-gray-400">Click "Add Team" to create your first team</p>
             </div>
           ) : (
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="space-y-4">
               {teams.map((team) => (
-                <div key={team.id} className="card hover:shadow-lg transition-shadow">
-                  <div className="flex items-center mb-3">
-                    <div
-                      className="w-8 h-8 rounded-full mr-3"
-                      style={{ backgroundColor: team.color }}
-                    />
-                    <h3 className="text-xl font-semibold">{team.name}</h3>
-                  </div>
-                  {team.captains && team.captains.length > 0 && (
-                    <div className="mb-3 p-2 bg-ice-50 rounded">
-                      <div className="text-xs text-gray-600 font-medium mb-1">
-                        Captain{team.captains.length > 1 ? 's' : ''}:
-                      </div>
-                      {team.captains.map((captain, idx) => (
-                        <div key={idx} className="text-sm font-medium text-ice-700">
-                          {captain.name}
+                <div key={team.id} className="card">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center flex-1">
+                      <div
+                        className="w-8 h-8 rounded-full mr-3"
+                        style={{ backgroundColor: team.color }}
+                      />
+                      <h3 className="text-xl font-semibold">{team.name}</h3>
+                      {team.captains && team.captains.length > 0 && (
+                        <div className="ml-4 flex gap-2">
+                          {team.captains.map((captain, idx) => (
+                            <span key={idx} className="badge badge-info text-xs">
+                              Captain: {captain.name}
+                            </span>
+                          ))}
                         </div>
-                      ))}
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => toggleTeamRoster(team.id)}
+                        className="btn-secondary text-sm"
+                      >
+                        {expandedTeamId === team.id ? 'Hide' : 'Show'} Roster
+                        {teamPlayers[team.id] && ` (${teamPlayers[team.id].length})`}
+                      </button>
+                      {canManage && (
+                        <button
+                          onClick={() => handleDeleteTeam(team.id, team.name)}
+                          className="btn-danger text-sm px-3"
+                        >
+                          Delete Team
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {expandedTeamId === team.id && (
+                    <div className="mt-4 border-t pt-4">
+                      {!teamPlayers[team.id] ? (
+                        <div className="text-center py-4 text-gray-500">Loading roster...</div>
+                      ) : teamPlayers[team.id].length === 0 ? (
+                        <div className="text-center py-4 text-gray-500">No players on this team</div>
+                      ) : (
+                        <div className="space-y-2">
+                          {teamPlayers[team.id].map((player) => (
+                            <div key={player.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <div className="font-medium">{player.name}</div>
+                                {player.jersey_number && (
+                                  <span className="badge badge-neutral text-xs">#{player.jersey_number}</span>
+                                )}
+                                {player.position && player.position !== 'player' && (
+                                  <span className="badge badge-info text-xs capitalize">{player.position}</span>
+                                )}
+                                {player.is_captain === 1 && (
+                                  <span className="badge badge-warning text-xs">Captain</span>
+                                )}
+                              </div>
+                              {canManage && (
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => openTransferModal(player)}
+                                    className="btn-secondary text-xs py-1 px-3"
+                                  >
+                                    Transfer
+                                  </button>
+                                  <button
+                                    onClick={() => handlePlayerDelete(player.id, player.name, team.id)}
+                                    className="btn-danger text-xs py-1 px-3"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => navigate(`/teams/${team.id}/roster?league=${id}`)}
-                      className="btn-primary text-sm flex-1"
-                    >
-                      View Roster
-                    </button>
-                    <button
-                      onClick={() => handleDeleteTeam(team.id, team.name)}
-                      className="btn-danger text-sm px-3"
-                    >
-                      Delete
-                    </button>
-                  </div>
                 </div>
               ))}
             </div>
@@ -1381,6 +1497,51 @@ export default function LeagueDetails() {
                     {paymentData.filter(p => !p.email).length} player(s) do not have email addresses.
                   </span>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Transfer Player Modal */}
+      {showTransferModal && playerToTransfer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-semibold mb-4">Transfer Player</h3>
+            <p className="text-gray-600 mb-4">
+              Transfer <strong>{playerToTransfer.name}</strong> to:
+            </p>
+
+            <div className="space-y-3">
+              <select
+                value={selectedTeamId}
+                onChange={(e) => setSelectedTeamId(e.target.value)}
+                className="input w-full"
+              >
+                <option value="">Select a team...</option>
+                {teams
+                  .filter(t => t.id !== playerToTransfer.team_id)
+                  .map(team => (
+                    <option key={team.id} value={team.id}>
+                      {team.name}
+                    </option>
+                  ))}
+              </select>
+
+              <div className="flex gap-2 mt-6">
+                <button
+                  onClick={handlePlayerTransfer}
+                  className="btn-primary flex-1"
+                  disabled={!selectedTeamId}
+                >
+                  Transfer
+                </button>
+                <button
+                  onClick={closeTransferModal}
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
               </div>
             </div>
           </div>
