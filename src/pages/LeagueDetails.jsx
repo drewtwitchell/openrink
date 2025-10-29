@@ -470,7 +470,7 @@ export default function LeagueDetails() {
       )}
 
       {/* Content */}
-      {activeTab === 'overview' && (
+      {mainTab === 'overview' && overviewSubTab === 'managers' && (
         <div>
           {/* Active Season Info */}
           {activeSeason ? (
@@ -690,7 +690,7 @@ export default function LeagueDetails() {
         </div>
       )}
 
-      {activeTab === 'teams' && (
+      {mainTab === 'season' && seasonSubTab === 'teams' && (
         <div>
           <div className="mb-6 flex justify-end">
             <button
@@ -783,7 +783,7 @@ export default function LeagueDetails() {
         </div>
       )}
 
-      {activeTab === 'schedule' && (
+      {mainTab === 'season' && seasonSubTab === 'schedule' && (
         <div>
           {games.length === 0 ? (
             <div className="card text-center py-12">
@@ -821,7 +821,7 @@ export default function LeagueDetails() {
       )}
 
       {/* Seasons Tab */}
-      {activeTab === 'seasons' && (
+      {mainTab === 'season' && seasonSubTab === null && (
         <div>
           <div className="card mb-6">
             <div className="flex justify-between items-center mb-4">
@@ -999,7 +999,7 @@ export default function LeagueDetails() {
       )}
 
       {/* Payments Tab */}
-      {activeTab === 'payments' && (
+      {mainTab === 'overview' && overviewSubTab === 'payments' && (
         <div>
           {!activeSeason ? (
             <div className="card text-center py-12">
