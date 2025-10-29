@@ -105,8 +105,9 @@ router.get('/me', authenticateToken, (req, res) => {
 
 // Update user profile
 router.put('/profile', authenticateToken, (req, res) => {
-  const { name, phone, position } = req.body
+  const { name, phone, position, sub_position, jersey_number } = req.body
 
+  // Update user table
   db.run(
     'UPDATE users SET name = ?, phone = ?, position = ? WHERE id = ?',
     [name, phone, position, req.user.id],
@@ -115,12 +116,26 @@ router.put('/profile', authenticateToken, (req, res) => {
         return res.status(500).json({ error: 'Error updating profile' })
       }
 
-      db.get('SELECT id, username, email, name, phone, position, role, password_reset_required FROM users WHERE id = ?', [req.user.id], (err, user) => {
-        if (err || !user) {
-          return res.status(404).json({ error: 'User not found' })
+      // Also update all player records for this user
+      db.run(
+        'UPDATE players SET position = ?, sub_position = ?, jersey_number = ? WHERE user_id = ?',
+        [position, sub_position, jersey_number || null, req.user.id],
+        function (err) {
+          if (err) {
+            console.error('Error updating player records:', err)
+          }
+
+          db.get('SELECT id, username, email, name, phone, position, role, password_reset_required FROM users WHERE id = ?', [req.user.id], (err, user) => {
+            if (err || !user) {
+              return res.status(404).json({ error: 'User not found' })
+            }
+            // Add sub_position and jersey_number to the returned user object
+            user.sub_position = sub_position
+            user.jersey_number = jersey_number
+            res.json({ user })
+          })
         }
-        res.json({ user })
-      })
+      )
     }
   )
 })

@@ -10,6 +10,8 @@ export default function Settings() {
     email: '',
     phone: '',
     position: 'player',
+    sub_position: '',
+    jersey_number: '',
   })
   const [message, setMessage] = useState('')
   const [passwordData, setPasswordData] = useState({
@@ -28,6 +30,8 @@ export default function Settings() {
         email: currentUser.email || '',
         phone: currentUser.phone || '',
         position: currentUser.position || 'player',
+        sub_position: currentUser.sub_position || '',
+        jersey_number: currentUser.jersey_number || '',
       })
     }
   }, [])
@@ -48,7 +52,7 @@ export default function Settings() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      await auth.updateProfile(formData.name, formData.phone, formData.position)
+      await auth.updateProfile(formData.name, formData.phone, formData.position, formData.sub_position, formData.jersey_number)
       const updatedUser = auth.getUser()
       setUser(updatedUser)
       setMessage('Profile updated successfully!')
@@ -154,13 +158,43 @@ export default function Settings() {
             <label className="label">Position</label>
             <select
               value={formData.position}
-              onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, position: e.target.value, sub_position: '' })}
               className="input"
             >
               <option value="player">Player</option>
               <option value="goalie">Goalie</option>
             </select>
             <p className="text-xs text-gray-500 mt-1">Your preferred position on the team</p>
+          </div>
+
+          {formData.position === 'player' && (
+            <div>
+              <label className="label">Player Position</label>
+              <select
+                value={formData.sub_position}
+                onChange={(e) => setFormData({ ...formData, sub_position: e.target.value })}
+                className="input"
+              >
+                <option value="">Select position...</option>
+                <option value="forward">Forward</option>
+                <option value="defense">Defense</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Forward or Defense</p>
+            </div>
+          )}
+
+          <div>
+            <label className="label">Jersey Number</label>
+            <input
+              type="number"
+              value={formData.jersey_number}
+              onChange={(e) => setFormData({ ...formData, jersey_number: e.target.value })}
+              className="input"
+              placeholder="Your jersey number"
+              min="0"
+              max="99"
+            />
+            <p className="text-xs text-gray-500 mt-1">Will be displayed on team rosters</p>
           </div>
 
           <button type="submit" className="btn-primary">

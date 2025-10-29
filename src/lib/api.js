@@ -66,10 +66,10 @@ export const auth = {
     return userStr ? JSON.parse(userStr) : null
   },
 
-  updateProfile: async (name, phone, position) => {
+  updateProfile: async (name, phone, position, sub_position, jersey_number) => {
     const data = await apiRequest('/api/auth/profile', {
       method: 'PUT',
-      body: JSON.stringify({ name, phone, position }),
+      body: JSON.stringify({ name, phone, position, sub_position, jersey_number }),
     })
     if (data.user) {
       localStorage.setItem('user', JSON.stringify(data.user))

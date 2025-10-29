@@ -248,6 +248,13 @@ function initDatabase() {
       }
     })
 
+    // Add sub_position column to players if it doesn't exist (migration)
+    db.run(`ALTER TABLE players ADD COLUMN sub_position TEXT`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding sub_position column to players:', err)
+      }
+    })
+
     // Games table
     db.run(`
       CREATE TABLE IF NOT EXISTS games (
