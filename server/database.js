@@ -241,6 +241,20 @@ function initDatabase() {
       }
     })
 
+    // Add sub_position column to users if it doesn't exist (migration)
+    db.run(`ALTER TABLE users ADD COLUMN sub_position TEXT`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding sub_position column to users:', err)
+      }
+    })
+
+    // Add jersey_number column to users if it doesn't exist (migration)
+    db.run(`ALTER TABLE users ADD COLUMN jersey_number INTEGER`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding jersey_number column to users:', err)
+      }
+    })
+
     // Add position column to players if it doesn't exist (migration)
     db.run(`ALTER TABLE players ADD COLUMN position TEXT DEFAULT 'player'`, (err) => {
       if (err && !err.message.includes('duplicate column')) {
