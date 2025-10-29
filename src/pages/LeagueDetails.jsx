@@ -1094,6 +1094,9 @@ export default function LeagueDetails() {
       {/* Season Management - shown when mainTab='season' and seasonSubTab=null */}
       {mainTab === 'season' && seasonSubTab === null && (
         <div className="card">
+          <div className="alert alert-info mb-4">
+            Create and manage seasons for your league. Each season can have its own teams, schedule, and payment tracking.
+          </div>
           <div className="flex justify-between items-center mb-6">
             <div>
               <h3 className="section-header mb-2">Manage Seasons</h3>
@@ -1147,8 +1150,8 @@ export default function LeagueDetails() {
           </div>
 
           {showSeasonForm && (
-            <form onSubmit={handleSeasonSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg">
-              <h3 className="font-semibold mb-3">{editingSeasonId ? 'Edit Season' : 'Create New Season'}</h3>
+            <form onSubmit={handleSeasonSubmit} className="mb-6 p-6 bg-ice-50 border-2 border-ice-200 rounded-lg">
+              <h3 className="text-xl font-bold mb-4 text-ice-700">{editingSeasonId ? '✏️ Edit Season' : '✨ Create New Season'}</h3>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="label">Season Name *</label>
