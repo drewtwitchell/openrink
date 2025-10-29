@@ -155,6 +155,14 @@ export default function Dashboard() {
         }
         setUserPlayerProfiles(userProfiles)
 
+        // Fetch upcoming games for each team the user is on
+        if (userProfiles.length > 0) {
+          const uniqueTeamIds = [...new Set(userProfiles.map(p => p.team_id))]
+          for (const teamId of uniqueTeamIds) {
+            fetchUpcomingGames(teamId)
+          }
+        }
+
         // Get ALL leagues the player is a member of
         if (userProfiles.length > 0) {
           const playerLeagueIds = [...new Set(
@@ -357,20 +365,20 @@ export default function Dashboard() {
       })
       const allGames = await response.json()
 
-      // Filter for upcoming games for this team (next 5 games)
+      // Filter for upcoming games for this team (next game only)
       const today = new Date().toISOString().split('T')[0]
       const teamGames = allGames
-        .filter(g => (g.home_team_id === teamId || g.away_team_id === teamId) && g.game_date >= today)
+        .filter(g => (g.home_team_id === teamId || g.away_team_id === teamId) && g.game_date >= today && !g.home_score)
         .sort((a, b) => {
           const dateA = new Date(`${a.game_date}T${a.game_time}`)
           const dateB = new Date(`${b.game_date}T${b.game_time}`)
           return dateA - dateB
         })
-        .slice(0, 5)
+        .slice(0, 1) // Get only the next upcoming game
 
       setUpcomingGames(prev => ({ ...prev, [teamId]: teamGames }))
 
-      // Fetch attendance for these games
+      // Fetch attendance for this game
       for (const game of teamGames) {
         fetchGameAttendance(game.id)
       }
@@ -600,19 +608,13 @@ export default function Dashboard() {
                         >
                           {expandedTeams[profile.team_id] ? 'Hide Roster' : 'View Roster'}
                         </button>
-                        <button
-                          onClick={() => fetchUpcomingGames(profile.team_id)}
-                          className="btn-secondary text-sm"
-                        >
-                          {upcomingGames[profile.team_id] ? 'Refresh Games' : 'Show Games'}
-                        </button>
                       </div>
                     </div>
 
-                    {/* Upcoming Games Display */}
+                    {/* Upcoming Game Display */}
                     {upcomingGames[profile.team_id] && upcomingGames[profile.team_id].length > 0 && (
                       <div className="mt-4 pt-4 border-t border-ice-200">
-                        <h4 className="font-semibold text-gray-900 mb-3">Upcoming Games</h4>
+                        <h4 className="font-semibold text-gray-900 mb-3">Upcoming Game</h4>
                         <div className="space-y-3">
                           {upcomingGames[profile.team_id].map((game) => {
                             const attendance = gameAttendance[game.id] || []
