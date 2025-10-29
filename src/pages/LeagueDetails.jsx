@@ -894,7 +894,7 @@ export default function LeagueDetails() {
               <p className="text-gray-500 text-center py-4">No seasons yet. Create one to get started.</p>
             ) : (
               <div className="grid gap-2">
-                {leagueSeasons.map((season) => (
+                {leagueSeasons.filter(season => season.id !== editingSeasonId).map((season) => (
                   <div
                     key={season.id}
                     onClick={() => setSelectedSeasonId(season.id)}
