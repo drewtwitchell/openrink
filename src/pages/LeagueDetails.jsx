@@ -79,6 +79,12 @@ export default function LeagueDetails() {
   const [editingPaymentLink, setEditingPaymentLink] = useState(false)
   const [tempPaymentLink, setTempPaymentLink] = useState('')
 
+  // User search state for adding players
+  const [userSearchQuery, setUserSearchQuery] = useState('')
+  const [userSearchResults, setUserSearchResults] = useState([])
+  const [selectedUser, setSelectedUser] = useState(null)
+  const [isSearching, setIsSearching] = useState(false)
+
   // ConfirmModal states
   const [deleteAnnouncementModal, setDeleteAnnouncementModal] = useState({ isOpen: false, announcementId: null, title: '' })
   const [removePlayerModal, setRemovePlayerModal] = useState({ isOpen: false, playerId: null, playerName: '', teamId: null })
@@ -533,18 +539,70 @@ export default function LeagueDetails() {
     e.preventDefault()
     const formData = new FormData(e.target)
     try {
-      await players.create({
+      const playerData = {
         team_id: teamId,
-        name: formData.get('name'),
+        name: selectedUser ? selectedUser.name : formData.get('name'),
         jersey_number: formData.get('jersey_number'),
         position: formData.get('position'),
-        email: formData.get('email'),
-      })
+        email: selectedUser ? selectedUser.email : formData.get('email'),
+      }
+
+      // If a user was selected, link the player to that user
+      if (selectedUser) {
+        playerData.user_id = selectedUser.id
+      }
+
+      await players.create(playerData)
       setShowPlayerForm(null)
+      setSelectedUser(null)
+      setUserSearchQuery('')
+      setUserSearchResults([])
       await fetchTeamPlayers(teamId)
     } catch (error) {
       alert('Error adding player: ' + error.message)
     }
+  }
+
+  // Search for existing users
+  const handleUserSearch = async (query) => {
+    setUserSearchQuery(query)
+    if (query.length < 2) {
+      setUserSearchResults([])
+      return
+    }
+
+    try {
+      setIsSearching(true)
+      const results = await auth.searchUsers(query)
+      setUserSearchResults(results)
+    } catch (error) {
+      console.error('Error searching users:', error)
+      setUserSearchResults([])
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  // Handle selecting a user from search results
+  const handleSelectUser = (user) => {
+    setSelectedUser(user)
+    setUserSearchQuery('')
+    setUserSearchResults([])
+  }
+
+  // Handle clearing selected user
+  const handleClearSelectedUser = () => {
+    setSelectedUser(null)
+    setUserSearchQuery('')
+    setUserSearchResults([])
+  }
+
+  // Reset user search when closing form
+  const handleClosePlayerForm = () => {
+    setShowPlayerForm(null)
+    setSelectedUser(null)
+    setUserSearchQuery('')
+    setUserSearchResults([])
   }
 
   const handleMarkPaid = (player) => {
@@ -1475,7 +1533,7 @@ export default function LeagueDetails() {
                       {canManageTeam(team.id) && (
                         <div className="mb-4">
                           <button
-                            onClick={() => setShowPlayerForm(showPlayerForm === team.id ? null : team.id)}
+                            onClick={() => showPlayerForm === team.id ? handleClosePlayerForm() : setShowPlayerForm(team.id)}
                             className="btn-primary text-sm"
                           >
                             {showPlayerForm === team.id ? 'Cancel' : '+ Add Player'}
@@ -1486,25 +1544,116 @@ export default function LeagueDetails() {
                       {showPlayerForm === team.id && (
                         <div className="mb-4 p-4 bg-gray-50 rounded-lg">
                           <h4 className="font-semibold mb-3">Add Player to {team.name}</h4>
+
+                          {/* User Search Section */}
+                          {!selectedUser && (
+                            <div className="mb-4">
+                              <label className="label">Search Existing Users</label>
+                              <p className="text-xs text-gray-600 mb-2">
+                                Search by name or email to link this player to an existing user account
+                              </p>
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  value={userSearchQuery}
+                                  onChange={(e) => handleUserSearch(e.target.value)}
+                                  className="input"
+                                  placeholder="Type name or email (min 2 characters)..."
+                                />
+                                {isSearching && (
+                                  <div className="absolute right-3 top-3 text-gray-400 text-sm">
+                                    Searching...
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Search Results */}
+                              {userSearchResults.length > 0 && (
+                                <div className="mt-2 border border-gray-200 rounded-lg bg-white shadow-sm max-h-48 overflow-y-auto">
+                                  {userSearchResults.map((user) => (
+                                    <button
+                                      key={user.id}
+                                      type="button"
+                                      onClick={() => handleSelectUser(user)}
+                                      className="w-full text-left px-3 py-2 hover:bg-blue-50 border-b border-gray-100 last:border-b-0"
+                                    >
+                                      <div className="font-medium text-gray-900">{user.name}</div>
+                                      <div className="text-xs text-gray-500">{user.email}</div>
+                                      {user.position && (
+                                        <div className="text-xs text-gray-400 capitalize">
+                                          Position: {user.position}
+                                        </div>
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+
+                              {userSearchQuery.length >= 2 && userSearchResults.length === 0 && !isSearching && (
+                                <div className="mt-2 text-sm text-gray-500">
+                                  No users found. Fill out the form below to create a new player.
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Selected User Display */}
+                          {selectedUser && (
+                            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <div className="text-sm text-green-800 font-medium mb-1">
+                                    Selected User
+                                  </div>
+                                  <div className="font-semibold text-gray-900">{selectedUser.name}</div>
+                                  <div className="text-sm text-gray-600">{selectedUser.email}</div>
+                                  {selectedUser.position && (
+                                    <div className="text-xs text-gray-500 capitalize mt-1">
+                                      Position: {selectedUser.position}
+                                    </div>
+                                  )}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={handleClearSelectedUser}
+                                  className="btn-secondary text-xs"
+                                >
+                                  Clear
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Player Form */}
                           <form onSubmit={(e) => handlePlayerSubmit(e, team.id)} className="space-y-3">
                             <div className="grid md:grid-cols-2 gap-3">
                               <div>
-                                <label className="label">Player Name *</label>
+                                <label className="label">
+                                  Player Name *
+                                  {selectedUser && <span className="text-xs text-gray-500 ml-2">(from selected user)</span>}
+                                </label>
                                 <input
                                   type="text"
                                   name="name"
                                   className="input"
                                   placeholder="John Doe"
-                                  required
+                                  value={selectedUser ? selectedUser.name : undefined}
+                                  disabled={!!selectedUser}
+                                  required={!selectedUser}
                                 />
                               </div>
                               <div>
-                                <label className="label">Email</label>
+                                <label className="label">
+                                  Email
+                                  {selectedUser && <span className="text-xs text-gray-500 ml-2">(from selected user)</span>}
+                                </label>
                                 <input
                                   type="email"
                                   name="email"
                                   className="input"
                                   placeholder="player@example.com"
+                                  value={selectedUser ? selectedUser.email : undefined}
+                                  disabled={!!selectedUser}
                                 />
                               </div>
                               <div>
@@ -1518,7 +1667,11 @@ export default function LeagueDetails() {
                               </div>
                               <div>
                                 <label className="label">Position</label>
-                                <select name="position" className="input">
+                                <select
+                                  name="position"
+                                  className="input"
+                                  defaultValue={selectedUser?.position || 'player'}
+                                >
                                   <option value="player">Player</option>
                                   <option value="forward">Forward</option>
                                   <option value="defense">Defense</option>
@@ -1526,9 +1679,18 @@ export default function LeagueDetails() {
                                 </select>
                               </div>
                             </div>
-                            <button type="submit" className="btn-primary text-sm">
-                              Add Player
-                            </button>
+                            <div className="flex gap-2">
+                              <button type="submit" className="btn-primary text-sm">
+                                {selectedUser ? 'Add Linked Player' : 'Add New Player'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleClosePlayerForm}
+                                className="btn-secondary text-sm"
+                              >
+                                Cancel
+                              </button>
+                            </div>
                           </form>
                         </div>
                       )}
@@ -1540,7 +1702,10 @@ export default function LeagueDetails() {
                           <p className="mb-2">No players on this team</p>
                           {canManageTeam(team.id) && (
                             <button
-                              onClick={() => setShowPlayerForm(team.id)}
+                              onClick={() => {
+                                handleClosePlayerForm() // Reset any previous state
+                                setShowPlayerForm(team.id)
+                              }}
                               className="btn-primary text-sm"
                             >
                               Add First Player
