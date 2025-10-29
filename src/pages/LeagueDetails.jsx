@@ -55,6 +55,19 @@ export default function LeagueDetails() {
     }
   }, [id])
 
+  // Navigate to separate pages for announcements and playoffs
+  useEffect(() => {
+    if (mainTab === 'overview' && overviewSubTab === 'announcements') {
+      navigate(`/leagues/${id}/announcements`)
+    }
+  }, [overviewSubTab, mainTab, id, navigate])
+
+  useEffect(() => {
+    if (mainTab === 'season' && seasonSubTab === 'playoffs') {
+      navigate(`/leagues/${id}/playoffs`)
+    }
+  }, [seasonSubTab, mainTab, id, navigate])
+
   const fetchLeagueData = async () => {
     try {
       const [leaguesData, teamsData, gamesData, managersData, seasonsData] = await Promise.all([
