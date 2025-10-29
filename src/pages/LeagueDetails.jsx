@@ -1786,68 +1786,89 @@ export default function LeagueDetails() {
                 </div>
               )}
 
-              {/* Payment List */}
+              {/* Payment List - Grouped by Team */}
               {paymentData.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-gray-500">No players in this season yet</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-3 px-4">Player</th>
-                        <th className="text-left py-3 px-4">Team</th>
-                        <th className="text-left py-3 px-4">Email</th>
-                        <th className="text-center py-3 px-4">Amount</th>
-                        <th className="text-center py-3 px-4">Status</th>
-                        <th className="text-center py-3 px-4">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paymentData.map((player) => (
-                        <tr key={player.id} className="border-b hover:bg-gray-50">
-                          <td className="py-3 px-4 font-medium">{player.name}</td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="w-4 h-4 rounded-full"
-                                style={{ backgroundColor: player.team_color }}
-                              />
-                              {player.team_name}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-sm text-gray-600">{player.email || '-'}</td>
-                          <td className="py-3 px-4 text-center">
-                            ${parseFloat(activeSeason.season_dues || 0).toFixed(2)}
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            {player.payment_status === 'paid' ? (
-                              <span className="badge badge-success">Paid</span>
-                            ) : (
-                              <span className="badge badge-error">Unpaid</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            {player.payment_status === 'paid' ? (
-                              <span className="text-xs text-gray-500">
-                                {new Date(player.paid_date).toLocaleDateString()}
-                              </span>
-                            ) : canManage ? (
-                              <button
-                                onClick={() => handleMarkPaid(player)}
-                                className="text-xs text-ice-600 hover:text-ice-700 hover:underline"
-                              >
-                                Mark Paid
-                              </button>
-                            ) : (
-                              <span className="text-xs text-gray-500">-</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="space-y-6">
+                  {(() => {
+                    // Group players by team
+                    const teamGroups = {}
+                    paymentData.forEach(player => {
+                      if (!teamGroups[player.team_id]) {
+                        teamGroups[player.team_id] = {
+                          name: player.team_name,
+                          color: player.team_color,
+                          players: []
+                        }
+                      }
+                      teamGroups[player.team_id].players.push(player)
+                    })
+
+                    return Object.entries(teamGroups).map(([teamId, team]) => (
+                      <div key={teamId} className="card">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div
+                            className="w-6 h-6 rounded-full"
+                            style={{ backgroundColor: team.color }}
+                          />
+                          <h3 className="text-lg font-semibold">{team.name}</h3>
+                          <span className="text-sm text-gray-600">
+                            ({team.players.filter(p => p.payment_status === 'paid').length} of {team.players.length} paid)
+                          </span>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead>
+                              <tr className="border-b">
+                                <th className="text-left py-2 px-3">Player</th>
+                                <th className="text-left py-2 px-3">Email</th>
+                                <th className="text-center py-2 px-3">Amount</th>
+                                <th className="text-center py-2 px-3">Status</th>
+                                <th className="text-center py-2 px-3">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {team.players.map((player) => (
+                                <tr key={player.id} className="border-b hover:bg-gray-50">
+                                  <td className="py-2 px-3 font-medium">{player.name}</td>
+                                  <td className="py-2 px-3 text-sm text-gray-600">{player.email || '-'}</td>
+                                  <td className="py-2 px-3 text-center">
+                                    ${parseFloat(activeSeason.season_dues || 0).toFixed(2)}
+                                  </td>
+                                  <td className="py-2 px-3 text-center">
+                                    {player.payment_status === 'paid' ? (
+                                      <span className="badge badge-success">Paid</span>
+                                    ) : (
+                                      <span className="badge badge-error">Unpaid</span>
+                                    )}
+                                  </td>
+                                  <td className="py-2 px-3 text-center">
+                                    {player.payment_status === 'paid' ? (
+                                      <span className="text-xs text-gray-500">
+                                        {new Date(player.paid_date).toLocaleDateString()}
+                                      </span>
+                                    ) : canManage ? (
+                                      <button
+                                        onClick={() => handleMarkPaid(player)}
+                                        className="text-xs text-ice-600 hover:text-ice-700 hover:underline"
+                                      >
+                                        Mark Paid
+                                      </button>
+                                    ) : (
+                                      <span className="text-xs text-gray-500">-</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))
+                  })()}
                 </div>
               )}
 

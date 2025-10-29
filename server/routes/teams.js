@@ -9,6 +9,7 @@ router.get('/', (req, res) => {
   db.all(
     `SELECT teams.*,
        leagues.name as league_name,
+       COUNT(DISTINCT p2.id) as player_count,
        GROUP_CONCAT(
          CASE
            WHEN team_captains.user_id IS NOT NULL
@@ -20,6 +21,7 @@ router.get('/', (req, res) => {
      LEFT JOIN team_captains ON team_captains.team_id = teams.id
      LEFT JOIN players ON players.user_id = team_captains.user_id AND players.team_id = teams.id
      LEFT JOIN users ON users.id = team_captains.user_id
+     LEFT JOIN players p2 ON p2.team_id = teams.id
      GROUP BY teams.id
      ORDER BY teams.name`,
     [],
@@ -42,7 +44,8 @@ router.get('/', (req, res) => {
         return {
           ...team,
           captains,
-          captains_info: undefined
+          captains_info: undefined,
+          player_count: team.player_count || 0
         }
       })
       res.json(teamsWithCaptains)
