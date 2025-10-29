@@ -111,20 +111,28 @@ export default function Standings() {
   }
 
   if (loading) {
-    return <div>Loading standings...</div>
+    return <div className="loading">Loading standings...</div>
   }
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-8">Standings</h1>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Standings</h1>
+          <p className="page-subtitle">View league standings and rankings</p>
+        </div>
+      </div>
 
       {leaguesList.length === 0 ? (
-        <div className="card text-center py-12">
-          <p className="text-gray-500">No leagues available</p>
+        <div className="card">
+          <div className="empty-state">
+            <h3 className="empty-state-title">No Leagues Available</h3>
+            <p className="empty-state-description">Create a league to start tracking standings</p>
+          </div>
         </div>
       ) : (
         <>
-          <div className="mb-6">
+          <div className="card mb-6">
             <label className="label">Select League</label>
             <select
               value={selectedLeague}
@@ -140,34 +148,34 @@ export default function Standings() {
           </div>
 
           {standings.length === 0 ? (
-            <div className="card text-center py-12">
-              <p className="text-gray-500">No games played yet</p>
+            <div className="card">
+              <div className="empty-state">
+                <h3 className="empty-state-title">No Games Played</h3>
+                <p className="empty-state-description">Standings will appear once games have been completed</p>
+              </div>
             </div>
           ) : (
             <div className="card overflow-x-auto">
-              <table className="w-full">
+              <table className="data-table">
                 <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4">Rank</th>
-                    <th className="text-left py-3 px-4">Team</th>
-                    <th className="text-center py-3 px-4">W</th>
-                    <th className="text-center py-3 px-4">L</th>
-                    <th className="text-center py-3 px-4">T</th>
-                    <th className="text-center py-3 px-4">GF</th>
-                    <th className="text-center py-3 px-4">GA</th>
-                    <th className="text-center py-3 px-4">DIFF</th>
-                    <th className="text-center py-3 px-4 font-bold">PTS</th>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Team</th>
+                    <th className="text-center">W</th>
+                    <th className="text-center">L</th>
+                    <th className="text-center">T</th>
+                    <th className="text-center">GF</th>
+                    <th className="text-center">GA</th>
+                    <th className="text-center">DIFF</th>
+                    <th className="text-center">PTS</th>
                   </tr>
                 </thead>
                 <tbody>
                   {standings.map((standing, index) => (
-                    <tr
-                      key={standing.id}
-                      className="border-b hover:bg-gray-50"
-                    >
-                      <td className="py-3 px-4 font-semibold">{index + 1}</td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center space-x-2">
+                    <tr key={standing.id}>
+                      <td className="font-semibold">{index + 1}</td>
+                      <td>
+                        <div className="flex items-center gap-2">
                           <div
                             className="w-4 h-4 rounded-full"
                             style={{ backgroundColor: standing.color }}
@@ -175,16 +183,16 @@ export default function Standings() {
                           <span className="font-medium">{standing.name}</span>
                         </div>
                       </td>
-                      <td className="text-center py-3 px-4">{standing.wins}</td>
-                      <td className="text-center py-3 px-4">{standing.losses}</td>
-                      <td className="text-center py-3 px-4">{standing.ties}</td>
-                      <td className="text-center py-3 px-4">{standing.gf}</td>
-                      <td className="text-center py-3 px-4">{standing.ga}</td>
-                      <td className="text-center py-3 px-4">
+                      <td className="text-center">{standing.wins}</td>
+                      <td className="text-center">{standing.losses}</td>
+                      <td className="text-center">{standing.ties}</td>
+                      <td className="text-center">{standing.gf}</td>
+                      <td className="text-center">{standing.ga}</td>
+                      <td className="text-center">
                         {standing.gf - standing.ga > 0 ? '+' : ''}
                         {standing.gf - standing.ga}
                       </td>
-                      <td className="text-center py-3 px-4 font-bold">
+                      <td className="text-center font-bold">
                         {standing.points}
                       </td>
                     </tr>

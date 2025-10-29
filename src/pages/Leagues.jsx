@@ -104,7 +104,7 @@ export default function Leagues() {
   }
 
   if (loading) {
-    return <div>Loading...</div>
+    return <div className="loading">Loading leagues...</div>
   }
 
   return (
@@ -112,7 +112,7 @@ export default function Leagues() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Leagues</h1>
-          <p className="page-subtitle">{leaguesList.length} {showArchived ? 'archived' : 'active'}</p>
+          <p className="page-subtitle">{leaguesList.length} {showArchived ? 'archived' : 'active'} league{leaguesList.length !== 1 ? 's' : ''}</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -139,8 +139,8 @@ export default function Leagues() {
       )}
 
       {showForm && (
-        <div className="card mb-8">
-          <h2 className="text-2xl font-bold mb-4">Create New League</h2>
+        <div className="card mb-6">
+          <h2 className="section-header">Create New League</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="label">League Name</label>
@@ -165,7 +165,7 @@ export default function Leagues() {
               />
             </div>
 
-            <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded">
+            <div className="alert alert-info">
               After creating the league, you'll be taken to add seasons with payment details, teams, and schedules.
             </div>
 
@@ -177,13 +177,18 @@ export default function Leagues() {
       )}
 
       {leaguesList.length === 0 ? (
-        <div className="card text-center py-12">
-          <p className="text-gray-500 mb-4">No leagues yet</p>
-          {canManageLeagues() && (
-            <button onClick={() => setShowForm(true)} className="btn-primary">
-              Create Your First League
-            </button>
-          )}
+        <div className="card">
+          <div className="empty-state">
+            <h3 className="empty-state-title">No Leagues Yet</h3>
+            <p className="empty-state-description">
+              {canManageLeagues() ? 'Create your first league to get started' : 'No leagues are available'}
+            </p>
+            {canManageLeagues() && (
+              <button onClick={() => setShowForm(true)} className="btn-primary">
+                Create Your First League
+              </button>
+            )}
+          </div>
         </div>
       ) : (
         <div className="card">
@@ -201,9 +206,9 @@ export default function Leagues() {
               {leaguesList.map((league) => (
                 <tr key={league.id}>
                   <td className="font-medium">{league.name}</td>
-                  <td className="text-gray-600">
+                  <td>
                     {league.activeSeason ? (
-                      <span className="text-green-700 font-medium">{league.activeSeason.name}</span>
+                      <span className="badge badge-success">{league.activeSeason.name}</span>
                     ) : (
                       <span className="text-gray-400">No active season</span>
                     )}
@@ -220,7 +225,7 @@ export default function Leagues() {
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => navigate(`/leagues/${league.id}`)}
-                        className="btn-primary text-xs py-1 px-3"
+                        className="btn-primary btn-sm"
                       >
                         View Details
                       </button>
@@ -228,13 +233,13 @@ export default function Leagues() {
                         <>
                           <button
                             onClick={() => handleArchive(league.id, league.name, league.archived === 1)}
-                            className="btn-secondary text-xs py-1 px-3"
+                            className="btn-secondary btn-sm"
                           >
                             {league.archived === 1 ? 'Unarchive' : 'Archive'}
                           </button>
                           <button
                             onClick={() => handleDelete(league.id, league.name)}
-                            className="btn-danger text-xs py-1 px-3"
+                            className="btn-danger btn-sm"
                           >
                             Delete
                           </button>

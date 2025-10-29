@@ -186,7 +186,7 @@ export default function Games() {
   }
 
   if (loading) {
-    return <div>Loading games...</div>
+    return <div className="loading">Loading games...</div>
   }
 
   return (
@@ -223,7 +223,7 @@ export default function Games() {
       </div>
 
       {leaguesList.length > 0 && canScheduleGames() && (
-        <div className="mb-6">
+        <div className="card mb-6">
           <label className="label">League for CSV Upload</label>
           <select
             value={selectedLeague}
@@ -258,8 +258,8 @@ export default function Games() {
       )}
 
       {showSubRequestForm && selectedGameForSub && (
-        <div className="card mb-8 border-2 border-ice-600">
-          <h2 className="text-2xl font-bold mb-4">Request a Substitute</h2>
+        <div className="card mb-6 border-2 border-ice-600">
+          <h2 className="section-header">Request a Substitute</h2>
           <div className="mb-4 p-3 bg-gray-50 rounded">
             <div className="font-semibold">
               {selectedGameForSub.home_team_name} vs {selectedGameForSub.away_team_name}
@@ -358,8 +358,8 @@ export default function Games() {
       )}
 
       {showForm && (
-        <div className="card mb-8">
-          <h2 className="text-2xl font-bold mb-4">Schedule New Game</h2>
+        <div className="card mb-6">
+          <h2 className="section-header">Schedule New Game</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
@@ -549,7 +549,7 @@ export default function Games() {
                       {canScheduleGames() && (
                         <button
                           onClick={() => handleDeleteGame(game)}
-                          className="btn-danger text-xs py-1 px-3"
+                          className="btn-danger btn-sm"
                         >
                           Delete
                         </button>
