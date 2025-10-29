@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { announcements, auth } from '../lib/api'
+import ConfirmModal from '../components/ConfirmModal'
 
 export default function Announcements() {
   const navigate = useNavigate()
@@ -15,6 +16,7 @@ export default function Announcements() {
     expires_at: '',
   })
   const [currentUser, setCurrentUser] = useState(null)
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, title: '' })
 
   useEffect(() => {
     setCurrentUser(auth.getUser())
@@ -62,8 +64,13 @@ export default function Announcements() {
     setShowForm(true)
   }
 
-  const handleDelete = async (id, title) => {
-    if (!confirm(`Delete announcement "${title}"?`)) return
+  const handleDelete = (id, title) => {
+    setDeleteModal({ isOpen: true, id, title })
+  }
+
+  const confirmDelete = async () => {
+    const { id } = deleteModal
+    if (!id) return
 
     try {
       await announcements.delete(id)
@@ -244,6 +251,18 @@ export default function Announcements() {
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, id: null, title: '' })}
+        onConfirm={confirmDelete}
+        title="Delete Announcement"
+        message={`Are you sure you want to delete "${deleteModal.title}"?\n\nThis action cannot be undone.`}
+        confirmText="Delete Announcement"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   )
 }

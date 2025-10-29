@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { teams, leagues as leaguesApi, auth, players } from '../lib/api'
+import ConfirmModal from '../components/ConfirmModal'
 
 export default function Teams() {
   const navigate = useNavigate()
@@ -16,6 +17,7 @@ export default function Teams() {
   })
   const [expandedTeams, setExpandedTeams] = useState({})
   const [teamRosters, setTeamRosters] = useState({})
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, teamId: null, teamName: '' })
 
   useEffect(() => {
     setCurrentUser(auth.getUser())
@@ -49,10 +51,14 @@ export default function Teams() {
     }
   }
 
-  const handleDelete = async (teamId, teamName) => {
-    if (!window.confirm(`Are you sure you want to delete ${teamName}? This will also delete all players on this team.`)) {
-      return
-    }
+  const handleDelete = (teamId, teamName) => {
+    setDeleteModal({ isOpen: true, teamId, teamName })
+  }
+
+  const confirmDelete = async () => {
+    const { teamId } = deleteModal
+    if (!teamId) return
+
     try {
       await teams.delete(teamId)
       fetchData()
@@ -318,6 +324,18 @@ export default function Teams() {
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, teamId: null, teamName: '' })}
+        onConfirm={confirmDelete}
+        title="Delete Team"
+        message={`Are you sure you want to delete "${deleteModal.teamName}"?\n\nThis will also delete all players on this team. This action cannot be undone.`}
+        confirmText="Delete Team"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   )
 }
