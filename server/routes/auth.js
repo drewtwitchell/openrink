@@ -54,10 +54,11 @@ router.post('/signin', (req, res) => {
   const { email, password } = req.body
 
   if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password required' })
+    return res.status(400).json({ error: 'Username/email and password required' })
   }
 
-  db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
+  // Support login with username OR email
+  db.get('SELECT * FROM users WHERE email = ? OR username = ?', [email, email], async (err, user) => {
     if (err) {
       return res.status(500).json({ error: 'Server error' })
     }
@@ -77,6 +78,7 @@ router.post('/signin', (req, res) => {
         token,
         user: {
           id: user.id,
+          username: user.username,
           email: user.email,
           name: user.name,
           phone: user.phone,
@@ -93,7 +95,7 @@ router.post('/signin', (req, res) => {
 
 // Get current user
 router.get('/me', authenticateToken, (req, res) => {
-  db.get('SELECT id, email, name, phone, position, role, password_reset_required FROM users WHERE id = ?', [req.user.id], (err, user) => {
+  db.get('SELECT id, username, email, name, phone, position, role, password_reset_required FROM users WHERE id = ?', [req.user.id], (err, user) => {
     if (err || !user) {
       return res.status(404).json({ error: 'User not found' })
     }
@@ -113,7 +115,7 @@ router.put('/profile', authenticateToken, (req, res) => {
         return res.status(500).json({ error: 'Error updating profile' })
       }
 
-      db.get('SELECT id, email, name, phone, position, role, password_reset_required FROM users WHERE id = ?', [req.user.id], (err, user) => {
+      db.get('SELECT id, username, email, name, phone, position, role, password_reset_required FROM users WHERE id = ?', [req.user.id], (err, user) => {
         if (err || !user) {
           return res.status(404).json({ error: 'User not found' })
         }
@@ -153,7 +155,7 @@ router.get('/users', authenticateToken, (req, res) => {
       return res.status(403).json({ error: 'Admin access required' })
     }
 
-    db.all('SELECT id, email, name, phone, position, role, created_at FROM users ORDER BY created_at DESC', [], (err, users) => {
+    db.all('SELECT id, username, email, name, phone, position, role, created_at FROM users ORDER BY created_at DESC', [], (err, users) => {
       if (err) {
         return res.status(500).json({ error: 'Error fetching users' })
       }
@@ -211,7 +213,7 @@ router.put('/change-password', authenticateToken, async (req, res) => {
 router.put('/users/:id/role', authenticateToken, (req, res) => {
   const { role } = req.body
 
-  if (!['admin', 'player'].includes(role)) {
+  if (!['admin', 'league_manager', 'player'].includes(role)) {
     return res.status(400).json({ error: 'Invalid role' })
   }
 
