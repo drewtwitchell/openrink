@@ -685,9 +685,9 @@ export default function Dashboard() {
                       <div className="mt-4 pt-4 border-t border-ice-200">
                         <div className="flex items-center justify-between mb-3">
                           <h4 className="font-semibold text-gray-900">Team Roster</h4>
-                          {(user?.role === 'admin' || managedLeagues.some(ml => ml.id === league.id)) && (
+                          {(user?.role === 'admin' || managedLeagues.some(ml => ml.id === league.id) || profile.is_captain === 1) && (
                             <button
-                              onClick={() => navigate(`/leagues/${league.id}`)}
+                              onClick={() => navigate(`/leagues/${league.id}?tab=season&subtab=teams&team=${profile.team_id}`)}
                               className="btn-primary text-xs"
                             >
                               Manage Roster

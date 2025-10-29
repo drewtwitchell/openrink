@@ -90,14 +90,47 @@ export default function LeagueDetails() {
       managers.some(m => m.id === currentUser.id)
   }, [currentUser, managers])
 
+  // Check if current user is a captain of a specific team
+  const isTeamCaptain = (teamId) => {
+    if (!currentUser) return false
+    const team = teams.find(t => t.id === teamId)
+    if (!team || !team.captains) return false
+    return team.captains.some(captain => captain.user_id === currentUser.id)
+  }
+
+  // Check if current user can manage a specific team's roster
+  // Can manage if they're a league manager/admin OR a captain of that team
+  const canManageTeam = (teamId) => {
+    return canManage || isTeamCaptain(teamId)
+  }
+
   useEffect(() => {
     setCurrentUser(auth.getUser())
     fetchLeagueData()
+
+    // Handle URL parameters for navigation
+    const tabParam = searchParams.get('tab')
+    const subtabParam = searchParams.get('subtab')
+    const teamParam = searchParams.get('team')
+
     // Auto-open season form if coming from league creation
-    if (searchParams.get('tab') === 'seasons') {
+    if (tabParam === 'seasons') {
       setMainTab('season')
       setSeasonSubTab(null)
       setShowSeasonForm(true)
+    }
+    // Auto-open to teams roster if navigating from dashboard
+    else if (tabParam === 'season' && subtabParam === 'teams') {
+      setMainTab('season')
+      setSeasonSubTab('teams')
+      if (teamParam) {
+        const teamId = parseInt(teamParam)
+        setExpandedTeamId(teamId)
+        // Fetch roster for this team (will be called after fetchLeagueData completes)
+        setTimeout(() => {
+          fetchTeamPlayers(teamId)
+        }, 500)
+      }
     }
   }, [id])
 
@@ -1385,7 +1418,7 @@ export default function LeagueDetails() {
 
                   {expandedTeamId === team.id && (
                     <div className="mt-4 border-t pt-4">
-                      {canManage && (
+                      {canManageTeam(team.id) && (
                         <div className="mb-4">
                           <button
                             onClick={() => setShowPlayerForm(showPlayerForm === team.id ? null : team.id)}
@@ -1451,7 +1484,7 @@ export default function LeagueDetails() {
                       ) : teamPlayers[team.id].length === 0 && showPlayerForm !== team.id ? (
                         <div className="text-center py-4 text-gray-500">
                           <p className="mb-2">No players on this team</p>
-                          {canManage && (
+                          {canManageTeam(team.id) && (
                             <button
                               onClick={() => setShowPlayerForm(team.id)}
                               className="btn-primary text-sm"
@@ -1476,7 +1509,7 @@ export default function LeagueDetails() {
                                   <span className="badge badge-warning text-xs">Captain</span>
                                 )}
                               </div>
-                              {canManage && (
+                              {canManageTeam(team.id) && (
                                 <div className="flex gap-2">
                                   {player.user_id && (
                                     <button
