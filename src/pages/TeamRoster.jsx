@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { teams, players, csv, auth, leagues } from '../lib/api'
+import ConfirmModal from '../components/ConfirmModal'
 
 export default function TeamRoster() {
   const { id } = useParams()
@@ -33,6 +34,7 @@ export default function TeamRoster() {
     position: 'player',
     email_notifications: true,
   })
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, playerId: null, playerName: '' })
 
   useEffect(() => {
     fetchData()
@@ -133,8 +135,13 @@ export default function TeamRoster() {
     setSelectedUser(null)
   }
 
-  const handleDelete = async (playerId) => {
-    if (!confirm('Remove this player from the roster?')) return
+  const handleDelete = (playerId, playerName) => {
+    setDeleteModal({ isOpen: true, playerId, playerName })
+  }
+
+  const confirmDelete = async () => {
+    const { playerId } = deleteModal
+    if (!playerId) return
 
     try {
       await players.delete(playerId)
@@ -541,7 +548,7 @@ export default function TeamRoster() {
                           Transfer
                         </button>
                         <button
-                          onClick={() => handleDelete(player.id)}
+                          onClick={() => handleDelete(player.id, player.name)}
                           className="btn-danger text-xs py-1 px-3"
                         >
                           Delete
@@ -555,6 +562,18 @@ export default function TeamRoster() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, playerId: null, playerName: '' })}
+        onConfirm={confirmDelete}
+        title="Remove Player from Roster"
+        message={`Are you sure you want to remove "${deleteModal.playerName}" from the roster?\n\nThis action cannot be undone.`}
+        confirmText="Remove Player"
+        cancelText="Cancel"
+        variant="danger"
+      />
 
       {/* Transfer Modal */}
       {showTransferModal && (

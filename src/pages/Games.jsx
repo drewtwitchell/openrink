@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { games, teams, rinks, leagues, csv, players, subRequests, auth, seasons } from '../lib/api'
+import ConfirmModal from '../components/ConfirmModal'
 
 export default function Games() {
   const [gamesList, setGamesList] = useState([])
@@ -32,6 +33,7 @@ export default function Games() {
     venmo_link: '',
     notes: '',
   })
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, gameId: null, gameName: '' })
 
   useEffect(() => {
     setCurrentUser(auth.getUser())
@@ -166,12 +168,17 @@ export default function Games() {
     return currentUser?.role === 'admin' || currentUser?.role === 'league_manager'
   }
 
-  const handleDeleteGame = async (gameId) => {
-    if (!window.confirm('Are you sure you want to delete this game?')) {
-      return
-    }
+  const handleDeleteGame = (game) => {
+    const gameName = `${game.home_team_name} vs ${game.away_team_name}`
+    setDeleteModal({ isOpen: true, gameId: game.id, gameName })
+  }
+
+  const confirmDelete = async () => {
+    const { gameId } = deleteModal
+    if (!gameId) return
+
     try {
-      await gamesApi.delete(gameId)
+      await games.delete(gameId)
       fetchData()
     } catch (error) {
       alert('Error deleting game: ' + error.message)
@@ -541,7 +548,7 @@ export default function Games() {
                     <div className="flex items-center justify-end gap-2">
                       {canScheduleGames() && (
                         <button
-                          onClick={() => handleDeleteGame(game.id)}
+                          onClick={() => handleDeleteGame(game)}
                           className="btn-danger text-xs py-1 px-3"
                         >
                           Delete
@@ -555,6 +562,18 @@ export default function Games() {
           </table>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, gameId: null, gameName: '' })}
+        onConfirm={confirmDelete}
+        title="Delete Game"
+        message={`Are you sure you want to delete this game?\n\n${deleteModal.gameName}\n\nThis action cannot be undone.`}
+        confirmText="Delete Game"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   )
 }

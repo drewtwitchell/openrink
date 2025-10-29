@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { playoffs, auth, seasons, teams } from '../lib/api'
+import ConfirmModal from '../components/ConfirmModal'
 
 export default function Playoffs() {
   const { leagueId } = useParams()
@@ -16,6 +17,7 @@ export default function Playoffs() {
     format: '4',
     selectedTeams: [],
   })
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, bracketId: null, bracketName: '' })
 
   useEffect(() => {
     setCurrentUser(auth.getUser())
@@ -80,8 +82,13 @@ export default function Playoffs() {
     }
   }
 
-  const handleDelete = async (bracketId, name) => {
-    if (!confirm(`Delete bracket "${name}"?`)) return
+  const handleDelete = (bracketId, name) => {
+    setDeleteModal({ isOpen: true, bracketId, bracketName: name })
+  }
+
+  const confirmDelete = async () => {
+    const { bracketId } = deleteModal
+    if (!bracketId) return
 
     try {
       await playoffs.delete(bracketId)
@@ -307,6 +314,18 @@ export default function Playoffs() {
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, bracketId: null, bracketName: '' })}
+        onConfirm={confirmDelete}
+        title="Delete Playoff Bracket"
+        message={`Are you sure you want to delete bracket "${deleteModal.bracketName}"?\n\nThis action cannot be undone.`}
+        confirmText="Delete Bracket"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   )
 }
