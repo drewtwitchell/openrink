@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { leagues, teams as teamsApi, games as gamesApi, seasons, auth, announcements, players, teamCaptains, payments } from '../lib/api'
 import ConfirmModal from '../components/ConfirmModal'
@@ -83,6 +83,9 @@ export default function LeagueDetails() {
   const [markUnpaidModal, setMarkUnpaidModal] = useState({ isOpen: false, player: null })
   const [removeManagerModal, setRemoveManagerModal] = useState({ isOpen: false, manager: null })
 
+  // Ref for scrolling to specific team
+  const teamRefs = useRef({})
+
   // Check if current user can manage this league
   // User can manage if they're an admin OR if they're in the league_managers table for this league
   const canManage = useMemo(() => {
@@ -103,6 +106,18 @@ export default function LeagueDetails() {
   const canManageTeam = (teamId) => {
     return canManage || isTeamCaptain(teamId)
   }
+
+  // Filter teams based on user role
+  // Admins and league managers see all teams
+  // Captains only see teams they captain
+  const visibleTeams = useMemo(() => {
+    if (canManage) {
+      // Admins and league managers see all teams
+      return teams
+    }
+    // Captains only see their own teams
+    return teams.filter(team => isTeamCaptain(team.id))
+  }, [teams, canManage, currentUser])
 
   useEffect(() => {
     setCurrentUser(auth.getUser())
@@ -126,10 +141,14 @@ export default function LeagueDetails() {
       if (teamParam) {
         const teamId = parseInt(teamParam)
         setExpandedTeamId(teamId)
-        // Fetch roster for this team (will be called after fetchLeagueData completes)
+        // Fetch roster for this team and scroll to it (will be called after fetchLeagueData completes)
         setTimeout(() => {
           fetchTeamPlayers(teamId)
-        }, 500)
+          // Scroll to the team card
+          if (teamRefs.current[teamId]) {
+            teamRefs.current[teamId].scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        }, 700)
       }
     }
   }, [id])
@@ -1371,15 +1390,19 @@ export default function LeagueDetails() {
             </div>
           )}
 
-          {teams.length === 0 && !showTeamForm ? (
+          {visibleTeams.length === 0 && !showTeamForm ? (
             <div className="card text-center py-12">
-              <p className="text-gray-500 mb-4">No teams in this league yet</p>
-              <p className="text-sm text-gray-400">Click "Add Team" to create your first team</p>
+              <p className="text-gray-500 mb-4">{canManage ? 'No teams in this league yet' : 'You are not a captain of any teams in this league'}</p>
+              {canManage && <p className="text-sm text-gray-400">Click "Add Team" to create your first team</p>}
             </div>
           ) : (
             <div className="space-y-4">
-              {teams.map((team) => (
-                <div key={team.id} className="card">
+              {visibleTeams.map((team) => (
+                <div
+                  key={team.id}
+                  className="card"
+                  ref={el => teamRefs.current[team.id] = el}
+                >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center flex-1">
                       <div
