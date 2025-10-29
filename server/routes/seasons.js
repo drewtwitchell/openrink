@@ -221,9 +221,8 @@ router.get('/:id/players-payments', (req, res) => {
       console.error('Error fetching players and payments:', err)
       return res.status(500).json({ error: 'Error fetching players and payments' })
     }
-    // Filter out teams with no players
-    const rowsWithPlayers = rows.filter(row => row.id != null)
-    res.json(rowsWithPlayers)
+    // Return all teams, even those with no players (for payment tracking)
+    res.json(rows)
   })
 })
 

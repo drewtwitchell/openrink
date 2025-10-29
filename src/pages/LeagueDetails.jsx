@@ -1763,23 +1763,26 @@ export default function LeagueDetails() {
                     {(() => {
                       // Group players by team
                       const teamPayments = {}
-                      paymentData.forEach(player => {
-                        if (!teamPayments[player.team_id]) {
-                          teamPayments[player.team_id] = {
-                            name: player.team_name,
-                            color: player.team_color,
+                      paymentData.forEach(row => {
+                        if (!teamPayments[row.team_id]) {
+                          teamPayments[row.team_id] = {
+                            name: row.team_name,
+                            color: row.team_color,
                             paid: 0,
                             total: 0
                           }
                         }
-                        teamPayments[player.team_id].total++
-                        if (player.payment_status === 'paid') {
-                          teamPayments[player.team_id].paid++
+                        // Only count player if row has player data (id is not null)
+                        if (row.id !== null) {
+                          teamPayments[row.team_id].total++
+                          if (row.payment_status === 'paid') {
+                            teamPayments[row.team_id].paid++
+                          }
                         }
                       })
 
                       return Object.values(teamPayments).map((team, idx) => {
-                        const percentage = (team.paid / team.total) * 100
+                        const percentage = team.total > 0 ? (team.paid / team.total) * 100 : 0
                         return (
                           <div key={idx}>
                             <div className="flex justify-between items-center mb-2">
@@ -1791,7 +1794,7 @@ export default function LeagueDetails() {
                                 <span className="font-medium">{team.name}</span>
                               </div>
                               <span className="text-sm text-gray-600">
-                                {team.paid} of {team.total} paid ({Math.round(percentage)}%)
+                                {team.paid} of {team.total} paid{team.total > 0 ? ` (${Math.round(percentage)}%)` : ''}
                               </span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-4">
@@ -1823,15 +1826,18 @@ export default function LeagueDetails() {
                   {(() => {
                     // Group players by team
                     const teamGroups = {}
-                    paymentData.forEach(player => {
-                      if (!teamGroups[player.team_id]) {
-                        teamGroups[player.team_id] = {
-                          name: player.team_name,
-                          color: player.team_color,
+                    paymentData.forEach(row => {
+                      if (!teamGroups[row.team_id]) {
+                        teamGroups[row.team_id] = {
+                          name: row.team_name,
+                          color: row.team_color,
                           players: []
                         }
                       }
-                      teamGroups[player.team_id].players.push(player)
+                      // Only add player if row has player data (id is not null)
+                      if (row.id !== null) {
+                        teamGroups[row.team_id].players.push(row)
+                      }
                     })
 
                     return Object.entries(teamGroups).map(([teamId, team]) => (
@@ -1859,57 +1865,65 @@ export default function LeagueDetails() {
                               </tr>
                             </thead>
                             <tbody>
-                              {team.players.map((player) => (
-                                <tr key={player.id} className="border-b hover:bg-gray-50">
-                                  <td className="py-2 px-3 font-medium">{player.name}</td>
-                                  <td className="py-2 px-3 text-sm text-gray-600">{player.email || '-'}</td>
-                                  <td className="py-2 px-3 text-center">
-                                    ${parseFloat(activeSeason.season_dues || 0).toFixed(2)}
-                                  </td>
-                                  <td className="py-2 px-3 text-center">
-                                    {player.payment_status === 'paid' ? (
-                                      <span className="badge badge-success">Paid</span>
-                                    ) : (
-                                      <span className="badge badge-error">Unpaid</span>
-                                    )}
-                                  </td>
-                                  <td className="py-2 px-3 text-center">
-                                    {player.payment_status === 'paid' && player.payment_method ? (
-                                      <span className="text-xs text-gray-600 capitalize">
-                                        {player.payment_method}
-                                      </span>
-                                    ) : (
-                                      <span className="text-xs text-gray-400">-</span>
-                                    )}
-                                  </td>
-                                  <td className="py-2 px-3 text-center">
-                                    {player.payment_status === 'paid' ? (
-                                      <div className="flex flex-col items-center gap-1">
-                                        <span className="text-xs text-gray-500">
-                                          {new Date(player.paid_date).toLocaleDateString()}
-                                        </span>
-                                        {canManage && (
-                                          <button
-                                            onClick={() => handleMarkUnpaid(player)}
-                                            className="text-xs text-red-600 hover:text-red-700 hover:underline"
-                                          >
-                                            Mark Unpaid
-                                          </button>
-                                        )}
-                                      </div>
-                                    ) : canManage ? (
-                                      <button
-                                        onClick={() => handleMarkPaid(player)}
-                                        className="text-xs text-ice-600 hover:text-ice-700 hover:underline"
-                                      >
-                                        Mark Paid
-                                      </button>
-                                    ) : (
-                                      <span className="text-xs text-gray-500">-</span>
-                                    )}
+                              {team.players.length === 0 ? (
+                                <tr>
+                                  <td colSpan="6" className="py-4 px-3 text-center text-gray-500 text-sm">
+                                    No players on this team yet
                                   </td>
                                 </tr>
-                              ))}
+                              ) : (
+                                team.players.map((player) => (
+                                  <tr key={player.id} className="border-b hover:bg-gray-50">
+                                    <td className="py-2 px-3 font-medium">{player.name}</td>
+                                    <td className="py-2 px-3 text-sm text-gray-600">{player.email || '-'}</td>
+                                    <td className="py-2 px-3 text-center">
+                                      ${parseFloat(activeSeason.season_dues || 0).toFixed(2)}
+                                    </td>
+                                    <td className="py-2 px-3 text-center">
+                                      {player.payment_status === 'paid' ? (
+                                        <span className="badge badge-success">Paid</span>
+                                      ) : (
+                                        <span className="badge badge-error">Unpaid</span>
+                                      )}
+                                    </td>
+                                    <td className="py-2 px-3 text-center">
+                                      {player.payment_status === 'paid' && player.payment_method ? (
+                                        <span className="text-xs text-gray-600 capitalize">
+                                          {player.payment_method}
+                                        </span>
+                                      ) : (
+                                        <span className="text-xs text-gray-400">-</span>
+                                      )}
+                                    </td>
+                                    <td className="py-2 px-3 text-center">
+                                      {player.payment_status === 'paid' ? (
+                                        <div className="flex flex-col items-center gap-1">
+                                          <span className="text-xs text-gray-500">
+                                            {new Date(player.paid_date).toLocaleDateString()}
+                                          </span>
+                                          {canManage && (
+                                            <button
+                                              onClick={() => handleMarkUnpaid(player)}
+                                              className="text-xs text-red-600 hover:text-red-700 hover:underline"
+                                            >
+                                              Mark Unpaid
+                                            </button>
+                                          )}
+                                        </div>
+                                      ) : canManage ? (
+                                        <button
+                                          onClick={() => handleMarkPaid(player)}
+                                          className="text-xs text-ice-600 hover:text-ice-700 hover:underline"
+                                        >
+                                          Mark Paid
+                                        </button>
+                                      ) : (
+                                        <span className="text-xs text-gray-500">-</span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
                             </tbody>
                           </table>
                         </div>
