@@ -393,17 +393,32 @@ export default function Home() {
       </div>
 
       {displayLeagues.map(({ league, activeSeason, standings, upcomingGames, announcements, bracket, teams, teamRosters }) => (
-        <div key={league.id} className="mb-12">
-          {/* League Header - only show for multiple leagues */}
+        <div key={league.id} className={`mb-12 ${isMultipleLeagues ? 'border-2 border-gray-200 rounded-lg p-6 bg-white shadow-sm' : ''}`}>
+          {/* League Header - always show for multiple leagues, enhanced with season info */}
           {isMultipleLeagues && (
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
-                {league.name}
-                {league.season && <span className="text-xl text-gray-600 ml-2">({league.season})</span>}
-              </h2>
-              {league.description && (
-                <p className="text-gray-600 mt-1">{league.description}</p>
-              )}
+            <div className="mb-6 pb-4 border-b-2 border-gray-200">
+              <div className="flex items-start justify-between flex-wrap gap-3">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    {league.name}
+                  </h2>
+                  {league.description && (
+                    <p className="text-gray-600">{league.description}</p>
+                  )}
+                </div>
+                {activeSeason && (
+                  <div className="flex flex-col items-end gap-2">
+                    <span className="badge badge-success text-sm px-3 py-1">
+                      {activeSeason.name}
+                    </span>
+                    {activeSeason.start_date && activeSeason.end_date && (
+                      <span className="text-xs text-gray-500">
+                        {new Date(activeSeason.start_date).toLocaleDateString()} - {new Date(activeSeason.end_date).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -437,11 +452,16 @@ export default function Home() {
           {/* Playoff Bracket */}
           {bracket && bracket.bracket && bracket.matches && (
             <div className="card mb-8">
-              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2 flex-wrap">
                 <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                {bracket.bracket.name}
+                <span>
+                  {isMultipleLeagues ? `${league.name} - ${bracket.bracket.name}` : bracket.bracket.name}
+                  {isMultipleLeagues && activeSeason && (
+                    <span className="text-sm font-normal text-gray-500 ml-2">({activeSeason.name})</span>
+                  )}
+                </span>
               </h3>
               <div className="overflow-x-auto pb-4">
                 <div className="inline-flex gap-8 min-w-full">
@@ -554,7 +574,12 @@ export default function Home() {
           <div className="grid md:grid-cols-2 gap-8 mb-8">
             {/* Standings */}
             <div className="card">
-              <h3 className="text-xl font-semibold mb-4">Standings</h3>
+              <h3 className="text-xl font-semibold mb-4">
+                {isMultipleLeagues ? `${league.name} - Standings` : 'Standings'}
+                {isMultipleLeagues && activeSeason && (
+                  <span className="text-sm font-normal text-gray-500 ml-2">({activeSeason.name})</span>
+                )}
+              </h3>
               {standings.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">No games played yet</p>
               ) : (
@@ -597,7 +622,12 @@ export default function Home() {
 
             {/* Upcoming Games */}
             <div className="card">
-              <h3 className="text-xl font-semibold mb-4">Upcoming Games This Week</h3>
+              <h3 className="text-xl font-semibold mb-4">
+                {isMultipleLeagues ? `${league.name} - Upcoming Games` : 'Upcoming Games This Week'}
+                {isMultipleLeagues && activeSeason && (
+                  <span className="text-sm font-normal text-gray-500 ml-2">({activeSeason.name})</span>
+                )}
+              </h3>
               {upcomingGames.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">No upcoming games this week</p>
               ) : (
@@ -636,7 +666,12 @@ export default function Home() {
           {/* Team Rosters */}
           {teams && teams.length > 0 && (
             <div className="card">
-              <h3 className="text-xl font-semibold mb-4">Team Rosters</h3>
+              <h3 className="text-xl font-semibold mb-4">
+                {isMultipleLeagues ? `${league.name} - Team Rosters` : 'Team Rosters'}
+                {isMultipleLeagues && activeSeason && (
+                  <span className="text-sm font-normal text-gray-500 ml-2">({activeSeason.name})</span>
+                )}
+              </h3>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {teams.map((team) => (
                   <div key={team.id} className="border border-gray-200 rounded-lg p-4 bg-white">
@@ -674,7 +709,9 @@ export default function Home() {
 
           {/* Calendar Subscription */}
           <div className="card bg-blue-50">
-            <h3 className="text-xl font-semibold mb-3">Subscribe to Game Calendar</h3>
+            <h3 className="text-xl font-semibold mb-3">
+              {isMultipleLeagues ? `${league.name} - Subscribe to Game Calendar` : 'Subscribe to Game Calendar'}
+            </h3>
             <p className="text-gray-600 mb-4">
               Subscribe to automatically sync games to your calendar app (Google Calendar, Apple Calendar, Outlook, etc.). Your calendar will stay up-to-date as new games are added.
             </p>
