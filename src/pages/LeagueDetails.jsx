@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { leagues, teams as teamsApi, games as gamesApi, seasons, auth, announcements, players } from '../lib/api'
+import { leagues, teams as teamsApi, games as gamesApi, seasons, auth, announcements, players, teamCaptains, payments } from '../lib/api'
 
 export default function LeagueDetails() {
   const { id } = useParams()
@@ -61,6 +61,8 @@ export default function LeagueDetails() {
     rink_name: '',
   })
   const [showPlayerForm, setShowPlayerForm] = useState(null) // Track which team's form is showing
+  const [showManagerForm, setShowManagerForm] = useState(false)
+  const [managerEmail, setManagerEmail] = useState('')
 
   // Check if current user can manage this league
   // User can manage if they're an admin OR if they're in the league_managers table for this league
@@ -464,6 +466,87 @@ export default function LeagueDetails() {
     }
   }
 
+  const handleMarkPaid = async (player) => {
+    try {
+      // If no payment record exists, create one first
+      if (!player.payment_id) {
+        const paymentRecord = await payments.create({
+          player_id: player.id,
+          team_id: player.team_id,
+          amount: activeSeason.season_dues || 0,
+          season_id: activeSeason.id,
+        })
+        // Mark the newly created payment as paid
+        await payments.markPaid(paymentRecord.id)
+      } else {
+        // Mark existing payment as paid
+        await payments.markPaid(player.payment_id)
+      }
+      // Refresh payment data
+      await fetchPaymentData(activeSeason.id)
+    } catch (error) {
+      alert('Error marking payment as paid: ' + error.message)
+    }
+  }
+
+  const handleToggleCaptain = async (player, teamId) => {
+    // Only players with user_id can be captains
+    if (!player.user_id) {
+      alert('Only players with linked user accounts can be made captains')
+      return
+    }
+
+    try {
+      if (player.is_captain === 1) {
+        // Remove captain status
+        await teamCaptains.remove(player.user_id, teamId)
+      } else {
+        // Add captain status
+        await teamCaptains.add(player.user_id, teamId)
+      }
+      // Refresh league data to update captain labels
+      await fetchLeagueData()
+      // Refresh team roster
+      await fetchTeamPlayers(teamId)
+    } catch (error) {
+      alert('Error toggling captain status: ' + error.message)
+    }
+  }
+
+  const handleAddManager = async (e) => {
+    e.preventDefault()
+    if (!managerEmail.trim()) {
+      alert('Please enter an email address')
+      return
+    }
+
+    try {
+      await leagues.addManager(id, managerEmail)
+      setManagerEmail('')
+      setShowManagerForm(false)
+      await fetchLeagueData()
+    } catch (error) {
+      alert('Error adding manager: ' + error.message)
+    }
+  }
+
+  const handleRemoveManager = async (manager) => {
+    // Don't allow removing the league owner
+    if (manager.is_owner) {
+      alert('Cannot remove the league owner')
+      return
+    }
+
+    if (confirm(`Remove ${manager.name || manager.email} as a league manager?`)) {
+      try {
+        await leagues.removeManager(id, manager.id)
+        await fetchLeagueData()
+      } catch (error) {
+        alert('Error removing manager: ' + error.message)
+      }
+    }
+  }
+
   if (loading) {
     return <div>Loading league details...</div>
   }
@@ -808,40 +891,100 @@ export default function LeagueDetails() {
       {/* Content */}
       {mainTab === 'overview' && overviewSubTab === 'managers' && (
         <div>
-          {/* League Contacts Section */}
-          {managers.length > 0 && (
-            <div className="card mb-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold">
-                  League Contact{managers.length > 1 ? 's' : ''}
-                </h3>
+          {/* League Managers Section */}
+          <div className="card mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold">
+                League Manager{managers.length !== 1 ? 's' : ''}
+              </h3>
+              <div className="flex gap-2">
+                {canManage && (
+                  <>
+                    <button
+                      onClick={() => setShowManagerForm(!showManagerForm)}
+                      className="btn-primary"
+                    >
+                      {showManagerForm ? 'Cancel' : '+ Add Manager'}
+                    </button>
+                    <button
+                      onClick={() => setShowContactModal(true)}
+                      className="btn-secondary"
+                    >
+                      Contact All Players
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {showManagerForm && (
+              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-semibold mb-3">Add Manager</h4>
+                <form onSubmit={handleAddManager} className="flex gap-2">
+                  <input
+                    type="email"
+                    value={managerEmail}
+                    onChange={(e) => setManagerEmail(e.target.value)}
+                    className="input flex-1"
+                    placeholder="manager@example.com"
+                    required
+                  />
+                  <button type="submit" className="btn-primary">
+                    Add
+                  </button>
+                </form>
+                <p className="text-sm text-gray-600 mt-2">
+                  Enter the email address of a registered user to add them as a league manager
+                </p>
+              </div>
+            )}
+
+            {managers.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500 mb-4">No managers assigned yet</p>
                 {canManage && (
                   <button
-                    onClick={() => setShowContactModal(true)}
+                    onClick={() => setShowManagerForm(true)}
                     className="btn-primary"
                   >
-                    Contact All Players
+                    Add First Manager
                   </button>
                 )}
               </div>
+            ) : (
               <div className="space-y-2">
                 {managers.map((manager) => (
                   <div key={manager.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <div>
-                      <div className="font-semibold text-gray-900">{manager.name || 'No name'}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-gray-900">{manager.name || 'No name'}</span>
+                        {manager.is_owner && (
+                          <span className="badge badge-info text-xs">Owner</span>
+                        )}
+                      </div>
                       <div className="text-sm text-gray-600">
                         {manager.email}
                         {manager.phone && <span className="ml-2">• {manager.phone}</span>}
                       </div>
                     </div>
-                    <a href={`mailto:${manager.email}`} className="btn-secondary text-sm">
-                      Email
-                    </a>
+                    <div className="flex gap-2">
+                      <a href={`mailto:${manager.email}`} className="btn-secondary text-sm">
+                        Email
+                      </a>
+                      {canManage && !manager.is_owner && (
+                        <button
+                          onClick={() => handleRemoveManager(manager)}
+                          className="btn-danger text-sm"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Upcoming Games Section */}
           <div className="card mb-6">
@@ -1203,6 +1346,14 @@ export default function LeagueDetails() {
                               </div>
                               {canManage && (
                                 <div className="flex gap-2">
+                                  {player.user_id && (
+                                    <button
+                                      onClick={() => handleToggleCaptain(player, team.id)}
+                                      className={player.is_captain === 1 ? "btn-warning text-xs py-1 px-3" : "btn-secondary text-xs py-1 px-3"}
+                                    >
+                                      {player.is_captain === 1 ? 'Remove Captain' : 'Make Captain'}
+                                    </button>
+                                  )}
                                   <button
                                     onClick={() => openTransferModal(player)}
                                     className="btn-secondary text-xs py-1 px-3"
@@ -1682,10 +1833,15 @@ export default function LeagueDetails() {
                               <span className="text-xs text-gray-500">
                                 {new Date(player.paid_date).toLocaleDateString()}
                               </span>
-                            ) : (
-                              <button className="text-xs text-ice-600 hover:text-ice-700 hover:underline">
+                            ) : canManage ? (
+                              <button
+                                onClick={() => handleMarkPaid(player)}
+                                className="text-xs text-ice-600 hover:text-ice-700 hover:underline"
+                              >
                                 Mark Paid
                               </button>
+                            ) : (
+                              <span className="text-xs text-gray-500">-</span>
                             )}
                           </td>
                         </tr>
