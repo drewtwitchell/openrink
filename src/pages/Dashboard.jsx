@@ -523,13 +523,90 @@ export default function Dashboard() {
                           </div>
                         </div>
                       </div>
-                      <button
-                        onClick={() => toggleTeamRoster(profile.team_id)}
-                        className="btn-secondary text-sm flex-shrink-0"
-                      >
-                        {expandedTeams[profile.team_id] ? 'Hide Roster' : 'View Roster'}
-                      </button>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={() => toggleTeamRoster(profile.team_id)}
+                          className="btn-secondary text-sm"
+                        >
+                          {expandedTeams[profile.team_id] ? 'Hide Roster' : 'View Roster'}
+                        </button>
+                        <button
+                          onClick={() => fetchUpcomingGames(profile.team_id)}
+                          className="btn-secondary text-sm"
+                        >
+                          {upcomingGames[profile.team_id] ? 'Refresh Games' : 'Show Games'}
+                        </button>
+                      </div>
                     </div>
+
+                    {/* Upcoming Games Display */}
+                    {upcomingGames[profile.team_id] && upcomingGames[profile.team_id].length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-ice-200">
+                        <h4 className="font-semibold text-gray-900 mb-3">Upcoming Games</h4>
+                        <div className="space-y-3">
+                          {upcomingGames[profile.team_id].map((game) => {
+                            const attendance = gameAttendance[game.id] || []
+                            const myAttendance = attendance.find(a => a.player_id === profile.id)
+                            const attendingCount = attendance.filter(a => a.status === 'attending').length
+                            const maybeCount = attendance.filter(a => a.status === 'maybe').length
+
+                            return (
+                              <div key={game.id} className="p-3 bg-gray-50 rounded border border-gray-200">
+                                <div className="flex justify-between items-start mb-2">
+                                  <div>
+                                    <div className="font-medium text-sm">
+                                      {game.home_team_name} vs {game.away_team_name}
+                                    </div>
+                                    <div className="text-xs text-gray-600">
+                                      {new Date(game.game_date).toLocaleDateString()} at {game.game_time}
+                                    </div>
+                                    {game.rink_name && (
+                                      <div className="text-xs text-gray-500">{game.rink_name}</div>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-gray-600">
+                                    <div>Attending: {attendingCount}</div>
+                                    {maybeCount > 0 && <div>Maybe: {maybeCount}</div>}
+                                  </div>
+                                </div>
+                                <div className="flex gap-2 mt-2">
+                                  <button
+                                    onClick={() => updateAttendance(game.id, profile.id, 'attending')}
+                                    className={`px-3 py-1 rounded text-xs font-medium ${
+                                      myAttendance?.status === 'attending'
+                                        ? 'bg-green-600 text-white'
+                                        : 'bg-gray-200 text-gray-700 hover:bg-green-100'
+                                    }`}
+                                  >
+                                    ✓ Yes
+                                  </button>
+                                  <button
+                                    onClick={() => updateAttendance(game.id, profile.id, 'maybe')}
+                                    className={`px-3 py-1 rounded text-xs font-medium ${
+                                      myAttendance?.status === 'maybe'
+                                        ? 'bg-yellow-600 text-white'
+                                        : 'bg-gray-200 text-gray-700 hover:bg-yellow-100'
+                                    }`}
+                                  >
+                                    ? Maybe
+                                  </button>
+                                  <button
+                                    onClick={() => updateAttendance(game.id, profile.id, 'not_attending')}
+                                    className={`px-3 py-1 rounded text-xs font-medium ${
+                                      myAttendance?.status === 'not_attending'
+                                        ? 'bg-red-600 text-white'
+                                        : 'bg-gray-200 text-gray-700 hover:bg-red-100'
+                                    }`}
+                                  >
+                                    ✗ No
+                                  </button>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Inline Roster Display */}
                     {expandedTeams[profile.team_id] && (
