@@ -21,6 +21,7 @@ function initDatabase() {
     db.run(`
       CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE,
         email TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         name TEXT,
@@ -450,6 +451,20 @@ function initDatabase() {
       }
     })
 
+    // Add username column to users if it doesn't exist (migration)
+    db.run(`ALTER TABLE users ADD COLUMN username TEXT UNIQUE`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding username column:', err)
+      } else {
+        // Update existing admin user to have username "admin"
+        db.run(`UPDATE users SET username = 'admin' WHERE email = 'admin@openrink.local' AND username IS NULL`, (updateErr) => {
+          if (updateErr) {
+            console.error('Error setting admin username:', updateErr)
+          }
+        })
+      }
+    })
+
     // Create default admin user if it doesn't exist
     db.get('SELECT id FROM users WHERE email = ?', ['admin@openrink.local'], async (err, row) => {
       if (err) {
@@ -461,13 +476,14 @@ function initDatabase() {
         try {
           const hashedPassword = await bcrypt.hash('admin123', 10)
           db.run(
-            'INSERT INTO users (email, password, name, role, password_reset_required) VALUES (?, ?, ?, ?, ?)',
-            ['admin@openrink.local', hashedPassword, 'admin', 'admin', 1],
+            'INSERT INTO users (username, email, password, name, role, password_reset_required) VALUES (?, ?, ?, ?, ?, ?)',
+            ['admin', 'admin@openrink.local', hashedPassword, 'Administrator', 'admin', 1],
             (insertErr) => {
               if (insertErr) {
                 console.error('Error creating default admin:', insertErr)
               } else {
                 console.log('✅ Default admin user created')
+                console.log('   Username: admin')
                 console.log('   Email: admin@openrink.local')
                 console.log('   Password: admin123')
                 console.log('   ⚠️  Password change required on first login!')
