@@ -485,11 +485,6 @@ export default function Home() {
             ? displayLeagues[0].league.description
             : 'View current standings and upcoming games'}
         </p>
-        {isMultipleLeagues && !leagueFilter && (
-          <p className="text-sm text-gray-500 mt-2">
-            Tip: Access individual leagues via subdomain (e.g., mhl.yourdomain.com)
-          </p>
-        )}
       </div>
 
       {displayLeagues.map(({ league, activeSeason, standings, upcomingGames, announcements, bracket, teams, teamRosters }) => {
