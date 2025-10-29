@@ -911,17 +911,16 @@ export default function LeagueDetails() {
               )}
             </div>
 
-              {/* Season quick info inline */}
-              {selectedSeasonId && (() => {
-                const season = leagueSeasons.find(s => s.id === selectedSeasonId)
-                return season && (
-                  <div className="text-xs text-gray-500">
-                    {season.start_date && <span>• {new Date(season.start_date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}</span>}
-                    {season.end_date && <span> - {new Date(season.end_date).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}</span>}
-                  </div>
-                )
-              })()}
-            </div>
+            {/* Season quick info inline */}
+            {selectedSeasonId && (() => {
+              const season = leagueSeasons.find(s => s.id === selectedSeasonId)
+              return season && (
+                <div className="text-xs text-gray-500 mt-2">
+                  {season.start_date && <span>• {new Date(season.start_date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}</span>}
+                  {season.end_date && <span> - {new Date(season.end_date).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}</span>}
+                </div>
+              )
+            })()}
           </div>
 
           {/* Right: League settings + actions */}
