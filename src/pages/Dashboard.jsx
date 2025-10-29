@@ -106,6 +106,10 @@ export default function Dashboard() {
   const [expandedLeagues, setExpandedLeagues] = useState({})
   const [teamRosters, setTeamRosters] = useState({})
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, league: null })
+  const [upcomingGames, setUpcomingGames] = useState({}) // Games by team_id
+  const [gameAttendance, setGameAttendance] = useState({}) // Attendance by game_id
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [selectedPaymentProfile, setSelectedPaymentProfile] = useState(null)
 
   useEffect(() => {
     const currentUser = auth.getUser()
@@ -335,6 +339,68 @@ export default function Dashboard() {
       } catch (error) {
         console.error('Error fetching roster:', error)
       }
+    }
+  }
+
+  const fetchUpcomingGames = async (teamId) => {
+    try {
+      const response = await fetch('http://localhost:3001/api/games', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+      const allGames = await response.json()
+
+      // Filter for upcoming games for this team (next 5 games)
+      const today = new Date().toISOString().split('T')[0]
+      const teamGames = allGames
+        .filter(g => (g.home_team_id === teamId || g.away_team_id === teamId) && g.game_date >= today)
+        .sort((a, b) => {
+          const dateA = new Date(`${a.game_date}T${a.game_time}`)
+          const dateB = new Date(`${b.game_date}T${b.game_time}`)
+          return dateA - dateB
+        })
+        .slice(0, 5)
+
+      setUpcomingGames(prev => ({ ...prev, [teamId]: teamGames }))
+
+      // Fetch attendance for these games
+      for (const game of teamGames) {
+        fetchGameAttendance(game.id)
+      }
+    } catch (error) {
+      console.error('Error fetching upcoming games:', error)
+    }
+  }
+
+  const fetchGameAttendance = async (gameId) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/games/${gameId}/attendance`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+      const attendance = await response.json()
+      setGameAttendance(prev => ({ ...prev, [gameId]: attendance }))
+    } catch (error) {
+      console.error('Error fetching attendance:', error)
+    }
+  }
+
+  const updateAttendance = async (gameId, playerId, status) => {
+    try {
+      await fetch(`http://localhost:3001/api/games/${gameId}/attendance`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ player_id: playerId, status })
+      })
+      // Refresh attendance for this game
+      fetchGameAttendance(gameId)
+    } catch (error) {
+      console.error('Error updating attendance:', error)
     }
   }
 
