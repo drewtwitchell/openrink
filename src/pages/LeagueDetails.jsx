@@ -532,30 +532,26 @@ export default function LeagueDetails() {
             >
               Managers
             </button>
-            {canManage && (
-              <>
-                <button
-                  onClick={() => setOverviewSubTab('announcements')}
-                  className={`py-3 px-5 font-semibold text-sm rounded-t transition-all ${
-                    overviewSubTab === 'announcements'
-                      ? 'bg-white text-ice-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
-                  }`}
-                >
-                  Announcements
-                </button>
-                <button
-                  onClick={() => setOverviewSubTab('payments')}
-                  className={`py-3 px-5 font-semibold text-sm rounded-t transition-all ${
-                    overviewSubTab === 'payments'
-                      ? 'bg-white text-ice-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
-                  }`}
-                >
-                  Payments
-                </button>
-              </>
-            )}
+            <button
+              onClick={() => setOverviewSubTab('announcements')}
+              className={`py-3 px-5 font-semibold text-sm rounded-t transition-all ${
+                overviewSubTab === 'announcements'
+                  ? 'bg-white text-ice-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+              }`}
+            >
+              Announcements
+            </button>
+            <button
+              onClick={() => setOverviewSubTab('payments')}
+              className={`py-3 px-5 font-semibold text-sm rounded-t transition-all ${
+                overviewSubTab === 'payments'
+                  ? 'bg-white text-ice-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+              }`}
+            >
+              Payments
+            </button>
           </nav>
         </div>
       )}
