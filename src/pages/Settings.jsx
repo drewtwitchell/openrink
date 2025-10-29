@@ -148,21 +148,23 @@ export default function Settings() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8">Profile Settings</h1>
+      <div className="page-header">
+        <h1 className="page-title">Profile Settings</h1>
+      </div>
+
+      {message && (
+        <div className={`alert ${message.includes('Error') ? 'alert-error' : 'alert-success'}`}>
+          {message}
+        </div>
+      )}
 
       <div className="card mb-6">
-        <h2 className="text-xl font-semibold mb-4">Account Information</h2>
+        <h2 className="section-header">Account Information</h2>
 
         <div className="mb-6">
           <div className="text-sm text-gray-600 mb-1">Your Role</div>
           {getRoleBadge(user?.role || 'player')}
         </div>
-
-        {message && (
-          <div className="mb-4 p-3 bg-blue-100 text-blue-700 rounded">
-            {message}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -250,11 +252,11 @@ export default function Settings() {
         </form>
       </div>
 
-      <div className="card">
-        <h2 className="text-xl font-semibold mb-4">Change Password</h2>
+      <div className="card mb-6">
+        <h2 className="section-header">Change Password</h2>
 
         {passwordMessage && (
-          <div className={`mb-4 p-3 rounded ${passwordMessage.includes('Error') || passwordMessage.includes('not match') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+          <div className={`alert ${passwordMessage.includes('Error') || passwordMessage.includes('not match') ? 'alert-error' : 'alert-success'}`}>
             {passwordMessage}
           </div>
         )}
@@ -306,9 +308,9 @@ export default function Settings() {
       </div>
 
       {user?.role === 'admin' && (
-        <div className="card">
-          <h2 className="text-xl font-semibold mb-4">Administration</h2>
-          <p className="text-sm text-gray-600 mb-4">
+        <div className="card mb-6">
+          <h2 className="section-header">Administration</h2>
+          <p className="text-gray-600 mb-4">
             As an admin, you have access to system-wide user management.
           </p>
           <button
@@ -321,7 +323,7 @@ export default function Settings() {
       )}
 
       <div className="card">
-        <h2 className="text-xl font-semibold mb-4">About Roles & Permissions</h2>
+        <h2 className="section-header">About Roles & Permissions</h2>
         <div className="space-y-4">
           <div>
             <h3 className="font-semibold text-gray-900 mb-2 text-sm">System Roles</h3>
