@@ -264,7 +264,9 @@ export default function LeagueDetails() {
     try {
       await players.transfer(playerToTransfer.id, selectedTeamId)
       closeTransferModal()
-      // Refresh both teams' rosters
+      // Refresh league data to update team captain labels and counts
+      await fetchLeagueData()
+      // Refresh both teams' rosters if they are expanded
       if (teamPlayers[playerToTransfer.team_id]) {
         await fetchTeamPlayers(playerToTransfer.team_id)
       }

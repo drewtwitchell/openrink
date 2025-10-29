@@ -297,6 +297,19 @@ router.patch('/:id/transfer', authenticateToken, (req, res) => {
             console.error('Error closing player history:', histErr)
           }
 
+          // Remove captain status from old team if this player was a captain
+          if (player.user_id) {
+            db.run(
+              'DELETE FROM team_captains WHERE user_id = ? AND team_id = ?',
+              [player.user_id, player.team_id],
+              (captainErr) => {
+                if (captainErr) {
+                  console.error('Error removing captain status:', captainErr)
+                }
+              }
+            )
+          }
+
           // Update player's team
           db.run(
             'UPDATE players SET team_id = ? WHERE id = ?',
