@@ -162,8 +162,25 @@ export default function Dashboard() {
 
           const activeSeason = leagueSeasons.find(s => s.is_active === 1 && s.archived === 0)
           if (activeSeason) {
-            const stats = await seasons.getPaymentStats(activeSeason.id)
-            statsData[league.id] = stats
+            try {
+              const stats = await seasons.getPaymentStats(activeSeason.id)
+              // Ensure we always have a stats object, even if API returns null
+              statsData[league.id] = stats || {
+                total_players: 0,
+                players_paid: 0,
+                players_unpaid: 0,
+                total_collected: 0
+              }
+            } catch (error) {
+              console.error(`Error fetching payment stats for league ${league.id}:`, error)
+              // Provide default stats on error
+              statsData[league.id] = {
+                total_players: 0,
+                players_paid: 0,
+                players_unpaid: 0,
+                total_collected: 0
+              }
+            }
           }
         }
 
@@ -184,9 +201,27 @@ export default function Dashboard() {
               activeSeason = await seasons.getActive(league.id)
               if (activeSeason) {
                 paymentStatsForLeague = await seasons.getPaymentStats(activeSeason.id)
+                // Ensure we always have a stats object
+                if (!paymentStatsForLeague) {
+                  paymentStatsForLeague = {
+                    total_players: 0,
+                    players_paid: 0,
+                    players_unpaid: 0,
+                    total_collected: 0
+                  }
+                }
               }
             } catch (error) {
-              // No active season
+              console.error(`Error fetching season/stats for league ${league.id}:`, error)
+              // If there was an active season but stats failed, provide defaults
+              if (activeSeason) {
+                paymentStatsForLeague = {
+                  total_players: 0,
+                  players_paid: 0,
+                  players_unpaid: 0,
+                  total_collected: 0
+                }
+              }
             }
 
             details[league.id] = {
