@@ -150,6 +150,13 @@ export default function LeagueDetails() {
     }
   }, [mainTab, overviewSubTab, id])
 
+  // Fetch payment data when payments tab is selected
+  useEffect(() => {
+    if (mainTab === 'overview' && overviewSubTab === 'payments' && activeSeason) {
+      fetchPaymentData(activeSeason.id)
+    }
+  }, [mainTab, overviewSubTab, activeSeason])
+
   const fetchAnnouncements = async () => {
     try {
       const data = await announcements.getAll(id)
@@ -272,6 +279,10 @@ export default function LeagueDetails() {
       }
       if (teamPlayers[selectedTeamId]) {
         await fetchTeamPlayers(selectedTeamId)
+      }
+      // Refresh payment data if active season exists
+      if (activeSeason) {
+        await fetchPaymentData(activeSeason.id)
       }
     } catch (error) {
       alert('Error transferring player: ' + error.message)
@@ -496,27 +507,6 @@ export default function LeagueDetails() {
         </div>
       </div>
 
-      {/* Active Season Banner */}
-      {activeSeason && (
-        <div className="card mb-6 bg-green-50 border-green-200">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-lg font-semibold text-green-900 mb-1">
-                Active Season: {activeSeason.name}
-              </h3>
-              <div className="flex gap-4 text-sm text-gray-700">
-                {activeSeason.season_dues && (
-                  <div>
-                    <span className="font-medium">Dues:</span> ${parseFloat(activeSeason.season_dues).toFixed(2)}
-                  </div>
-                )}
-              </div>
-            </div>
-            <span className="badge badge-success">Active</span>
-          </div>
-        </div>
-      )}
-
       {/* Main Tabs - Primary Navigation */}
       <div className="bg-gray-50 border-b-2 border-gray-300 mb-1">
         <nav className="flex space-x-2">
@@ -586,7 +576,17 @@ export default function LeagueDetails() {
           {/* Season Selector Card */}
           <div className="card mb-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">Select Season</h3>
+              <div>
+                <h3 className="text-xl font-semibold">Select Season</h3>
+                {activeSeason && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    Active Season: <span className="font-semibold text-ice-600">{activeSeason.name}</span>
+                    {activeSeason.season_dues && (
+                      <span className="ml-2">• Dues: ${parseFloat(activeSeason.season_dues).toFixed(2)}</span>
+                    )}
+                  </p>
+                )}
+              </div>
               {canManage && (
                 <button
                   onClick={() => {

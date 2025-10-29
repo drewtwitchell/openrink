@@ -196,15 +196,20 @@ router.get('/:id/payment-stats', (req, res) => {
 router.get('/:id/players-payments', (req, res) => {
   const query = `
     SELECT
-      p.*,
+      p.id,
+      p.name,
+      p.email,
+      p.jersey_number,
+      p.team_id,
       t.name as team_name,
       t.color as team_color,
+      t.id as team_id,
       pay.id as payment_id,
       pay.status as payment_status,
       pay.amount as payment_amount,
       pay.paid_date
-    FROM players p
-    INNER JOIN teams t ON p.team_id = t.id
+    FROM teams t
+    LEFT JOIN players p ON p.team_id = t.id
     LEFT JOIN payments pay ON p.id = pay.player_id AND pay.season_id = ?
     WHERE t.season_id = ?
     ORDER BY t.name, p.name
@@ -215,7 +220,9 @@ router.get('/:id/players-payments', (req, res) => {
       console.error('Error fetching players and payments:', err)
       return res.status(500).json({ error: 'Error fetching players and payments' })
     }
-    res.json(rows)
+    // Filter out teams with no players
+    const rowsWithPlayers = rows.filter(row => row.id != null)
+    res.json(rowsWithPlayers)
   })
 })
 
