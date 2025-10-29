@@ -110,6 +110,12 @@ export default function Dashboard() {
   const [gameAttendance, setGameAttendance] = useState({}) // Attendance by game_id
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [selectedPaymentProfile, setSelectedPaymentProfile] = useState(null)
+  const [paymentFormData, setPaymentFormData] = useState({
+    payment_method: '',
+    confirmation_number: '',
+    payment_notes: ''
+  })
+  const [paymentMessage, setPaymentMessage] = useState('')
 
   useEffect(() => {
     const currentUser = auth.getUser()
@@ -404,6 +410,75 @@ export default function Dashboard() {
     }
   }
 
+  const openPaymentModal = (profile, leagueId) => {
+    setSelectedPaymentProfile({ ...profile, leagueId })
+    setPaymentFormData({
+      payment_method: '',
+      confirmation_number: '',
+      payment_notes: ''
+    })
+    setPaymentMessage('')
+    setShowPaymentModal(true)
+  }
+
+  const handleSelfReportPayment = async (e) => {
+    e.preventDefault()
+    setPaymentMessage('')
+
+    if (!paymentFormData.payment_method) {
+      setPaymentMessage('Please select a payment method')
+      return
+    }
+
+    if (!selectedPaymentProfile) {
+      setPaymentMessage('No player profile selected')
+      return
+    }
+
+    try {
+      // Get active season for this league
+      const leagueId = selectedPaymentProfile.leagueId
+      const seasonsForLeague = await seasons.getByLeague(leagueId)
+      const activeSeason = seasonsForLeague.find(s => s.is_active === 1 && s.archived === 0)
+
+      if (!activeSeason) {
+        setPaymentMessage('No active season found for this league')
+        return
+      }
+
+      const response = await fetch(`http://localhost:3001/api/players/${selectedPaymentProfile.id}/self-report-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          season_id: activeSeason.id,
+          payment_method: paymentFormData.payment_method,
+          confirmation_number: paymentFormData.confirmation_number || null,
+          payment_notes: paymentFormData.payment_notes || null
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to report payment')
+      }
+
+      const result = await response.json()
+      setPaymentMessage('Payment reported successfully!')
+
+      // Refresh dashboard data to update payment status
+      setTimeout(() => {
+        setShowPaymentModal(false)
+        fetchDashboardData(user)
+      }, 1500)
+    } catch (error) {
+      console.error('Error reporting payment:', error)
+      setPaymentMessage('Error: ' + error.message)
+    }
+  }
+
   if (loading) {
     return <div>Loading dashboard...</div>
   }
@@ -516,9 +591,12 @@ export default function Dashboard() {
                                 ✓ Paid
                               </span>
                             ) : (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                                ✗ Unpaid
-                              </span>
+                              <button
+                                onClick={() => openPaymentModal(profile, league.id)}
+                                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 hover:bg-red-200 transition-colors cursor-pointer"
+                              >
+                                ✗ Unpaid - Click to Report Payment
+                              </button>
                             )}
                           </div>
                         </div>
@@ -1009,6 +1087,95 @@ export default function Dashboard() {
         cancelText="Cancel"
         variant="danger"
       />
+
+      {/* Payment Self-Report Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Report Payment</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Report that you've paid for {selectedPaymentProfile?.team_name}
+              </p>
+            </div>
+
+            {paymentMessage && (
+              <div className={`mb-4 p-3 rounded ${
+                paymentMessage.includes('Error') || paymentMessage.includes('select') || paymentMessage.includes('No ')
+                  ? 'bg-red-100 text-red-700 border border-red-400'
+                  : 'bg-green-100 text-green-700 border border-green-400'
+              }`}>
+                {paymentMessage}
+              </div>
+            )}
+
+            <form onSubmit={handleSelfReportPayment} className="space-y-4">
+              <div>
+                <label className="label">Payment Method *</label>
+                <select
+                  value={paymentFormData.payment_method}
+                  onChange={(e) => setPaymentFormData({ ...paymentFormData, payment_method: e.target.value })}
+                  className="input w-full"
+                  required
+                >
+                  <option value="">Select payment method...</option>
+                  <option value="venmo">Venmo</option>
+                  <option value="cash">Cash</option>
+                  <option value="check">Check</option>
+                  <option value="zelle">Zelle</option>
+                  <option value="paypal">PayPal</option>
+                  <option value="credit_card">Credit Card</option>
+                  <option value="debit_card">Debit Card</option>
+                  <option value="bank_transfer">Bank Transfer</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="label">Confirmation Number (Optional)</label>
+                <input
+                  type="text"
+                  value={paymentFormData.confirmation_number}
+                  onChange={(e) => setPaymentFormData({ ...paymentFormData, confirmation_number: e.target.value })}
+                  className="input w-full"
+                  placeholder="Transaction ID or confirmation number"
+                />
+              </div>
+
+              <div>
+                <label className="label">Notes (Optional)</label>
+                <textarea
+                  value={paymentFormData.payment_notes}
+                  onChange={(e) => setPaymentFormData({ ...paymentFormData, payment_notes: e.target.value })}
+                  className="input w-full"
+                  rows="3"
+                  placeholder="Additional notes about your payment..."
+                />
+              </div>
+
+              <div className="flex gap-2 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentModal(false)}
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary flex-1"
+                >
+                  Report Payment
+                </button>
+              </div>
+            </form>
+
+            <div className="mt-4 p-3 bg-blue-50 rounded text-xs text-gray-600">
+              <strong>Note:</strong> Your payment report will be timestamped and sent to league managers for verification.
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
