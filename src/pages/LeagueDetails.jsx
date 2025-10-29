@@ -852,327 +852,428 @@ export default function LeagueDetails() {
   return (
     <div>
       <div className="page-header mb-6">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="page-title">{league.name}</h1>
-            {league.archived === 1 && (
-              <span className="badge badge-warning">Archived</span>
-            )}
+        <div className="flex items-start justify-between gap-4">
+          {/* Left: League name + Season selector */}
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="page-title mb-0">{league.name}</h1>
+              {league.archived === 1 && <span className="badge badge-warning">Archived</span>}
+            </div>
+
+            {/* Season Context Selector - Dropdown style */}
+            <div className="flex items-center gap-2 mt-2">
+              <label className="text-sm font-semibold text-gray-600">Season:</label>
+              <select
+                value={selectedSeasonId || ''}
+                onChange={(e) => {
+                  const seasonId = e.target.value ? parseInt(e.target.value) : null
+                  setSelectedSeasonId(seasonId)
+                  if (seasonId && !seasonSubTab) {
+                    setMainTab('season')
+                    setSeasonSubTab('teams')
+                  }
+                }}
+                className="input py-1 px-3 text-sm max-w-xs"
+              >
+                <option value="">Select a season...</option>
+                {leagueSeasons.map((season) => (
+                  <option key={season.id} value={season.id}>
+                    {season.name}
+                    {season.is_active === 1 ? ' ★ Active' : ''}
+                    {season.archived === 1 ? ' (Archived)' : ''}
+                  </option>
+                ))}
+              </select>
+
+              {/* Season quick info inline */}
+              {selectedSeasonId && (() => {
+                const season = leagueSeasons.find(s => s.id === selectedSeasonId)
+                return season && (
+                  <div className="text-xs text-gray-500">
+                    {season.start_date && <span>• {new Date(season.start_date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}</span>}
+                    {season.end_date && <span> - {new Date(season.end_date).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}</span>}
+                  </div>
+                )
+              })()}
+            </div>
           </div>
-          {league.description && <p className="page-subtitle">{league.description}</p>}
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={handleArchive}
-            className={league.archived === 1 ? "btn-primary" : "btn-secondary"}
-          >
-            {league.archived === 1 ? 'Unarchive League' : 'Archive League'}
-          </button>
-          <button
-            onClick={handleDeleteLeague}
-            className="btn-danger"
-          >
-            Delete League
-          </button>
+
+          {/* Right: League settings + actions */}
+          <div className="flex items-center gap-2">
+            {canManage && (
+              <>
+                <button
+                  onClick={() => {
+                    setMainTab('overview')
+                    setOverviewSubTab('announcements')
+                  }}
+                  className="btn-secondary btn-sm flex items-center gap-1"
+                  title="Announcements"
+                >
+                  📢 Announcements
+                </button>
+                <button
+                  onClick={() => {
+                    setMainTab('overview')
+                    setOverviewSubTab('managers')
+                  }}
+                  className="btn-secondary btn-sm flex items-center gap-1"
+                  title="League Managers"
+                >
+                  ⚙️ Managers
+                </button>
+                <button
+                  onClick={() => {
+                    setMainTab('season')
+                    setSeasonSubTab(null)
+                    setShowSeasonForm(true)
+                  }}
+                  className="btn-secondary btn-sm"
+                  title="Manage Seasons"
+                >
+                  + Season
+                </button>
+              </>
+            )}
+            <button onClick={handleArchive} className={league.archived === 1 ? "btn-primary btn-sm" : "btn-secondary btn-sm"}>
+              {league.archived === 1 ? 'Unarchive' : 'Archive'}
+            </button>
+            <button onClick={handleDeleteLeague} className="btn-danger btn-sm">
+              Delete
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Main Tabs - Primary Navigation */}
-      <div className="bg-gray-50 border-b-2 border-gray-300 mb-1">
-        <nav className="flex space-x-2 px-4">
+      {/* Main Navigation Tabs */}
+      <div className="border-b-2 border-gray-200 mb-6">
+        <nav className="flex gap-1">
           <button
-            onClick={() => setMainTab('overview')}
-            className={`py-4 px-6 font-bold text-lg transition-all ${
-              mainTab === 'overview'
-                ? 'bg-white text-ice-700 border-b-4 border-ice-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            onClick={() => {
+              if (selectedSeasonId) {
+                setMainTab('season')
+                setSeasonSubTab('teams')
+              }
+            }}
+            disabled={!selectedSeasonId}
+            className={`px-6 py-3 font-semibold transition-colors relative ${
+              mainTab === 'season' && seasonSubTab === 'teams'
+                ? 'text-ice-700 bg-white'
+                : selectedSeasonId
+                ? 'text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100'
+                : 'text-gray-400 bg-gray-50 cursor-not-allowed opacity-60'
             }`}
           >
-            General
+            Teams
+            {mainTab === 'season' && seasonSubTab === 'teams' && (
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-ice-600"></div>
+            )}
           </button>
+
           <button
-            onClick={() => setMainTab('season')}
-            className={`py-4 px-6 font-bold text-lg transition-all ${
-              mainTab === 'season'
-                ? 'bg-white text-ice-700 border-b-4 border-ice-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            onClick={() => {
+              if (selectedSeasonId) {
+                setMainTab('season')
+                setSeasonSubTab('schedule')
+              }
+            }}
+            disabled={!selectedSeasonId}
+            className={`px-6 py-3 font-semibold transition-colors relative ${
+              mainTab === 'season' && seasonSubTab === 'schedule'
+                ? 'text-ice-700 bg-white'
+                : selectedSeasonId
+                ? 'text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100'
+                : 'text-gray-400 bg-gray-50 cursor-not-allowed opacity-60'
             }`}
           >
-            Season
+            Schedule
+            {mainTab === 'season' && seasonSubTab === 'schedule' && (
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-ice-600"></div>
+            )}
+          </button>
+
+          <button
+            onClick={() => {
+              if (selectedSeasonId) {
+                setMainTab('season')
+                setSeasonSubTab('standings')
+              }
+            }}
+            disabled={!selectedSeasonId}
+            className={`px-6 py-3 font-semibold transition-colors relative ${
+              mainTab === 'season' && seasonSubTab === 'standings'
+                ? 'text-ice-700 bg-white'
+                : selectedSeasonId
+                ? 'text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100'
+                : 'text-gray-400 bg-gray-50 cursor-not-allowed opacity-60'
+            }`}
+          >
+            Standings
+            {mainTab === 'season' && seasonSubTab === 'standings' && (
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-ice-600"></div>
+            )}
+          </button>
+
+          {canManage && (
+            <button
+              onClick={() => {
+                if (selectedSeasonId) {
+                  setMainTab('season')
+                  setSeasonSubTab('playoffs')
+                }
+              }}
+              disabled={!selectedSeasonId}
+              className={`px-6 py-3 font-semibold transition-colors relative ${
+                mainTab === 'season' && seasonSubTab === 'playoffs'
+                  ? 'text-ice-700 bg-white'
+                  : selectedSeasonId
+                  ? 'text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100'
+                  : 'text-gray-400 bg-gray-50 cursor-not-allowed opacity-60'
+              }`}
+            >
+              Playoffs
+              {mainTab === 'season' && seasonSubTab === 'playoffs' && (
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-ice-600"></div>
+              )}
+            </button>
+          )}
+
+          <button
+            onClick={() => {
+              if (selectedSeasonId) {
+                setMainTab('overview')
+                setOverviewSubTab('payments')
+              }
+            }}
+            disabled={!selectedSeasonId}
+            className={`px-6 py-3 font-semibold transition-colors relative ${
+              mainTab === 'overview' && overviewSubTab === 'payments'
+                ? 'text-ice-700 bg-white'
+                : selectedSeasonId
+                ? 'text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100'
+                : 'text-gray-400 bg-gray-50 cursor-not-allowed opacity-60'
+            }`}
+          >
+            Payments
+            {mainTab === 'overview' && overviewSubTab === 'payments' && (
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-ice-600"></div>
+            )}
           </button>
         </nav>
       </div>
 
-      {/* Sub Tabs - Secondary Navigation */}
-      {mainTab === 'overview' && (
-        <div className="bg-gray-100 border-b border-gray-300 mb-6">
-          <nav className="flex space-x-1 px-4">
+      {/* No season selected state */}
+      {!selectedSeasonId && mainTab === 'season' && (
+        <div className="card text-center py-12">
+          <h3 className="text-xl font-semibold text-gray-700 mb-2">Select a Season</h3>
+          <p className="text-gray-500 mb-4">Choose a season from the dropdown above to view teams, schedule, and standings</p>
+          {canManage && leagueSeasons.length === 0 && (
             <button
-              onClick={() => setOverviewSubTab('managers')}
-              className={`py-3 px-5 font-semibold text-sm rounded-t transition-all ${
-                overviewSubTab === 'managers'
-                  ? 'bg-white text-ice-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
-              }`}
+              onClick={() => {
+                setShowSeasonForm(true)
+                setSeasonSubTab(null)
+              }}
+              className="btn-primary"
             >
-              Managers
+              Create Your First Season
             </button>
-            <button
-              onClick={() => setOverviewSubTab('announcements')}
-              className={`py-3 px-5 font-semibold text-sm rounded-t transition-all ${
-                overviewSubTab === 'announcements'
-                  ? 'bg-white text-ice-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
-              }`}
-            >
-              Announcements
-            </button>
-            <button
-              onClick={() => setOverviewSubTab('payments')}
-              className={`py-3 px-5 font-semibold text-sm rounded-t transition-all ${
-                overviewSubTab === 'payments'
-                  ? 'bg-white text-ice-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
-              }`}
-            >
-              Payments
-            </button>
-          </nav>
+          )}
         </div>
       )}
 
-      {mainTab === 'season' && (
-        <>
-          {/* Season Selector Card */}
-          <div className="card mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h3 className="section-header">Select Season</h3>
-                {activeSeason && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    Active Season: <span className="font-semibold text-ice-600">{activeSeason.name}</span>
-                    {activeSeason.season_dues && (
-                      <span className="ml-2">• Dues: ${parseFloat(activeSeason.season_dues).toFixed(2)}</span>
-                    )}
-                  </p>
-                )}
-              </div>
-              {canManage && (
-                <button
-                  onClick={() => {
-                    setShowSeasonForm(!showSeasonForm)
-                    setEditingSeasonId(null)
-                    setSeasonFormData({
-                      name: '',
-                      description: '',
-                      season_dues: '',
-                      venmo_link: '',
-                      start_date: '',
-                      end_date: '',
-                      is_active: false,
-                    })
-                  }}
-                  className="btn-primary"
-                >
-                  {showSeasonForm ? 'Cancel' : '+ Add Season'}
-                </button>
+      {/* Season Management - shown when mainTab='season' and seasonSubTab=null */}
+      {mainTab === 'season' && seasonSubTab === null && (
+        <div className="card">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h3 className="section-header">Manage Seasons</h3>
+              {activeSeason && (
+                <p className="text-sm text-gray-600 mt-1">
+                  Active Season: <span className="font-semibold text-ice-600">{activeSeason.name}</span>
+                  {activeSeason.season_dues && (
+                    <span className="ml-2">• Dues: ${parseFloat(activeSeason.season_dues).toFixed(2)}</span>
+                  )}
+                </p>
               )}
             </div>
-
-            {showSeasonForm && (
-              <form onSubmit={handleSeasonSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <h3 className="font-semibold mb-3">{editingSeasonId ? 'Edit Season' : 'Create New Season'}</h3>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="label">Season Name *</label>
-                    <input
-                      type="text"
-                      value={seasonFormData.name}
-                      onChange={(e) => setSeasonFormData({ ...seasonFormData, name: e.target.value })}
-                      className="input"
-                      placeholder="e.g., Winter 2024"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="label">Season Dues (per player)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={seasonFormData.season_dues}
-                      onChange={(e) => setSeasonFormData({ ...seasonFormData, season_dues: e.target.value })}
-                      className="input"
-                      placeholder="150.00"
-                    />
-                  </div>
-                  <div>
-                    <label className="label">Start Date</label>
-                    <input
-                      type="date"
-                      value={seasonFormData.start_date}
-                      onChange={(e) => setSeasonFormData({ ...seasonFormData, start_date: e.target.value })}
-                      className="input"
-                    />
-                  </div>
-                  <div>
-                    <label className="label">End Date</label>
-                    <input
-                      type="date"
-                      value={seasonFormData.end_date}
-                      onChange={(e) => setSeasonFormData({ ...seasonFormData, end_date: e.target.value })}
-                      className="input"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="label">Description</label>
-                    <textarea
-                      value={seasonFormData.description}
-                      onChange={(e) => setSeasonFormData({ ...seasonFormData, description: e.target.value })}
-                      className="input"
-                      rows="2"
-                      placeholder="Season details..."
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="label">Venmo Link for Payment</label>
-                    <input
-                      type="url"
-                      value={seasonFormData.venmo_link}
-                      onChange={(e) => setSeasonFormData({ ...seasonFormData, venmo_link: e.target.value })}
-                      className="input"
-                      placeholder="https://venmo.com/u/username"
-                    />
-                  </div>
-                  <div className="md:col-span-2 flex items-center">
-                    <input
-                      type="checkbox"
-                      id="is_active"
-                      checked={seasonFormData.is_active}
-                      onChange={(e) => setSeasonFormData({ ...seasonFormData, is_active: e.target.checked })}
-                      className="mr-2"
-                    />
-                    <label htmlFor="is_active" className="text-sm">
-                      Set as active season (will deactivate other seasons)
-                    </label>
-                  </div>
-                </div>
-                <button type="submit" className="btn-primary mt-4">
-                  {editingSeasonId ? 'Update Season' : 'Create Season'}
-                </button>
-              </form>
-            )}
-
-            {leagueSeasons.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No seasons yet. Create one to get started.</p>
-            ) : (
-              <div className="grid gap-2">
-                {leagueSeasons.filter(season => season.id !== editingSeasonId).map((season) => (
-                  <div
-                    key={season.id}
-                    onClick={() => setSelectedSeasonId(season.id)}
-                    className={`p-4 rounded-lg cursor-pointer transition-all ${
-                      selectedSeasonId === season.id
-                        ? 'bg-ice-100 border-2 border-ice-600'
-                        : 'bg-gray-50 border-2 border-transparent hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="font-semibold text-lg">{season.name}</div>
-                          {season.is_active === 1 && (
-                            <span className="badge badge-success">Active</span>
-                          )}
-                          {season.archived === 1 && (
-                            <span className="badge badge-neutral">Archived</span>
-                          )}
-                        </div>
-                        {season.description && (
-                          <div className="text-sm text-gray-600 mb-2">{season.description}</div>
-                        )}
-                        <div className="flex gap-4 text-xs text-gray-600">
-                          {season.start_date && <span>Start: {new Date(season.start_date).toLocaleDateString()}</span>}
-                          {season.end_date && <span>End: {new Date(season.end_date).toLocaleDateString()}</span>}
-                          {season.season_dues && <span>Dues: ${parseFloat(season.season_dues).toFixed(2)}</span>}
-                        </div>
-                      </div>
-                      {canManage && (
-                        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                          {season.is_active !== 1 && season.archived !== 1 && (
-                            <button
-                              onClick={() => handleSetActiveSeason(season.id)}
-                              className="btn-secondary text-xs"
-                            >
-                              Set Active
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleEditSeason(season)}
-                            className="btn-secondary text-xs"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleArchiveSeason(season.id, season.archived !== 1)}
-                            className={`btn-secondary text-xs ${season.archived === 1 ? '' : 'text-amber-600'}`}
-                          >
-                            {season.archived === 1 ? 'Unarchive' : 'Archive'}
-                          </button>
-                          <button
-                            onClick={() => handleDeleteSeason(season.id)}
-                            className="btn-secondary text-xs text-red-600"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+            {canManage && (
+              <button
+                onClick={() => {
+                  setShowSeasonForm(!showSeasonForm)
+                  setEditingSeasonId(null)
+                  setSeasonFormData({
+                    name: '',
+                    description: '',
+                    season_dues: '',
+                    venmo_link: '',
+                    start_date: '',
+                    end_date: '',
+                    is_active: false,
+                  })
+                }}
+                className="btn-primary"
+              >
+                {showSeasonForm ? 'Cancel' : '+ Add Season'}
+              </button>
             )}
           </div>
 
-          {/* Season Context Tabs - Only show if a season is selected */}
-          {selectedSeasonId && (
-            <div className="bg-gray-100 border-b border-gray-300 mb-6">
-              <nav className="flex space-x-1 px-4">
-                <button
-                  onClick={() => setSeasonSubTab('teams')}
-                  className={`py-3 px-5 font-semibold text-sm rounded-t transition-all ${
-                    seasonSubTab === 'teams'
-                      ? 'bg-white text-ice-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+          {showSeasonForm && (
+            <form onSubmit={handleSeasonSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <h3 className="font-semibold mb-3">{editingSeasonId ? 'Edit Season' : 'Create New Season'}</h3>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Season Name *</label>
+                  <input
+                    type="text"
+                    value={seasonFormData.name}
+                    onChange={(e) => setSeasonFormData({ ...seasonFormData, name: e.target.value })}
+                    className="input"
+                    placeholder="e.g., Winter 2024"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="label">Season Dues (per player)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={seasonFormData.season_dues}
+                    onChange={(e) => setSeasonFormData({ ...seasonFormData, season_dues: e.target.value })}
+                    className="input"
+                    placeholder="150.00"
+                  />
+                </div>
+                <div>
+                  <label className="label">Start Date</label>
+                  <input
+                    type="date"
+                    value={seasonFormData.start_date}
+                    onChange={(e) => setSeasonFormData({ ...seasonFormData, start_date: e.target.value })}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="label">End Date</label>
+                  <input
+                    type="date"
+                    value={seasonFormData.end_date}
+                    onChange={(e) => setSeasonFormData({ ...seasonFormData, end_date: e.target.value })}
+                    className="input"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="label">Description</label>
+                  <textarea
+                    value={seasonFormData.description}
+                    onChange={(e) => setSeasonFormData({ ...seasonFormData, description: e.target.value })}
+                    className="input"
+                    rows="2"
+                    placeholder="Season details..."
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="label">Venmo Link for Payment</label>
+                  <input
+                    type="url"
+                    value={seasonFormData.venmo_link}
+                    onChange={(e) => setSeasonFormData({ ...seasonFormData, venmo_link: e.target.value })}
+                    className="input"
+                    placeholder="https://venmo.com/u/username"
+                  />
+                </div>
+                <div className="md:col-span-2 flex items-center">
+                  <input
+                    type="checkbox"
+                    id="is_active"
+                    checked={seasonFormData.is_active}
+                    onChange={(e) => setSeasonFormData({ ...seasonFormData, is_active: e.target.checked })}
+                    className="mr-2"
+                  />
+                  <label htmlFor="is_active" className="text-sm">
+                    Set as active season (will deactivate other seasons)
+                  </label>
+                </div>
+              </div>
+              <button type="submit" className="btn-primary mt-4">
+                {editingSeasonId ? 'Update Season' : 'Create Season'}
+              </button>
+            </form>
+          )}
+
+          {leagueSeasons.length === 0 ? (
+            <p className="text-gray-500 text-center py-4">No seasons yet. Create one to get started.</p>
+          ) : (
+            <div className="grid gap-2">
+              {leagueSeasons.filter(season => season.id !== editingSeasonId).map((season) => (
+                <div
+                  key={season.id}
+                  onClick={() => {
+                    setSelectedSeasonId(season.id)
+                    setSeasonSubTab('teams')
+                  }}
+                  className={`p-4 rounded-lg cursor-pointer transition-all ${
+                    selectedSeasonId === season.id
+                      ? 'bg-ice-100 border-2 border-ice-600'
+                      : 'bg-gray-50 border-2 border-transparent hover:border-gray-300'
                   }`}
                 >
-                  Teams
-                </button>
-                <button
-                  onClick={() => setSeasonSubTab('schedule')}
-                  className={`py-3 px-5 font-semibold text-sm rounded-t transition-all ${
-                    seasonSubTab === 'schedule'
-                      ? 'bg-white text-ice-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
-                  }`}
-                >
-                  Schedule
-                </button>
-                {canManage && (
-                  <button
-                    onClick={() => setSeasonSubTab('playoffs')}
-                    className={`py-3 px-5 font-semibold text-sm rounded-t transition-all ${
-                      seasonSubTab === 'playoffs'
-                        ? 'bg-white text-ice-600 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
-                    }`}
-                  >
-                    Playoffs
-                  </button>
-                )}
-              </nav>
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="font-semibold text-lg">{season.name}</div>
+                        {season.is_active === 1 && (
+                          <span className="badge badge-success">Active</span>
+                        )}
+                        {season.archived === 1 && (
+                          <span className="badge badge-neutral">Archived</span>
+                        )}
+                      </div>
+                      {season.description && (
+                        <div className="text-sm text-gray-600 mb-2">{season.description}</div>
+                      )}
+                      <div className="flex gap-4 text-xs text-gray-600">
+                        {season.start_date && <span>Start: {new Date(season.start_date).toLocaleDateString()}</span>}
+                        {season.end_date && <span>End: {new Date(season.end_date).toLocaleDateString()}</span>}
+                        {season.season_dues && <span>Dues: ${parseFloat(season.season_dues).toFixed(2)}</span>}
+                      </div>
+                    </div>
+                    {canManage && (
+                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                        {season.is_active !== 1 && season.archived !== 1 && (
+                          <button
+                            onClick={() => handleSetActiveSeason(season.id)}
+                            className="btn-secondary text-xs"
+                          >
+                            Set Active
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleEditSeason(season)}
+                          className="btn-secondary text-xs"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleArchiveSeason(season.id, season.archived !== 1)}
+                          className={`btn-secondary text-xs ${season.archived === 1 ? '' : 'text-amber-600'}`}
+                        >
+                          {season.archived === 1 ? 'Unarchive' : 'Archive'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteSeason(season.id)}
+                          className="btn-secondary text-xs text-red-600"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
-        </>
+        </div>
       )}
 
       {/* Content */}
@@ -1972,6 +2073,120 @@ export default function LeagueDetails() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {mainTab === 'season' && seasonSubTab === 'standings' && (
+        <div>
+          <div className="card">
+            <h3 className="section-header mb-4">Standings</h3>
+            {(() => {
+              const completedGames = games.filter(g => g.home_score != null && g.away_score != null)
+
+              if (completedGames.length === 0) {
+                return (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 mb-4">Standings will appear once games are completed</p>
+                    <button onClick={() => { setMainTab('season'); setSeasonSubTab('schedule'); }} className="btn-secondary">
+                      View Schedule
+                    </button>
+                  </div>
+                )
+              }
+
+              const teamStats = {}
+              teams.forEach(team => {
+                teamStats[team.id] = {
+                  team,
+                  wins: 0,
+                  losses: 0,
+                  ties: 0,
+                  gf: 0,
+                  ga: 0,
+                  points: 0,
+                }
+              })
+
+              completedGames.forEach((game) => {
+                const homeTeam = teamStats[game.home_team_id]
+                const awayTeam = teamStats[game.away_team_id]
+
+                if (!homeTeam || !awayTeam) return
+
+                homeTeam.gf += game.home_score
+                homeTeam.ga += game.away_score
+                awayTeam.gf += game.away_score
+                awayTeam.ga += game.home_score
+
+                if (game.home_score > game.away_score) {
+                  homeTeam.wins++
+                  homeTeam.points += 2
+                  awayTeam.losses++
+                } else if (game.away_score > game.home_score) {
+                  awayTeam.wins++
+                  awayTeam.points += 2
+                  homeTeam.losses++
+                } else {
+                  homeTeam.ties++
+                  awayTeam.ties++
+                  homeTeam.points += 1
+                  awayTeam.points += 1
+                }
+              })
+
+              const sortedStandings = Object.values(teamStats)
+                .sort((a, b) => {
+                  if (b.points !== a.points) return b.points - a.points
+                  return (b.gf - b.ga) - (a.gf - a.ga)
+                })
+
+              return (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 px-2">#</th>
+                        <th className="text-left py-2 px-2">Team</th>
+                        <th className="text-center py-2 px-2">W</th>
+                        <th className="text-center py-2 px-2">L</th>
+                        <th className="text-center py-2 px-2">T</th>
+                        <th className="text-center py-2 px-2">GF</th>
+                        <th className="text-center py-2 px-2">GA</th>
+                        <th className="text-center py-2 px-2">DIFF</th>
+                        <th className="text-center py-2 px-2 font-bold">PTS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedStandings.map((standing, index) => (
+                        <tr key={standing.team.id} className="border-b hover:bg-gray-50">
+                          <td className="py-2 px-2 font-semibold">{index + 1}</td>
+                          <td className="py-2 px-2">
+                            <div className="flex items-center space-x-2">
+                              <div
+                                className="w-4 h-4 rounded-full"
+                                style={{ backgroundColor: standing.team.color }}
+                              />
+                              <span className="font-medium">{standing.team.name}</span>
+                            </div>
+                          </td>
+                          <td className="text-center py-2 px-2">{standing.wins}</td>
+                          <td className="text-center py-2 px-2">{standing.losses}</td>
+                          <td className="text-center py-2 px-2">{standing.ties}</td>
+                          <td className="text-center py-2 px-2">{standing.gf}</td>
+                          <td className="text-center py-2 px-2">{standing.ga}</td>
+                          <td className="text-center py-2 px-2">
+                            {standing.gf - standing.ga > 0 ? '+' : ''}
+                            {standing.gf - standing.ga}
+                          </td>
+                          <td className="text-center py-2 px-2 font-bold">{standing.points}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )
+            })()}
+          </div>
         </div>
       )}
 
