@@ -904,7 +904,12 @@ export default function Home() {
                               <span className="text-gray-500 font-mono w-6">#{player.jersey_number}</span>
                             )}
                             <span className="flex-1">{player.name}</span>
-                            {player.position === 'captain' && (
+                            {(player.position || player.sub_position) && (
+                              <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-700 rounded font-medium capitalize">
+                                {player.position === 'goalie' ? 'G' : player.sub_position ? (player.sub_position === 'forward' ? 'F' : 'D') : 'P'}
+                              </span>
+                            )}
+                            {player.is_captain === 1 && (
                               <span className="text-xs px-2 py-0.5 bg-ice-100 text-ice-700 rounded font-medium">
                                 C
                               </span>

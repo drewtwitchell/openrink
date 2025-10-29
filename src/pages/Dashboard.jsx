@@ -731,7 +731,11 @@ export default function Dashboard() {
                                         )}
                                       </div>
                                     </td>
-                                    <td className="py-2 px-2 capitalize">{player.position || 'player'}</td>
+                                    <td className="py-2 px-2 capitalize">
+                                      {player.position === 'goalie' ? 'Goalie' :
+                                       player.sub_position ? player.sub_position :
+                                       player.position || 'player'}
+                                    </td>
                                     <td className="py-2 px-2">
                                       {player.email ? (
                                         <a href={`mailto:${player.email}`} className="text-ice-600 hover:underline">
