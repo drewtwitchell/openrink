@@ -66,7 +66,7 @@ export default function LeagueDetails() {
   // User can manage if they're an admin OR if they're in the league_managers table for this league
   const canManage = useMemo(() => {
     return currentUser?.role === 'admin' ||
-      managers.some(m => m.user_id === currentUser.id)
+      managers.some(m => m.id === currentUser.id)
   }, [currentUser, managers])
 
   useEffect(() => {
