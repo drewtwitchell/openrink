@@ -377,10 +377,18 @@ export default function Dashboard() {
                         )}
                       </div>
                       <button
-                        onClick={() => navigate(`/leagues/${league.id}`)}
+                        onClick={() => {
+                          // Navigate to league page filtered to first team in this league
+                          const firstTeam = leagueProfiles[0]
+                          if (firstTeam) {
+                            navigate(`/leagues/${league.id}?team=${firstTeam.team_id}`)
+                          } else {
+                            navigate(`/leagues/${league.id}`)
+                          }
+                        }}
                         className="btn-primary text-sm whitespace-nowrap"
                       >
-                        View League
+                        View Schedule & Standings
                       </button>
                     </div>
 
