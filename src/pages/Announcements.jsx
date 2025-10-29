@@ -95,7 +95,7 @@ export default function Announcements() {
   const canManage = currentUser?.role === 'admin' || currentUser?.role === 'league_manager'
 
   if (loading) {
-    return <div>Loading...</div>
+    return <div className="loading">Loading...</div>
   }
 
   if (!canManage) {
@@ -141,7 +141,7 @@ export default function Announcements() {
 
       {showForm && (
         <div className="card mb-8">
-          <h2 className="text-xl font-semibold mb-4">
+          <h2 className="section-header mb-4">
             {editingId ? 'Edit Announcement' : 'Create New Announcement'}
           </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -229,19 +229,19 @@ export default function Announcements() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleToggleActive(announcement)}
-                    className="btn-secondary text-xs py-1 px-3"
+                    className="btn-secondary btn-sm"
                   >
                     {announcement.is_active === 1 ? 'Deactivate' : 'Activate'}
                   </button>
                   <button
                     onClick={() => handleEdit(announcement)}
-                    className="btn-secondary text-xs py-1 px-3"
+                    className="btn-secondary btn-sm"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => handleDelete(announcement.id, announcement.title)}
-                    className="btn-danger text-xs py-1 px-3"
+                    className="btn-danger btn-sm"
                   >
                     Delete
                   </button>

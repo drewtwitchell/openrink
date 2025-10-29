@@ -232,7 +232,7 @@ export default function TeamRoster() {
   }
 
   if (loading) {
-    return <div>Loading roster...</div>
+    return <div className="loading">Loading roster...</div>
   }
 
   if (!team) {
@@ -267,7 +267,7 @@ export default function TeamRoster() {
               style={{ backgroundColor: team.color }}
             />
             <div>
-              <h1 className="text-3xl font-bold mb-1">{team.name}</h1>
+              <h1 className="page-title mb-1">{team.name}</h1>
               <p className="text-gray-600">Team Roster</p>
             </div>
           </div>
@@ -301,13 +301,13 @@ export default function TeamRoster() {
       </div>
 
       {uploadMessage && (
-        <div className={`mb-6 p-4 rounded ${uploadMessage.includes('Error') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+        <div className={`alert ${uploadMessage.includes('Error') ? 'alert-error' : 'alert-success'}`}>
           {uploadMessage}
         </div>
       )}
 
       {uploading && (
-        <div className="mb-6 p-4 bg-blue-100 text-blue-700 rounded">
+        <div className="alert alert-info">
           Uploading and processing CSV... This may take a moment.
         </div>
       )}
@@ -343,7 +343,7 @@ export default function TeamRoster() {
 
       {showForm && (
         <div className="card mb-8">
-          <h2 className="text-2xl font-bold mb-4">Add Player to Roster</h2>
+          <h2 className="section-header mb-4">Add Player to Roster</h2>
           {selectedUser && (
             <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded flex items-center justify-between">
               <div>
@@ -494,7 +494,7 @@ export default function TeamRoster() {
       ) : (
         <div className="card">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold">Roster ({roster.length} players)</h2>
+            <h2 className="section-header">Roster ({roster.length} players)</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -525,10 +525,10 @@ export default function TeamRoster() {
                       </div>
                     </td>
                     <td className="py-3 px-4 text-sm">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      <span className={`badge ${
                         (player.position || player.user_position) === 'goalie'
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-blue-100 text-blue-800'
+                          ? 'badge-warning'
+                          : 'badge-info'
                       }`}>
                         {(player.position || player.user_position || 'player').charAt(0).toUpperCase() + (player.position || player.user_position || 'player').slice(1)}
                       </span>
@@ -543,13 +543,13 @@ export default function TeamRoster() {
                       <div className="flex gap-2 justify-center">
                         <button
                           onClick={() => openTransferModal(player)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white text-xs py-1 px-3 rounded"
+                          className="bg-blue-600 hover:bg-blue-700 text-white btn-sm rounded"
                         >
                           Transfer
                         </button>
                         <button
                           onClick={() => handleDelete(player.id, player.name)}
-                          className="btn-danger text-xs py-1 px-3"
+                          className="btn-danger btn-sm"
                         >
                           Delete
                         </button>
@@ -579,7 +579,7 @@ export default function TeamRoster() {
       {showTransferModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-2xl font-bold mb-4">Transfer Player</h3>
+            <h3 className="section-header mb-4">Transfer Player</h3>
             <p className="text-gray-600 mb-4">
               Transfer <strong>{playerToTransfer?.name}</strong> to another team
             </p>

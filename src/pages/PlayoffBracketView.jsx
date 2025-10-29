@@ -115,7 +115,7 @@ export default function PlayoffBracketView() {
   const numRounds = Object.keys(matchesByRound).length
 
   if (loading) {
-    return <div>Loading...</div>
+    return <div className="loading">Loading...</div>
   }
 
   if (!bracket) {
@@ -270,7 +270,7 @@ export default function PlayoffBracketView() {
           />
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-              <h2 className="text-xl font-semibold mb-4">Update Match</h2>
+              <h2 className="section-header mb-4">Update Match</h2>
               <form onSubmit={handleSubmitMatch} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>

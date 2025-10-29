@@ -115,15 +115,15 @@ export default function Login({ onLogin }) {
   return (
     <div className="max-w-md mx-auto">
       <div className="card">
-        <h2 className="text-2xl font-bold text-center mb-6">
+        <h2 className="section-header text-center mb-6">
           {isSignUp ? 'Sign Up' : 'Sign In'}
         </h2>
 
         {message && (
-          <div className={`mb-4 p-3 rounded ${
+          <div className={`alert ${
             message.includes('success')
-              ? 'bg-green-100 text-green-700'
-              : 'bg-red-100 text-red-700'
+              ? 'alert-success'
+              : 'alert-error'
           }`}>
             {message}
           </div>

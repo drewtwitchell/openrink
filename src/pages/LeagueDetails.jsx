@@ -835,7 +835,7 @@ export default function LeagueDetails() {
   }
 
   if (loading) {
-    return <div>Loading league details...</div>
+    return <div className="loading">Loading league details...</div>
   }
 
   if (!league) {
@@ -947,7 +947,7 @@ export default function LeagueDetails() {
           <div className="card mb-6">
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h3 className="text-xl font-semibold">Select Season</h3>
+                <h3 className="section-header">Select Season</h3>
                 {activeSeason && (
                   <p className="text-sm text-gray-600 mt-1">
                     Active Season: <span className="font-semibold text-ice-600">{activeSeason.name}</span>
@@ -1181,7 +1181,7 @@ export default function LeagueDetails() {
           {/* League Managers Section */}
           <div className="card mb-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">
+              <h3 className="section-header">
                 League Manager{managers.length !== 1 ? 's' : ''}
               </h3>
               <div className="flex gap-2">
@@ -1275,7 +1275,7 @@ export default function LeagueDetails() {
 
           {/* Upcoming Games Section */}
           <div className="card mb-6">
-            <h3 className="text-xl font-semibold mb-4">Upcoming Games This Week</h3>
+            <h3 className="section-header mb-4">Upcoming Games This Week</h3>
             {(() => {
               const today = new Date()
               today.setHours(0, 0, 0, 0)
@@ -1338,7 +1338,7 @@ export default function LeagueDetails() {
 
           {/* Standings Banner */}
           <div className="card mb-8">
-            <h3 className="text-xl font-semibold mb-4">Standings</h3>
+            <h3 className="section-header mb-4">Standings</h3>
             {(() => {
               const completedGames = games.filter(g => g.home_score != null && g.away_score != null)
 
@@ -1462,7 +1462,7 @@ export default function LeagueDetails() {
 
           {showTeamForm && (
             <div className="card mb-6">
-              <h2 className="text-xl font-semibold mb-4">Add Team to {league.name}</h2>
+              <h2 className="section-header mb-4">Add Team to {league.name}</h2>
               <form onSubmit={handleTeamSubmit} className="space-y-4">
                 <div>
                   <label className="label">Team Name</label>
@@ -1512,7 +1512,7 @@ export default function LeagueDetails() {
                         className="w-8 h-8 rounded-full mr-3"
                         style={{ backgroundColor: team.color }}
                       />
-                      <h3 className="text-xl font-semibold">{team.name}</h3>
+                      <h3 className="section-header">{team.name}</h3>
                       {team.captains && team.captains.length > 0 && (
                         <div className="ml-4 flex gap-2">
                           {team.captains.map((captain, idx) => (
@@ -1775,13 +1775,13 @@ export default function LeagueDetails() {
                                   <div className="flex gap-2 justify-end">
                                     <button
                                       onClick={handleCancelEdit}
-                                      className="btn-secondary text-xs py-1 px-3"
+                                      className="btn-secondary btn-sm"
                                     >
                                       Cancel
                                     </button>
                                     <button
                                       onClick={() => handleSavePlayerEdit(team.id)}
-                                      className="btn-primary text-xs py-1 px-3"
+                                      className="btn-primary btn-sm"
                                     >
                                       Save
                                     </button>
@@ -1810,27 +1810,27 @@ export default function LeagueDetails() {
                                     <div className="flex gap-2">
                                       <button
                                         onClick={() => handleEditPlayer(player)}
-                                        className="btn-secondary text-xs py-1 px-3"
+                                        className="btn-secondary btn-sm"
                                       >
                                         Edit
                                       </button>
                                       {player.user_id && (
                                         <button
                                           onClick={() => handleToggleCaptain(player, team.id)}
-                                          className={player.is_captain === 1 ? "btn-warning text-xs py-1 px-3" : "btn-secondary text-xs py-1 px-3"}
+                                          className={player.is_captain === 1 ? "btn-warning btn-sm" : "btn-secondary btn-sm"}
                                         >
                                           {player.is_captain === 1 ? 'Remove Captain' : 'Make Captain'}
                                         </button>
                                       )}
                                       <button
                                         onClick={() => openTransferModal(player)}
-                                        className="btn-secondary text-xs py-1 px-3"
+                                        className="btn-secondary btn-sm"
                                       >
                                         Transfer
                                       </button>
                                       <button
                                         onClick={() => handlePlayerDelete(player.id, player.name, team.id)}
-                                        className="btn-danger text-xs py-1 px-3"
+                                        className="btn-danger btn-sm"
                                       >
                                         Remove
                                       </button>
@@ -1866,7 +1866,7 @@ export default function LeagueDetails() {
 
           {showGameForm && (
             <div className="card mb-6">
-              <h2 className="text-xl font-semibold mb-4">Schedule New Game</h2>
+              <h2 className="section-header mb-4">Schedule New Game</h2>
               <form onSubmit={handleGameSubmit} className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
@@ -1978,7 +1978,7 @@ export default function LeagueDetails() {
       {mainTab === 'season' && seasonSubTab === 'playoffs' && (
         <div>
           <div className="card text-center py-12">
-            <h3 className="text-xl font-semibold mb-4">Playoffs Management</h3>
+            <h3 className="section-header mb-4">Playoffs Management</h3>
             <p className="text-gray-500 mb-4">Playoff bracket and management features coming soon</p>
             <button onClick={() => setSeasonSubTab('schedule')} className="btn-secondary">
               Back to Schedule
@@ -1992,7 +1992,7 @@ export default function LeagueDetails() {
         <div>
           <div className="mb-6 flex justify-between items-center">
             <div>
-              <h2 className="text-xl font-semibold">League Announcements</h2>
+              <h2 className="section-header">League Announcements</h2>
               <p className="text-sm text-gray-500 mt-1">{announcementsList.length} total</p>
             </div>
             {canManage && (
@@ -2102,19 +2102,19 @@ export default function LeagueDetails() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleToggleAnnouncementActive(announcement)}
-                          className="btn-secondary text-xs py-1 px-3"
+                          className="btn-secondary btn-sm"
                         >
                           {announcement.is_active === 1 ? 'Deactivate' : 'Activate'}
                         </button>
                         <button
                           onClick={() => handleEditAnnouncement(announcement)}
-                          className="btn-secondary text-xs py-1 px-3"
+                          className="btn-secondary btn-sm"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => handleDeleteAnnouncement(announcement.id, announcement.title)}
-                          className="btn-danger text-xs py-1 px-3"
+                          className="btn-danger btn-sm"
                         >
                           Delete
                         </button>
@@ -2143,7 +2143,7 @@ export default function LeagueDetails() {
             <div className="card">
               <div className="flex justify-between items-center mb-4">
                 <div>
-                  <h2 className="text-xl font-semibold">Payment Tracking</h2>
+                  <h2 className="section-header">Payment Tracking</h2>
                   <p className="text-sm text-gray-600">Active Season: {activeSeason.name}</p>
                 </div>
                 <button
@@ -2749,7 +2749,7 @@ export default function LeagueDetails() {
       {showTransferModal && playerToTransfer && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-semibold mb-4">Transfer Player</h3>
+            <h3 className="section-header mb-4">Transfer Player</h3>
             <p className="text-gray-600 mb-4">
               Transfer <strong>{playerToTransfer.name}</strong> to:
             </p>

@@ -85,12 +85,12 @@ export default function Settings() {
 
   const getRoleBadge = (role) => {
     const roles = {
-      admin: { label: 'Admin', color: 'bg-purple-100 text-purple-800' },
-      player: { label: 'Player', color: 'bg-gray-100 text-gray-800' },
+      admin: { label: 'Admin', badgeClass: 'badge-primary' },
+      player: { label: 'Player', badgeClass: 'badge-neutral' },
     }
     const roleInfo = roles[role] || roles.player
     return (
-      <span className={`px-3 py-1 rounded-full text-sm font-medium ${roleInfo.color}`}>
+      <span className={`badge ${roleInfo.badgeClass}`}>
         {roleInfo.label}
       </span>
     )

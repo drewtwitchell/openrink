@@ -120,7 +120,7 @@ export default function Playoffs() {
   const canManage = currentUser?.role === 'admin' || currentUser?.role === 'league_manager'
 
   if (loading) {
-    return <div>Loading...</div>
+    return <div className="loading">Loading...</div>
   }
 
   if (!canManage) {
@@ -177,7 +177,7 @@ export default function Playoffs() {
 
       {showForm && (
         <div className="card mb-8">
-          <h2 className="text-xl font-semibold mb-4">Create Playoff Bracket</h2>
+          <h2 className="section-header mb-4">Create Playoff Bracket</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="label">Bracket Name *</label>
@@ -292,19 +292,19 @@ export default function Playoffs() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => navigate(`/playoffs/${bracket.id}/view`)}
-                    className="btn-primary text-xs py-1 px-3"
+                    className="btn-primary btn-sm"
                   >
                     View Bracket
                   </button>
                   <button
                     onClick={() => handleToggleActive(bracket.id)}
-                    className="btn-secondary text-xs py-1 px-3"
+                    className="btn-secondary btn-sm"
                   >
                     {bracket.is_active === 1 ? 'Deactivate' : 'Activate'}
                   </button>
                   <button
                     onClick={() => handleDelete(bracket.id, bracket.name)}
-                    className="btn-danger text-xs py-1 px-3"
+                    className="btn-danger btn-sm"
                   >
                     Delete
                   </button>

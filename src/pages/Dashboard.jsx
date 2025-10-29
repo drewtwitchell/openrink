@@ -41,9 +41,9 @@ function UsersManagementCard() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-6">User Management</h2>
+      <h2 className="section-header mb-6">User Management</h2>
       {message && (
-        <div className={`mb-4 p-3 rounded ${message.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+        <div className={`alert ${message.includes('Error') ? 'alert-error' : 'alert-success'}`}>
           {message}
         </div>
       )}
@@ -479,7 +479,7 @@ export default function Dashboard() {
   }
 
   if (loading) {
-    return <div>Loading dashboard...</div>
+    return <div className="loading">Loading dashboard...</div>
   }
 
   const isAdmin = user?.role === 'admin'
@@ -487,7 +487,7 @@ export default function Dashboard() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
+        <h1 className="page-title text-gray-900 mb-2">Dashboard</h1>
         <p className="text-gray-600">Welcome back, {user?.name || user?.email}</p>
       </div>
 
@@ -495,7 +495,7 @@ export default function Dashboard() {
         {/* Player Info Section - All Leagues */}
         {userPlayerProfiles.length > 0 && userLeagues.length > 0 && (
           <div className="card">
-            <h2 className="text-2xl font-bold mb-6">
+            <h2 className="section-header mb-6">
               My Teams {userLeagues.length > 1 && <span className="text-sm font-normal text-gray-500">({userLeagues.length} leagues)</span>}
             </h2>
 
@@ -549,15 +549,15 @@ export default function Dashboard() {
                             </span>
                           )}
                           {profile.position === 'goalie' ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            <span className="badge badge-info">
                               Goalie
                             </span>
                           ) : profile.sub_position ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 capitalize">
+                            <span className="badge badge-neutral capitalize">
                               {profile.sub_position}
                             </span>
                           ) : profile.position && profile.position !== 'player' && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 capitalize">
+                            <span className="badge badge-neutral capitalize">
                               {profile.position}
                             </span>
                           )}
@@ -591,13 +591,13 @@ export default function Dashboard() {
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-gray-600">Payment Status:</span>
                             {profile.payment_status === 'paid' ? (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                              <span className="badge badge-success">
                                 ✓ Paid
                               </span>
                             ) : (
                               <button
                                 onClick={() => openPaymentModal(profile, league.id)}
-                                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 hover:bg-red-200 transition-colors cursor-pointer"
+                                className="badge badge-error hover:bg-red-200 transition-colors cursor-pointer"
                               >
                                 ✗ Unpaid - Click to Report Payment
                               </button>
@@ -782,7 +782,7 @@ export default function Dashboard() {
         {/* League Management Section */}
         {managedLeagues.length > 0 && (
           <div className="card">
-            <h2 className="text-2xl font-bold mb-6">League Management</h2>
+            <h2 className="section-header mb-6">League Management</h2>
             <div className="space-y-4">
               {managedLeagues.map((league) => {
                 const seasons = leagueSeasons[league.id] || []
@@ -890,7 +890,7 @@ export default function Dashboard() {
           <div className="card">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="text-2xl font-bold">All Leagues</h2>
+                <h2 className="section-header">All Leagues</h2>
                 <p className="text-sm text-gray-600 mt-1">{allLeagues.length} total leagues</p>
               </div>
               {!showLeagueForm && managedLeagues.length === 0 && (
@@ -905,7 +905,7 @@ export default function Dashboard() {
 
             {showLeagueForm && managedLeagues.length === 0 && (
               <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <h3 className="text-2xl font-bold mb-4">Create New League</h3>
+                <h3 className="section-header mb-4">Create New League</h3>
                 <form onSubmit={handleCreateLeague} className="space-y-4">
                   <div>
                     <label className="label">League Name</label>
@@ -928,7 +928,7 @@ export default function Dashboard() {
                       placeholder="Brief description of your league..."
                     />
                   </div>
-                  <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded">
+                  <div className="alert alert-info">
                     After creating the league, you'll be able to add seasons with payment details, teams, and schedules.
                   </div>
                   <button type="submit" className="btn-primary">
@@ -1102,10 +1102,10 @@ export default function Dashboard() {
             </div>
 
             {paymentMessage && (
-              <div className={`mb-4 p-3 rounded ${
+              <div className={`alert ${
                 paymentMessage.includes('Error') || paymentMessage.includes('select') || paymentMessage.includes('No ')
-                  ? 'bg-red-100 text-red-700 border border-red-400'
-                  : 'bg-green-100 text-green-700 border border-green-400'
+                  ? 'alert-error'
+                  : 'alert-success'
               }`}>
                 {paymentMessage}
               </div>
@@ -1172,7 +1172,7 @@ export default function Dashboard() {
               </div>
             </form>
 
-            <div className="mt-4 p-3 bg-blue-50 rounded text-xs text-gray-600">
+            <div className="alert alert-info text-xs">
               <strong>Note:</strong> Your payment report will be timestamped and sent to league managers for verification.
             </div>
           </div>

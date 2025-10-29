@@ -93,7 +93,7 @@ export default function Teams() {
   }
 
   if (loading) {
-    return <div>Loading teams...</div>
+    return <div className="loading">Loading teams...</div>
   }
 
   return (
@@ -122,7 +122,7 @@ export default function Teams() {
 
       {showForm && (
         <div className="card mb-8">
-          <h2 className="text-2xl font-bold mb-4">Create New Team</h2>
+          <h2 className="section-header mb-4">Create New Team</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="label">Team Name</label>

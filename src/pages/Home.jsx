@@ -351,7 +351,7 @@ export default function Home() {
 
         {/* Features Grid */}
         <div className="card mb-12">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Everything You Need to Manage Your League</h2>
+          <h2 className="section-header text-gray-900 mb-6 text-center">Everything You Need to Manage Your League</h2>
           <div className="grid md:grid-cols-2 gap-8">
             <div className="space-y-4">
               <div>
@@ -403,7 +403,7 @@ export default function Home() {
 
         {/* Getting Started */}
         <div className="card bg-ice-50 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">Ready to Get Started?</h2>
+          <h2 className="section-header text-gray-900 mb-3">Ready to Get Started?</h2>
           <p className="text-gray-600 mb-6 max-w-xl mx-auto">
             {isAuthenticated
               ? "Head to your dashboard to create your first league and start managing your hockey season."
@@ -540,7 +540,7 @@ export default function Home() {
                       </svg>
                     </button>
                     <div>
-                      <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                      <h2 className="section-header text-gray-900 mb-2">
                         {league.name}
                       </h2>
                       {league.description && (
@@ -598,7 +598,7 @@ export default function Home() {
           {/* Playoff Bracket */}
           {bracket && bracket.bracket && bracket.matches && (
             <div className="card mb-8">
-              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2 flex-wrap">
+              <h3 className="section-header mb-4 flex items-center gap-2 flex-wrap">
                 <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -720,7 +720,7 @@ export default function Home() {
           <div className="grid md:grid-cols-2 gap-8 mb-8">
             {/* Standings */}
             <div className="card">
-              <h3 className="text-xl font-semibold mb-4">
+              <h3 className="section-header mb-4">
                 {isMultipleLeagues ? `${league.name} - Standings` : 'Standings'}
                 {isMultipleLeagues && activeSeason && (
                   <span className="text-sm font-normal text-gray-500 ml-2">({activeSeason.name})</span>
@@ -768,7 +768,7 @@ export default function Home() {
 
             {/* Upcoming Games */}
             <div className="card">
-              <h3 className="text-xl font-semibold mb-4">
+              <h3 className="section-header mb-4">
                 {isMultipleLeagues ? `${league.name} - Upcoming Games` : 'Upcoming Games This Week'}
                 {isMultipleLeagues && activeSeason && (
                   <span className="text-sm font-normal text-gray-500 ml-2">({activeSeason.name})</span>
@@ -880,7 +880,7 @@ export default function Home() {
           {/* Team Rosters */}
           {teams && teams.length > 0 && (
             <div className="card">
-              <h3 className="text-xl font-semibold mb-4">
+              <h3 className="section-header mb-4">
                 {isMultipleLeagues ? `${league.name} - Team Rosters` : 'Team Rosters'}
                 {isMultipleLeagues && activeSeason && (
                   <span className="text-sm font-normal text-gray-500 ml-2">({activeSeason.name})</span>
@@ -928,7 +928,7 @@ export default function Home() {
 
           {/* Calendar Subscription */}
           <div className="card bg-blue-50">
-            <h3 className="text-xl font-semibold mb-3">
+            <h3 className="section-header mb-3">
               {isMultipleLeagues ? `${league.name} - Subscribe to Game Calendar` : 'Subscribe to Game Calendar'}
             </h3>
             <p className="text-gray-600 mb-4">
@@ -969,7 +969,7 @@ export default function Home() {
                 </div>
               )}
             </div>
-            <div className="mt-4 p-3 bg-blue-100 rounded text-xs text-gray-700">
+            <div className="alert alert-info text-xs">
               <p className="font-semibold mb-1">📅 How to subscribe:</p>
               <ul className="list-disc list-inside space-y-1">
                 <li><strong>Desktop:</strong> Click a link above to open in your calendar app</li>
