@@ -518,15 +518,7 @@ export default function Dashboard() {
                         )}
                       </div>
                       <button
-                        onClick={() => {
-                          // Navigate to league page filtered to first team in this league
-                          const firstTeam = leagueProfiles[0]
-                          if (firstTeam) {
-                            navigate(`/leagues/${league.id}?team=${firstTeam.team_id}`)
-                          } else {
-                            navigate(`/leagues/${league.id}`)
-                          }
-                        }}
+                        onClick={() => navigate('/')}
                         className="btn-primary text-sm whitespace-nowrap"
                       >
                         View Schedule & Standings
