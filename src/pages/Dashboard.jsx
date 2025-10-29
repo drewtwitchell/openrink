@@ -551,7 +551,7 @@ export default function Dashboard() {
         {/* League Management Section */}
         {managedLeagues.length > 0 && (
           <div className="card">
-            <h2 className="text-2xl font-bold mb-6">Leagues I Manage</h2>
+            <h2 className="text-2xl font-bold mb-6">League Management</h2>
             <div className="space-y-4">
               {managedLeagues.map((league) => {
                 const seasons = leagueSeasons[league.id] || []

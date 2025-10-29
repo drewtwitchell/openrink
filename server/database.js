@@ -422,6 +422,21 @@ function initDatabase() {
       )
     `)
 
+    // Game attendance tracking table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS game_attendance (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        game_id INTEGER NOT NULL,
+        player_id INTEGER NOT NULL,
+        status TEXT DEFAULT 'pending',
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE,
+        FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
+        UNIQUE(game_id, player_id)
+      )
+    `)
+
     // Create player history table to track team/season history
     db.run(`
       CREATE TABLE IF NOT EXISTS player_history (
