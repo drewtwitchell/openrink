@@ -109,9 +109,13 @@ router.put('/:id', authenticateToken, requireSeasonLeagueManager, (req, res) => 
 router.patch('/:id/archive', authenticateToken, requireSeasonLeagueManager, (req, res) => {
   const { archived } = req.body
 
+  // When archiving, also deactivate the season
+  // When unarchiving, keep it inactive (user can manually activate if needed)
+  const isActive = archived ? 0 : 0
+
   db.run(
-    'UPDATE seasons SET archived = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-    [archived ? 1 : 0, req.params.id],
+    'UPDATE seasons SET archived = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [archived ? 1 : 0, isActive, req.params.id],
     function (err) {
       if (err) {
         console.error('Error updating season archive status:', err)
