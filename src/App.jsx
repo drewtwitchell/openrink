@@ -32,40 +32,42 @@ function App() {
   useEffect(() => {
     // Check if user is authenticated
     const isAuth = auth.isAuthenticated()
-    setIsAuthenticated(isAuth)
 
-    const refreshUserData = () => {
-      fetch('http://localhost:3001/api/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      })
-      .then(r => {
-        if (!r.ok) {
+    const refreshUserData = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/api/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        })
+
+        if (!response.ok) {
           // If auth fails, clear everything and log out
           throw new Error('Authentication failed')
         }
-        return r.json()
-      })
-      .then(data => {
+
+        const data = await response.json()
+
         if (data.user) {
           localStorage.setItem('user', JSON.stringify(data.user))
           setUser(data.user)
+          setIsAuthenticated(true)
 
           // Check if password reset is required
           if (data.user.password_reset_required === 1) {
             setShowPasswordResetModal(true)
           }
         }
-      })
-      .catch(err => {
+      } catch (err) {
         console.error('Failed to refresh user data:', err)
         // Clear invalid auth state
         localStorage.removeItem('token')
         localStorage.removeItem('user')
         setIsAuthenticated(false)
         setUser(null)
-      })
+      } finally {
+        setLoading(false)
+      }
     }
 
     // If authenticated, refresh user data from server to ensure we have latest (including role)
@@ -83,9 +85,9 @@ function App() {
       }
     } else {
       setUser(null)
+      setIsAuthenticated(false)
+      setLoading(false)
     }
-
-    setLoading(false)
   }, [isAuthenticated])
 
   const handlePasswordChange = async (e) => {
