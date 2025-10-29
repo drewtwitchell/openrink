@@ -63,6 +63,8 @@ export default function LeagueDetails() {
   const [showPlayerForm, setShowPlayerForm] = useState(null) // Track which team's form is showing
   const [showManagerForm, setShowManagerForm] = useState(false)
   const [managerEmail, setManagerEmail] = useState('')
+  const [showPaymentMethodModal, setShowPaymentMethodModal] = useState(false)
+  const [playerToMarkPaid, setPlayerToMarkPaid] = useState(null)
 
   // Check if current user can manage this league
   // User can manage if they're an admin OR if they're in the league_managers table for this league
@@ -466,35 +468,35 @@ export default function LeagueDetails() {
     }
   }
 
-  const handleMarkPaid = async (player) => {
-    // Prompt for payment method
-    const paymentMethod = prompt(
-      'How was the payment received?\n\nOptions:\n- venmo\n- zelle\n- cash\n- check\n- paypal\n- other',
-      'venmo'
-    )
+  const handleMarkPaid = (player) => {
+    setPlayerToMarkPaid(player)
+    setShowPaymentMethodModal(true)
+  }
 
-    if (!paymentMethod) {
-      return // User cancelled
-    }
+  const handlePaymentMethodSelect = async (paymentMethod) => {
+    if (!playerToMarkPaid) return
 
     try {
       // If no payment record exists, create one first
-      if (!player.payment_id) {
+      if (!playerToMarkPaid.payment_id) {
         const paymentRecord = await payments.create({
-          player_id: player.id,
-          team_id: player.team_id,
+          player_id: playerToMarkPaid.id,
+          team_id: playerToMarkPaid.team_id,
           amount: activeSeason.season_dues || 0,
           season_id: activeSeason.id,
-          payment_method: paymentMethod.toLowerCase().trim()
+          payment_method: paymentMethod
         })
         // Mark the newly created payment as paid
-        await payments.markPaid(paymentRecord.id, null, null, paymentMethod.toLowerCase().trim())
+        await payments.markPaid(paymentRecord.id, null, null, paymentMethod)
       } else {
         // Mark existing payment as paid
-        await payments.markPaid(player.payment_id, null, null, paymentMethod.toLowerCase().trim())
+        await payments.markPaid(playerToMarkPaid.payment_id, null, null, paymentMethod)
       }
       // Refresh payment data
       await fetchPaymentData(activeSeason.id)
+      // Close modal
+      setShowPaymentMethodModal(false)
+      setPlayerToMarkPaid(null)
     } catch (error) {
       alert('Error marking payment as paid: ' + error.message)
     }
@@ -2017,6 +2019,92 @@ export default function LeagueDetails() {
                   </span>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Method Selection Modal */}
+      {showPaymentMethodModal && playerToMarkPaid && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full shadow-2xl">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-gray-900">Payment Method</h2>
+                <button
+                  onClick={() => {
+                    setShowPaymentMethodModal(false)
+                    setPlayerToMarkPaid(null)
+                  }}
+                  className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+                >
+                  ×
+                </button>
+              </div>
+
+              <p className="text-gray-600 mb-6">
+                How did <span className="font-semibold">{playerToMarkPaid.name}</span> pay for their season dues?
+              </p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => handlePaymentMethodSelect('venmo')}
+                  className="flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg hover:border-ice-500 hover:bg-ice-50 transition-all"
+                >
+                  <span className="text-2xl mb-2">💳</span>
+                  <span className="font-semibold">Venmo</span>
+                </button>
+
+                <button
+                  onClick={() => handlePaymentMethodSelect('zelle')}
+                  className="flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg hover:border-ice-500 hover:bg-ice-50 transition-all"
+                >
+                  <span className="text-2xl mb-2">📱</span>
+                  <span className="font-semibold">Zelle</span>
+                </button>
+
+                <button
+                  onClick={() => handlePaymentMethodSelect('cash')}
+                  className="flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg hover:border-ice-500 hover:bg-ice-50 transition-all"
+                >
+                  <span className="text-2xl mb-2">💵</span>
+                  <span className="font-semibold">Cash</span>
+                </button>
+
+                <button
+                  onClick={() => handlePaymentMethodSelect('check')}
+                  className="flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg hover:border-ice-500 hover:bg-ice-50 transition-all"
+                >
+                  <span className="text-2xl mb-2">✅</span>
+                  <span className="font-semibold">Check</span>
+                </button>
+
+                <button
+                  onClick={() => handlePaymentMethodSelect('paypal')}
+                  className="flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg hover:border-ice-500 hover:bg-ice-50 transition-all"
+                >
+                  <span className="text-2xl mb-2">🅿️</span>
+                  <span className="font-semibold">PayPal</span>
+                </button>
+
+                <button
+                  onClick={() => handlePaymentMethodSelect('other')}
+                  className="flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg hover:border-ice-500 hover:bg-ice-50 transition-all"
+                >
+                  <span className="text-2xl mb-2">💰</span>
+                  <span className="font-semibold">Other</span>
+                </button>
+              </div>
+
+              <button
+                onClick={() => {
+                  setShowPaymentMethodModal(false)
+                  setPlayerToMarkPaid(null)
+                }}
+                className="w-full mt-4 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
