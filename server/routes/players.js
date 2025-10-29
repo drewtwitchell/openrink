@@ -459,4 +459,85 @@ router.get('/user/:userId/history', authenticateToken, (req, res) => {
   )
 })
 
+// Player self-reports payment (marks own payment as paid)
+router.post('/:id/self-report-payment', authenticateToken, (req, res) => {
+  const { season_id, payment_method, confirmation_number, payment_notes } = req.body
+  const player_id = req.params.id
+
+  if (!season_id) {
+    return res.status(400).json({ error: 'Season ID is required' })
+  }
+
+  if (!payment_method) {
+    return res.status(400).json({ error: 'Payment method is required' })
+  }
+
+  // Get player and verify ownership or admin
+  db.get(
+    'SELECT user_id, team_id FROM players WHERE id = ?',
+    [player_id],
+    (err, player) => {
+      if (err || !player) {
+        return res.status(404).json({ error: 'Player not found' })
+      }
+
+      // Verify user owns this player profile or is admin
+      db.get('SELECT role FROM users WHERE id = ?', [req.user.id], (err, user) => {
+        if (err || !user) {
+          return res.status(403).json({ error: 'Unauthorized' })
+        }
+
+        if (user.role !== 'admin' && player.user_id !== req.user.id) {
+          return res.status(403).json({ error: 'You can only report payment for your own profile' })
+        }
+
+        // Get season dues amount
+        db.get('SELECT season_dues FROM seasons WHERE id = ?', [season_id], (err, season) => {
+          if (err || !season) {
+            return res.status(404).json({ error: 'Season not found' })
+          }
+
+          const amount = season.season_dues || 0
+
+          // Insert or update payment record with self-report
+          db.run(
+            `INSERT INTO payments (player_id, team_id, season_id, amount, status, payment_method,
+                                   confirmation_number, payment_notes, paid_date, marked_paid_by)
+             VALUES (?, ?, ?, ?, 'paid', ?, ?, ?, CURRENT_TIMESTAMP, ?)
+             ON CONFLICT(player_id, season_id)
+             DO UPDATE SET
+               status = 'paid',
+               payment_method = ?,
+               confirmation_number = ?,
+               payment_notes = ?,
+               paid_date = CURRENT_TIMESTAMP,
+               marked_paid_by = ?`,
+            [
+              player_id, player.team_id, season_id, amount, payment_method,
+              confirmation_number, payment_notes, req.user.id,
+              payment_method, confirmation_number, payment_notes, req.user.id
+            ],
+            function (err) {
+              if (err) {
+                console.error('Error self-reporting payment:', err)
+                return res.status(500).json({ error: 'Error reporting payment' })
+              }
+
+              res.json({
+                message: 'Payment reported successfully',
+                id: this.lastID,
+                player_id,
+                season_id,
+                payment_method,
+                paid_date: new Date().toISOString(),
+                marked_by: req.user.id
+              })
+            }
+          )
+        })
+      })
+    }
+  )
+})
+
 export default router
