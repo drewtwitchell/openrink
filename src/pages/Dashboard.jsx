@@ -216,6 +216,40 @@ export default function Dashboard() {
     }
   }
 
+  const handleDeleteLeague = async (e, league) => {
+    e.stopPropagation() // Prevent navigation
+
+    if (!confirm(`Delete league "${league.name}"? This will permanently delete all associated seasons, teams, games, and players. This cannot be undone.`)) {
+      return
+    }
+
+    try {
+      await leagues.delete(league.id)
+      // Refresh dashboard data
+      await fetchDashboardData(user)
+    } catch (error) {
+      alert('Error deleting league: ' + error.message)
+    }
+  }
+
+  const handleToggleArchiveLeague = async (e, league) => {
+    e.stopPropagation() // Prevent navigation
+
+    const action = league.archived === 1 ? 'unarchive' : 'archive'
+
+    try {
+      if (league.archived === 1) {
+        await leagues.unarchive(league.id)
+      } else {
+        await leagues.archive(league.id)
+      }
+      // Refresh dashboard data
+      await fetchDashboardData(user)
+    } catch (error) {
+      alert(`Error ${action}ing league: ` + error.message)
+    }
+  }
+
   const toggleTeamRoster = async (teamId) => {
     // Toggle expanded state
     setExpandedTeams(prev => ({
@@ -733,29 +767,48 @@ export default function Dashboard() {
                   return (
                     <div
                       key={league.id}
-                      onClick={() => navigate(`/leagues/${league.id}`)}
-                      className="border border-gray-200 rounded-lg hover:border-gray-300 hover:shadow-md cursor-pointer transition-all overflow-hidden"
+                      className="border border-gray-200 rounded-lg hover:border-gray-300 hover:shadow-md transition-all overflow-hidden"
                     >
                       <div className="p-4 bg-gray-50 border-b border-gray-200">
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
+                          <div
+                            className="flex items-center gap-3 flex-1 cursor-pointer"
+                            onClick={() => navigate(`/leagues/${league.id}`)}
+                          >
                             <h3 className="text-lg font-semibold text-gray-900">{league.name}</h3>
                             {league.archived === 1 && (
                               <span className="badge badge-neutral">Archived</span>
                             )}
                           </div>
-                          <div className="text-sm text-gray-500">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => handleToggleArchiveLeague(e, league)}
+                              className={`btn-secondary text-sm px-3 py-1 ${league.archived === 1 ? '' : 'text-amber-600'}`}
+                            >
+                              {league.archived === 1 ? 'Unarchive' : 'Archive'}
+                            </button>
+                            <button
+                              onClick={(e) => handleDeleteLeague(e, league)}
+                              className="btn-danger text-sm px-3 py-1"
+                            >
+                              Delete
+                            </button>
                           </div>
                         </div>
                         {league.description && (
-                          <p className="text-sm text-gray-600 mt-1">{league.description}</p>
+                          <p
+                            className="text-sm text-gray-600 mt-1 cursor-pointer"
+                            onClick={() => navigate(`/leagues/${league.id}`)}
+                          >
+                            {league.description}
+                          </p>
                         )}
                       </div>
 
-                      <div className="p-4">
+                      <div
+                        className="p-4 cursor-pointer"
+                        onClick={() => navigate(`/leagues/${league.id}`)}
+                      >
                         <div className="grid grid-cols-3 gap-4 mb-4">
                           <div>
                             <div className="text-xs text-gray-500 mb-1">Active Season</div>
