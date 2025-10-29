@@ -66,7 +66,8 @@ export default function LeagueDetails() {
   const [editingPlayerData, setEditingPlayerData] = useState({
     position: '',
     sub_position: '',
-    jersey_number: ''
+    jersey_number: '',
+    _fullPlayer: null
   })
   const [showManagerForm, setShowManagerForm] = useState(false)
   const [managerEmail, setManagerEmail] = useState('')
@@ -764,13 +765,26 @@ export default function LeagueDetails() {
     setEditingPlayerData({
       position: player.position || 'player',
       sub_position: player.sub_position || '',
-      jersey_number: player.jersey_number || ''
+      jersey_number: player.jersey_number || '',
+      // Store full player data to preserve on update
+      _fullPlayer: player
     })
   }
 
   const handleSavePlayerEdit = async (teamId) => {
     try {
-      await players.update(editingPlayerId, editingPlayerData)
+      const fullPlayer = editingPlayerData._fullPlayer
+      // Send complete player data with updated fields
+      await players.update(editingPlayerId, {
+        user_id: fullPlayer.user_id,
+        name: fullPlayer.name,
+        email: fullPlayer.email || fullPlayer.user_email,
+        phone: fullPlayer.phone || fullPlayer.user_phone,
+        jersey_number: editingPlayerData.jersey_number,
+        position: editingPlayerData.position,
+        sub_position: editingPlayerData.sub_position,
+        email_notifications: fullPlayer.email_notifications
+      })
       setEditingPlayerId(null)
       // Refresh team roster
       await fetchTeamPlayers(teamId)
@@ -781,7 +795,7 @@ export default function LeagueDetails() {
 
   const handleCancelEdit = () => {
     setEditingPlayerId(null)
-    setEditingPlayerData({ position: '', sub_position: '', jersey_number: '' })
+    setEditingPlayerData({ position: '', sub_position: '', jersey_number: '', _fullPlayer: null })
   }
 
   const handleAddManager = async (e) => {
