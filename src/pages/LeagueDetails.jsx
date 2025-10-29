@@ -62,6 +62,12 @@ export default function LeagueDetails() {
     rink_name: '',
   })
   const [showPlayerForm, setShowPlayerForm] = useState(null) // Track which team's form is showing
+  const [editingPlayerId, setEditingPlayerId] = useState(null)
+  const [editingPlayerData, setEditingPlayerData] = useState({
+    position: '',
+    sub_position: '',
+    jersey_number: ''
+  })
   const [showManagerForm, setShowManagerForm] = useState(false)
   const [managerEmail, setManagerEmail] = useState('')
   const [showPaymentMethodModal, setShowPaymentMethodModal] = useState(false)
@@ -693,6 +699,31 @@ export default function LeagueDetails() {
     } catch (error) {
       alert('Error toggling captain status: ' + error.message)
     }
+  }
+
+  const handleEditPlayer = (player) => {
+    setEditingPlayerId(player.id)
+    setEditingPlayerData({
+      position: player.position || 'player',
+      sub_position: player.sub_position || '',
+      jersey_number: player.jersey_number || ''
+    })
+  }
+
+  const handleSavePlayerEdit = async (teamId) => {
+    try {
+      await players.update(editingPlayerId, editingPlayerData)
+      setEditingPlayerId(null)
+      // Refresh team roster
+      await fetchTeamPlayers(teamId)
+    } catch (error) {
+      alert('Error updating player: ' + error.message)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingPlayerId(null)
+    setEditingPlayerData({ position: '', sub_position: '', jersey_number: '' })
   }
 
   const handleAddManager = async (e) => {
@@ -1519,41 +1550,113 @@ export default function LeagueDetails() {
                       ) : (
                         <div className="space-y-2">
                           {teamPlayers[team.id].map((player) => (
-                            <div key={player.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                              <div className="flex items-center gap-3">
-                                <div className="font-medium">{player.name}</div>
-                                {player.jersey_number && (
-                                  <span className="badge badge-neutral text-xs">#{player.jersey_number}</span>
-                                )}
-                                {player.position && player.position !== 'player' && (
-                                  <span className="badge badge-info text-xs capitalize">{player.position}</span>
-                                )}
-                                {player.is_captain === 1 && (
-                                  <span className="badge badge-warning text-xs">Captain</span>
-                                )}
-                              </div>
-                              {canManageTeam(team.id) && (
-                                <div className="flex gap-2">
-                                  {player.user_id && (
+                            <div key={player.id} className="p-3 bg-gray-50 rounded-lg">
+                              {editingPlayerId === player.id ? (
+                                // Editing mode
+                                <div className="space-y-3">
+                                  <div className="font-medium text-gray-900 mb-2">{player.name}</div>
+                                  <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                      <label className="block text-xs text-gray-600 mb-1">Position</label>
+                                      <select
+                                        value={editingPlayerData.position}
+                                        onChange={(e) => setEditingPlayerData({...editingPlayerData, position: e.target.value, sub_position: e.target.value === 'goalie' ? '' : editingPlayerData.sub_position})}
+                                        className="input text-sm py-1"
+                                      >
+                                        <option value="player">Player</option>
+                                        <option value="goalie">Goalie</option>
+                                      </select>
+                                    </div>
+                                    {editingPlayerData.position === 'player' && (
+                                      <div>
+                                        <label className="block text-xs text-gray-600 mb-1">Player Position</label>
+                                        <select
+                                          value={editingPlayerData.sub_position}
+                                          onChange={(e) => setEditingPlayerData({...editingPlayerData, sub_position: e.target.value})}
+                                          className="input text-sm py-1"
+                                        >
+                                          <option value="">Select...</option>
+                                          <option value="forward">Forward</option>
+                                          <option value="defense">Defense</option>
+                                        </select>
+                                      </div>
+                                    )}
+                                    <div>
+                                      <label className="block text-xs text-gray-600 mb-1">Jersey #</label>
+                                      <input
+                                        type="number"
+                                        value={editingPlayerData.jersey_number}
+                                        onChange={(e) => setEditingPlayerData({...editingPlayerData, jersey_number: e.target.value})}
+                                        className="input text-sm py-1"
+                                        min="0"
+                                        max="99"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-2 justify-end">
                                     <button
-                                      onClick={() => handleToggleCaptain(player, team.id)}
-                                      className={player.is_captain === 1 ? "btn-warning text-xs py-1 px-3" : "btn-secondary text-xs py-1 px-3"}
+                                      onClick={handleCancelEdit}
+                                      className="btn-secondary text-xs py-1 px-3"
                                     >
-                                      {player.is_captain === 1 ? 'Remove Captain' : 'Make Captain'}
+                                      Cancel
                                     </button>
+                                    <button
+                                      onClick={() => handleSavePlayerEdit(team.id)}
+                                      className="btn-primary text-xs py-1 px-3"
+                                    >
+                                      Save
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                // Display mode
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <div className="font-medium">{player.name}</div>
+                                    {player.jersey_number && (
+                                      <span className="badge badge-neutral text-xs">#{player.jersey_number}</span>
+                                    )}
+                                    {player.position === 'goalie' ? (
+                                      <span className="badge badge-info text-xs">Goalie</span>
+                                    ) : player.sub_position ? (
+                                      <span className="badge badge-info text-xs capitalize">{player.sub_position}</span>
+                                    ) : player.position && player.position !== 'player' && (
+                                      <span className="badge badge-info text-xs capitalize">{player.position}</span>
+                                    )}
+                                    {player.is_captain === 1 && (
+                                      <span className="badge badge-warning text-xs">Captain</span>
+                                    )}
+                                  </div>
+                                  {canManageTeam(team.id) && (
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => handleEditPlayer(player)}
+                                        className="btn-secondary text-xs py-1 px-3"
+                                      >
+                                        Edit
+                                      </button>
+                                      {player.user_id && (
+                                        <button
+                                          onClick={() => handleToggleCaptain(player, team.id)}
+                                          className={player.is_captain === 1 ? "btn-warning text-xs py-1 px-3" : "btn-secondary text-xs py-1 px-3"}
+                                        >
+                                          {player.is_captain === 1 ? 'Remove Captain' : 'Make Captain'}
+                                        </button>
+                                      )}
+                                      <button
+                                        onClick={() => openTransferModal(player)}
+                                        className="btn-secondary text-xs py-1 px-3"
+                                      >
+                                        Transfer
+                                      </button>
+                                      <button
+                                        onClick={() => handlePlayerDelete(player.id, player.name, team.id)}
+                                        className="btn-danger text-xs py-1 px-3"
+                                      >
+                                        Remove
+                                      </button>
+                                    </div>
                                   )}
-                                  <button
-                                    onClick={() => openTransferModal(player)}
-                                    className="btn-secondary text-xs py-1 px-3"
-                                  >
-                                    Transfer
-                                  </button>
-                                  <button
-                                    onClick={() => handlePlayerDelete(player.id, player.name, team.id)}
-                                    className="btn-danger text-xs py-1 px-3"
-                                  >
-                                    Remove
-                                  </button>
                                 </div>
                               )}
                             </div>
