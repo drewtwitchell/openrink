@@ -959,28 +959,31 @@ export default function LeagueDetails() {
                 >
                   ⚙️ Managers
                 </button>
-                <button
-                  onClick={() => {
-                    setMainTab('season')
-                    setSeasonSubTab(null)
-                    setSelectedSeasonId(null) // Clear selected season when creating new
-                    setShowSeasonForm(true)
-                    setEditingSeasonId(null)
-                    setSeasonFormData({
-                      name: '',
-                      description: '',
-                      season_dues: '',
-                      venmo_link: '',
-                      start_date: '',
-                      end_date: '',
-                      is_active: false,
-                    })
-                  }}
-                  className="btn-primary btn-sm"
-                  title="Create a new season"
-                >
-                  + New Season
-                </button>
+                {/* Only show + New Season button when seasons already exist */}
+                {leagueSeasons.length > 0 && (
+                  <button
+                    onClick={() => {
+                      setMainTab('season')
+                      setSeasonSubTab(null)
+                      setSelectedSeasonId(null) // Clear selected season when creating new
+                      setShowSeasonForm(true)
+                      setEditingSeasonId(null)
+                      setSeasonFormData({
+                        name: '',
+                        description: '',
+                        season_dues: '',
+                        venmo_link: '',
+                        start_date: '',
+                        end_date: '',
+                        is_active: false,
+                      })
+                    }}
+                    className="btn-primary btn-sm"
+                    title="Create a new season"
+                  >
+                    + New Season
+                  </button>
+                )}
               </>
             )}
 
@@ -1144,29 +1147,41 @@ export default function LeagueDetails() {
         <div className="card text-center py-16 bg-gradient-to-br from-gray-50 to-white">
           <div className="max-w-md mx-auto">
             <div className="text-4xl mb-4">🏒</div>
-            <h3 className="text-2xl font-bold text-gray-800 mb-3">Select a Season to Get Started</h3>
-            <p className="text-gray-600 mb-2">
-              Everything in your league is organized by season - teams, games, standings, and payments all belong to a specific season.
-            </p>
-            <p className="text-gray-500 text-sm mb-6">
-              Choose a season from the dropdown above to manage its teams and schedule, or create a new season to begin.
-            </p>
-            {canManage && leagueSeasons.length === 0 && (
-              <button
-                onClick={() => {
-                  setMainTab('season')
-                  setSeasonSubTab(null)
-                  setShowSeasonForm(true)
-                }}
-                className="btn-primary btn-lg"
-              >
-                Create Your First Season
-              </button>
-            )}
-            {leagueSeasons.length > 0 && (
-              <div className="text-sm text-ice-600 font-medium">
-                ↑ Select a season from the dropdown above
-              </div>
+            {leagueSeasons.length === 0 ? (
+              <>
+                <h3 className="text-2xl font-bold text-gray-800 mb-3">Create Your First Season</h3>
+                <p className="text-gray-600 mb-2">
+                  Everything in your league is organized by season - teams, games, standings, and payments all belong to a specific season.
+                </p>
+                <p className="text-gray-500 text-sm mb-6">
+                  Start by creating your first season to begin managing teams and scheduling games.
+                </p>
+                {canManage && (
+                  <button
+                    onClick={() => {
+                      setMainTab('season')
+                      setSeasonSubTab(null)
+                      setShowSeasonForm(true)
+                    }}
+                    className="btn-primary btn-lg"
+                  >
+                    Create Your First Season
+                  </button>
+                )}
+              </>
+            ) : (
+              <>
+                <h3 className="text-2xl font-bold text-gray-800 mb-3">Select a Season</h3>
+                <p className="text-gray-600 mb-2">
+                  Everything in your league is organized by season - teams, games, standings, and payments all belong to a specific season.
+                </p>
+                <p className="text-gray-500 text-sm mb-6">
+                  Choose a season from the dropdown above to view and manage its teams, schedule, and standings.
+                </p>
+                <div className="text-sm text-ice-600 font-medium">
+                  ↑ Select a season from the dropdown above
+                </div>
+              </>
             )}
           </div>
         </div>
