@@ -548,6 +548,19 @@ export default function Dashboard() {
                               ⭐ Captain
                             </span>
                           )}
+                          {profile.position === 'goalie' ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                              Goalie
+                            </span>
+                          ) : profile.sub_position ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 capitalize">
+                              {profile.sub_position}
+                            </span>
+                          ) : profile.position && profile.position !== 'player' && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 capitalize">
+                              {profile.position}
+                            </span>
+                          )}
                         </div>
 
                         <div className="space-y-1.5 text-sm">

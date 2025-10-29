@@ -206,62 +206,56 @@ router.post('/', authenticateToken, requireTeamLeagueManager, (req, res) => {
 
 // Update player
 router.put('/:id', authenticateToken, requirePlayerLeagueManager, (req, res) => {
-  const { user_id, name, email, phone, jersey_number, email_notifications, position } = req.body
+  const { user_id, name, email, phone, jersey_number, email_notifications, position, sub_position } = req.body
 
-  // If user_id is provided, get position from user, otherwise use provided position
-  if (user_id) {
-    db.get('SELECT position FROM users WHERE id = ?', [user_id], (err, user) => {
-      if (err) {
-        return res.status(500).json({ error: 'Error fetching user' })
-      }
+  // Helper function to update player and optionally sync to user
+  const updatePlayerAndSyncToUser = (linkedUserId, playerPosition, playerSubPosition) => {
+    // Update the player record
+    db.run(
+      'UPDATE players SET user_id = ?, name = ?, email = ?, phone = ?, jersey_number = ?, email_notifications = ?, position = ?, sub_position = ? WHERE id = ?',
+      [linkedUserId, name, email, phone, jersey_number, email_notifications ? 1 : 0, playerPosition, playerSubPosition || null, req.params.id],
+      function (err) {
+        if (err) {
+          return res.status(500).json({ error: 'Error updating player' })
+        }
 
-      const playerPosition = user?.position || position || 'player'
-
-      db.run(
-        'UPDATE players SET user_id = ?, name = ?, email = ?, phone = ?, jersey_number = ?, email_notifications = ?, position = ? WHERE id = ?',
-        [user_id, name, email, phone, jersey_number, email_notifications ? 1 : 0, playerPosition, req.params.id],
-        function (err) {
-          if (err) {
-            return res.status(500).json({ error: 'Error updating player' })
-          }
+        // If player is linked to a user, also update the user's profile to keep them in sync
+        if (linkedUserId) {
+          db.run(
+            'UPDATE users SET position = ?, sub_position = ? WHERE id = ?',
+            [playerPosition, playerSubPosition || null, linkedUserId],
+            function (userErr) {
+              if (userErr) {
+                console.error('Error syncing player changes to user profile:', userErr)
+                // Don't fail the request, just log the error
+              }
+              res.json({ message: 'Player updated successfully', synced_to_user: !userErr })
+            }
+          )
+        } else {
           res.json({ message: 'Player updated successfully' })
         }
-      )
-    })
+      }
+    )
+  }
+
+  // If user_id is provided, use the provided position/sub_position
+  if (user_id) {
+    updatePlayerAndSyncToUser(user_id, position || 'player', sub_position)
   } else {
     // If no user_id provided but email is provided, check if a user exists with that email
     if (email) {
-      db.get('SELECT id, position FROM users WHERE email = ?', [email], (err, existingUser) => {
+      db.get('SELECT id FROM users WHERE email = ?', [email], (err, existingUser) => {
         if (err) {
           return res.status(500).json({ error: 'Error checking for existing user' })
         }
 
         const linkedUserId = existingUser ? existingUser.id : null
-        const playerPosition = existingUser ? existingUser.position : (position || 'player')
-
-        db.run(
-          'UPDATE players SET user_id = ?, name = ?, email = ?, phone = ?, jersey_number = ?, email_notifications = ?, position = ? WHERE id = ?',
-          [linkedUserId, name, email, phone, jersey_number, email_notifications ? 1 : 0, playerPosition, req.params.id],
-          function (err) {
-            if (err) {
-              return res.status(500).json({ error: 'Error updating player' })
-            }
-            res.json({ message: 'Player updated successfully', auto_linked: !!existingUser })
-          }
-        )
+        updatePlayerAndSyncToUser(linkedUserId, position || 'player', sub_position)
       })
     } else {
       // No email provided, update without user link
-      db.run(
-        'UPDATE players SET user_id = ?, name = ?, email = ?, phone = ?, jersey_number = ?, email_notifications = ?, position = ? WHERE id = ?',
-        [null, name, email, phone, jersey_number, email_notifications ? 1 : 0, position || 'player', req.params.id],
-        function (err) {
-          if (err) {
-            return res.status(500).json({ error: 'Error updating player' })
-          }
-          res.json({ message: 'Player updated successfully' })
-        }
-      )
+      updatePlayerAndSyncToUser(null, position || 'player', sub_position)
     }
   }
 })
