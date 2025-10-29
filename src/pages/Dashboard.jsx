@@ -110,7 +110,17 @@ export default function Dashboard() {
   useEffect(() => {
     const currentUser = auth.getUser()
     setUser(currentUser)
-    fetchDashboardData(currentUser)
+
+    // Redirect regular players to home page
+    // Only admins and users with managed leagues can access dashboard
+    if (currentUser && currentUser.role !== 'admin') {
+      // We'll check if they manage any leagues after data loads
+      fetchDashboardData(currentUser)
+    } else if (currentUser && currentUser.role === 'admin') {
+      fetchDashboardData(currentUser)
+    } else {
+      navigate('/')
+    }
   }, [])
 
   const fetchDashboardData = async (currentUser) => {
@@ -166,6 +176,12 @@ export default function Dashboard() {
         })
 
         setManagedLeagues(userManagedLeagues)
+
+        // Redirect regular players who don't manage any leagues to home page
+        if (currentUser.role !== 'admin' && userManagedLeagues.length === 0) {
+          navigate('/')
+          return
+        }
 
         // Fetch seasons and payment stats for managed leagues
         const seasonsData = {}
