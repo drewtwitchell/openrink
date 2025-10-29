@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { leagues, teams as teamsApi, games as gamesApi, seasons, auth } from '../lib/api'
-import Breadcrumbs from '../components/Breadcrumbs'
 
 export default function LeagueDetails() {
   const { id } = useParams()
@@ -273,14 +272,6 @@ export default function LeagueDetails() {
 
   return (
     <div>
-      <Breadcrumbs
-        items={[
-          { label: 'Dashboard', href: '/dashboard' },
-          { label: 'Leagues', href: '/leagues' },
-          { label: league?.name || 'Loading...' }
-        ]}
-      />
-
       <div className="page-header mb-6">
         <div>
           <div className="flex items-center gap-3 mb-2">
@@ -485,49 +476,7 @@ export default function LeagueDetails() {
       {/* Content */}
       {mainTab === 'overview' && overviewSubTab === 'managers' && (
         <div>
-          {/* Active Season Info */}
-          {activeSeason ? (
-            <div className="card mb-6 bg-green-50 border-green-200">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-xl font-semibold text-green-900 mb-2">
-                    Current Season: {activeSeason.name}
-                  </h3>
-                  {activeSeason.description && (
-                    <p className="text-gray-700 mb-3">{activeSeason.description}</p>
-                  )}
-                  <div className="flex gap-4 text-sm text-gray-600">
-                    {activeSeason.start_date && (
-                      <div>
-                        <span className="font-medium">Start:</span>{' '}
-                        {new Date(activeSeason.start_date).toLocaleDateString()}
-                      </div>
-                    )}
-                    {activeSeason.end_date && (
-                      <div>
-                        <span className="font-medium">End:</span>{' '}
-                        {new Date(activeSeason.end_date).toLocaleDateString()}
-                      </div>
-                    )}
-                    {activeSeason.season_dues && (
-                      <div>
-                        <span className="font-medium">Dues:</span> ${parseFloat(activeSeason.season_dues).toFixed(2)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <span className="badge badge-success">Active</span>
-              </div>
-            </div>
-          ) : leagueSeasons.length > 0 ? (
-            <div className="card mb-6 bg-amber-50 border-amber-200">
-              <p className="text-amber-900">
-                No active season. <button onClick={() => setActiveTab('seasons')} className="text-amber-700 underline font-medium">Set one as active</button> to enable full league features.
-              </p>
-            </div>
-          ) : null}
-
-          {/* Upcoming Games Banner */}
+          {/* Managers Section */}
           <div className="card mb-6">
             <h3 className="text-xl font-semibold mb-4">Upcoming Games This Week</h3>
             {(() => {
@@ -546,7 +495,7 @@ export default function LeagueDetails() {
               return upcomingGames.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-gray-500 mb-4">No games scheduled this week</p>
-                  <button onClick={() => setActiveTab('schedule')} className="btn-secondary">
+                  <button onClick={() => { setMainTab('season'); setSeasonSubTab('schedule'); }} className="btn-secondary">
                     View Full Schedule
                   </button>
                 </div>
@@ -600,7 +549,7 @@ export default function LeagueDetails() {
                 return (
                   <div className="text-center py-8">
                     <p className="text-gray-500 mb-4">Standings will appear once games are completed</p>
-                    <button onClick={() => setActiveTab('schedule')} className="btn-secondary">
+                    <button onClick={() => { setMainTab('season'); setSeasonSubTab('schedule'); }} className="btn-secondary">
                       View Schedule
                     </button>
                   </div>
@@ -1018,7 +967,7 @@ export default function LeagueDetails() {
             <div className="card text-center py-12">
               <p className="text-gray-500 mb-4">No active season</p>
               <p className="text-sm text-gray-400 mb-4">Create a season first to track payments</p>
-              <button onClick={() => setActiveTab('seasons')} className="btn-primary">
+              <button onClick={() => { setMainTab('season'); setSeasonSubTab(null); }} className="btn-primary">
                 Go to Seasons
               </button>
             </div>
