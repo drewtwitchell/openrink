@@ -21,7 +21,9 @@ export default function LeagueDetails() {
   const [showTeamForm, setShowTeamForm] = useState(false)
   const [showSeasonForm, setShowSeasonForm] = useState(false)
   const [showArchivedSeasons, setShowArchivedSeasons] = useState(false)
+  const [showLeagueMenu, setShowLeagueMenu] = useState(false)
   const [editingSeasonId, setEditingSeasonId] = useState(null)
+  const leagueMenuRef = useRef(null)
   const [teamFormData, setTeamFormData] = useState({
     name: '',
     color: '#0284c7',
@@ -174,6 +176,17 @@ export default function LeagueDetails() {
       setSeasonSubTab('teams')
     }
   }, [selectedSeasonId, seasonSubTab, showSeasonForm])
+
+  // Close league menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (leagueMenuRef.current && !leagueMenuRef.current.contains(event.target)) {
+        setShowLeagueMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const fetchLeagueData = async () => {
     try {
@@ -870,9 +883,9 @@ export default function LeagueDetails() {
             </div>
 
             {/* Season Context Selector - Dropdown style */}
-            <div className="flex items-center gap-3 mt-2 flex-wrap">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-semibold text-gray-600">Season:</label>
+            <div className="flex items-center gap-3 mt-3 flex-wrap">
+              <div className="flex items-center gap-2 bg-ice-50 rounded-lg px-4 py-2 border-2 border-ice-200">
+                <label className="text-sm font-semibold text-ice-800">Season:</label>
                 <select
                   value={selectedSeasonId || ''}
                   onChange={(e) => {
@@ -883,7 +896,7 @@ export default function LeagueDetails() {
                       setSeasonSubTab('teams')
                     }
                   }}
-                  className="input py-1 px-3 text-sm max-w-xs"
+                  className="bg-white border border-ice-300 rounded px-3 py-1 text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-ice-500 focus:border-ice-500 min-w-[200px]"
                 >
                   <option value="">Select a season...</option>
                   {leagueSeasons
@@ -891,8 +904,7 @@ export default function LeagueDetails() {
                     .map((season) => (
                       <option key={season.id} value={season.id}>
                         {season.name}
-                        {season.is_active === 1 ? ' ★ Active' : ''}
-                        {season.archived === 1 ? ' (Archived)' : ''}
+                        {season.archived === 1 ? ' (Archived)' : (season.is_active === 1 ? ' ★ Active' : '')}
                       </option>
                     ))}
                 </select>
@@ -971,12 +983,41 @@ export default function LeagueDetails() {
                 </button>
               </>
             )}
-            <button onClick={handleArchive} className={league.archived === 1 ? "btn-primary btn-sm" : "btn-secondary btn-sm"}>
-              {league.archived === 1 ? 'Unarchive' : 'Archive'}
-            </button>
-            <button onClick={handleDeleteLeague} className="btn-danger btn-sm">
-              Delete
-            </button>
+
+            {/* League actions dropdown */}
+            <div className="relative" ref={leagueMenuRef}>
+              <button
+                onClick={() => setShowLeagueMenu(!showLeagueMenu)}
+                className="btn-secondary btn-sm w-8 h-8 p-0 flex items-center justify-center"
+                title="League settings"
+              >
+                ⋯
+              </button>
+              {showLeagueMenu && (
+                <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                  <button
+                    onClick={() => {
+                      handleArchive()
+                      setShowLeagueMenu(false)
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"
+                  >
+                    <span>{league.archived === 1 ? '📦' : '📁'}</span>
+                    {league.archived === 1 ? 'Unarchive League' : 'Archive League'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleDeleteLeague()
+                      setShowLeagueMenu(false)
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
+                  >
+                    <span>🗑️</span>
+                    Delete League
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -1100,20 +1141,34 @@ export default function LeagueDetails() {
 
       {/* No season selected state */}
       {!selectedSeasonId && mainTab === 'season' && seasonSubTab !== null && (
-        <div className="card text-center py-12">
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">Select a Season</h3>
-          <p className="text-gray-500 mb-4">Choose a season from the dropdown above to view teams, schedule, and standings</p>
-          {canManage && leagueSeasons.length === 0 && (
-            <button
-              onClick={() => {
-                setShowSeasonForm(true)
-                setSeasonSubTab(null)
-              }}
-              className="btn-primary"
-            >
-              Create Your First Season
-            </button>
-          )}
+        <div className="card text-center py-16 bg-gradient-to-br from-gray-50 to-white">
+          <div className="max-w-md mx-auto">
+            <div className="text-4xl mb-4">🏒</div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-3">Select a Season to Get Started</h3>
+            <p className="text-gray-600 mb-2">
+              Everything in your league is organized by season - teams, games, standings, and payments all belong to a specific season.
+            </p>
+            <p className="text-gray-500 text-sm mb-6">
+              Choose a season from the dropdown above to manage its teams and schedule, or create a new season to begin.
+            </p>
+            {canManage && leagueSeasons.length === 0 && (
+              <button
+                onClick={() => {
+                  setMainTab('season')
+                  setSeasonSubTab(null)
+                  setShowSeasonForm(true)
+                }}
+                className="btn-primary btn-lg"
+              >
+                Create Your First Season
+              </button>
+            )}
+            {leagueSeasons.length > 0 && (
+              <div className="text-sm text-ice-600 font-medium">
+                ↑ Select a season from the dropdown above
+              </div>
+            )}
+          </div>
         </div>
       )}
 
