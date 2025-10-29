@@ -806,6 +806,74 @@ export default function Home() {
                   ))}
                 </div>
               )}
+
+              {/* Full Schedule Button and Content */}
+              <div className="mt-6 pt-4 border-t">
+                <button
+                  onClick={() => toggleScheduleExpanded(league.id)}
+                  className="btn-secondary w-full"
+                >
+                  {isScheduleExpanded ? 'Hide Full Schedule' : 'View Full Schedule'}
+                </button>
+
+                {isScheduleExpanded && (
+                  <div className="mt-4">
+                    {allGames && allGames.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left py-3 px-4">Date</th>
+                              <th className="text-left py-3 px-4">Time</th>
+                              <th className="text-left py-3 px-4">Matchup</th>
+                              <th className="text-center py-3 px-4">Score</th>
+                              <th className="text-left py-3 px-4">Location</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {allGames.map((game) => (
+                              <tr key={game.id} className={`border-b hover:bg-gray-50 ${
+                                game.home_score !== null && game.away_score !== null ? 'bg-gray-50/50' : ''
+                              }`}>
+                                <td className="py-3 px-4">
+                                  {new Date(game.game_date).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                  })}
+                                </td>
+                                <td className="py-3 px-4">{game.game_time}</td>
+                                <td className="py-3 px-4">
+                                  <span className="font-medium">{game.home_team_name}</span>
+                                  <span className="text-gray-500 mx-2">vs</span>
+                                  <span className="font-medium">{game.away_team_name}</span>
+                                </td>
+                                <td className="text-center py-3 px-4">
+                                  {game.home_score !== null && game.away_score !== null ? (
+                                    <span className="font-semibold">
+                                      {game.home_score} - {game.away_score}
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-400 italic text-xs">Not played</span>
+                                  )}
+                                </td>
+                                <td className="py-3 px-4 text-gray-600">
+                                  {game.rink_name || '-'}
+                                  {game.surface_name && game.rink_name && (
+                                    <span className="text-xs text-gray-500"> ({game.surface_name})</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-center py-8">No games scheduled</p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -852,82 +920,6 @@ export default function Home() {
               </div>
             </div>
           )}
-
-          {/* Full Schedule */}
-          <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold">
-                {isMultipleLeagues ? `${league.name} - Full Schedule` : 'Full Schedule'}
-                {isMultipleLeagues && activeSeason && (
-                  <span className="text-sm font-normal text-gray-500 ml-2">({activeSeason.name})</span>
-                )}
-              </h3>
-              <button
-                onClick={() => toggleScheduleExpanded(league.id)}
-                className="btn-secondary text-sm"
-              >
-                {isScheduleExpanded ? 'Hide Schedule' : 'View Schedule'}
-              </button>
-            </div>
-
-            {isScheduleExpanded && (
-              <div className="mt-4">
-                {allGames && allGames.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-3 px-4">Date</th>
-                          <th className="text-left py-3 px-4">Time</th>
-                          <th className="text-left py-3 px-4">Matchup</th>
-                          <th className="text-center py-3 px-4">Score</th>
-                          <th className="text-left py-3 px-4">Location</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {allGames.map((game) => (
-                          <tr key={game.id} className={`border-b hover:bg-gray-50 ${
-                            game.home_score !== null && game.away_score !== null ? 'bg-gray-50/50' : ''
-                          }`}>
-                            <td className="py-3 px-4">
-                              {new Date(game.game_date).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric'
-                              })}
-                            </td>
-                            <td className="py-3 px-4">{game.game_time}</td>
-                            <td className="py-3 px-4">
-                              <span className="font-medium">{game.home_team_name}</span>
-                              <span className="text-gray-500 mx-2">vs</span>
-                              <span className="font-medium">{game.away_team_name}</span>
-                            </td>
-                            <td className="text-center py-3 px-4">
-                              {game.home_score !== null && game.away_score !== null ? (
-                                <span className="font-semibold">
-                                  {game.home_score} - {game.away_score}
-                                </span>
-                              ) : (
-                                <span className="text-gray-400 italic text-xs">Not played</span>
-                              )}
-                            </td>
-                            <td className="py-3 px-4 text-gray-600">
-                              {game.rink_name || '-'}
-                              {game.surface_name && game.rink_name && (
-                                <span className="text-xs text-gray-500"> ({game.surface_name})</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-8">No games scheduled</p>
-                )}
-              </div>
-            )}
-          </div>
 
           {/* Calendar Subscription */}
           <div className="card bg-blue-50">
