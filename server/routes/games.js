@@ -123,4 +123,56 @@ router.delete('/:id', authenticateToken, requireGameLeagueManager, (req, res) =>
   })
 })
 
+// Get attendance for a game
+router.get('/:id/attendance', authenticateToken, (req, res) => {
+  db.all(
+    `SELECT ga.*, p.name as player_name, p.jersey_number, p.team_id
+     FROM game_attendance ga
+     JOIN players p ON ga.player_id = p.id
+     WHERE ga.game_id = ?`,
+    [req.params.id],
+    (err, rows) => {
+      if (err) {
+        return res.status(500).json({ error: 'Error fetching attendance' })
+      }
+      res.json(rows)
+    }
+  )
+})
+
+// Update player attendance for a game
+router.post('/:id/attendance', authenticateToken, (req, res) => {
+  const { player_id, status } = req.body
+  const game_id = req.params.id
+
+  if (!player_id || !status) {
+    return res.status(400).json({ error: 'Player ID and status are required' })
+  }
+
+  if (!['attending', 'not_attending', 'maybe'].includes(status)) {
+    return res.status(400).json({ error: 'Invalid status. Must be: attending, not_attending, or maybe' })
+  }
+
+  // Insert or update attendance record
+  db.run(
+    `INSERT INTO game_attendance (game_id, player_id, status, updated_at)
+     VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+     ON CONFLICT(game_id, player_id)
+     DO UPDATE SET status = ?, updated_at = CURRENT_TIMESTAMP`,
+    [game_id, player_id, status, status],
+    function (err) {
+      if (err) {
+        return res.status(500).json({ error: 'Error updating attendance' })
+      }
+      res.json({
+        message: 'Attendance updated successfully',
+        id: this.lastID,
+        game_id,
+        player_id,
+        status
+      })
+    }
+  )
+})
+
 export default router
