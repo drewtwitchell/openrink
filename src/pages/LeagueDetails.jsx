@@ -927,11 +927,21 @@ export default function LeagueDetails() {
                     setMainTab('season')
                     setSeasonSubTab(null)
                     setShowSeasonForm(true)
+                    setEditingSeasonId(null)
+                    setSeasonFormData({
+                      name: '',
+                      description: '',
+                      season_dues: '',
+                      venmo_link: '',
+                      start_date: '',
+                      end_date: '',
+                      is_active: false,
+                    })
                   }}
-                  className="btn-secondary btn-sm"
-                  title="Manage Seasons"
+                  className="btn-primary btn-sm"
+                  title="Create a new season"
                 >
-                  + Season
+                  + New Season
                 </button>
               </>
             )}
@@ -1084,37 +1094,55 @@ export default function LeagueDetails() {
       {/* Season Management - shown when mainTab='season' and seasonSubTab=null */}
       {mainTab === 'season' && seasonSubTab === null && (
         <div className="card">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center mb-6">
             <div>
-              <h3 className="section-header">Manage Seasons</h3>
+              <h3 className="section-header mb-2">Manage Seasons</h3>
               {activeSeason && (
-                <p className="text-sm text-gray-600 mt-1">
-                  Active Season: <span className="font-semibold text-ice-600">{activeSeason.name}</span>
-                  {activeSeason.season_dues && (
-                    <span className="ml-2">• Dues: ${parseFloat(activeSeason.season_dues).toFixed(2)}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-600">
+                    Active Season: <span className="font-semibold text-ice-600">{activeSeason.name}</span>
+                  </span>
+                  {activeSeason.start_date && (
+                    <span className="text-xs text-gray-500">
+                      {new Date(activeSeason.start_date).toLocaleDateString()} - {activeSeason.end_date ? new Date(activeSeason.end_date).toLocaleDateString() : 'Ongoing'}
+                    </span>
                   )}
-                </p>
+                  {canManage && (
+                    <button
+                      onClick={() => handleArchiveSeason(activeSeason.id, true)}
+                      className="btn-sm btn-secondary text-amber-600"
+                      title="Archive this season to end it"
+                    >
+                      End Season
+                    </button>
+                  )}
+                </div>
+              )}
+              {!activeSeason && (
+                <p className="text-sm text-gray-500 mt-1">No active season - create or activate one to get started</p>
               )}
             </div>
             {canManage && (
-              <button
-                onClick={() => {
-                  setShowSeasonForm(!showSeasonForm)
-                  setEditingSeasonId(null)
-                  setSeasonFormData({
-                    name: '',
-                    description: '',
-                    season_dues: '',
-                    venmo_link: '',
-                    start_date: '',
-                    end_date: '',
-                    is_active: false,
-                  })
-                }}
-                className="btn-primary"
-              >
-                {showSeasonForm ? 'Cancel' : '+ Add Season'}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setShowSeasonForm(!showSeasonForm)
+                    setEditingSeasonId(null)
+                    setSeasonFormData({
+                      name: '',
+                      description: '',
+                      season_dues: '',
+                      venmo_link: '',
+                      start_date: '',
+                      end_date: '',
+                      is_active: false,
+                    })
+                  }}
+                  className="btn-primary"
+                >
+                  {showSeasonForm ? 'Cancel' : '+ Add Season'}
+                </button>
+              </div>
             )}
           </div>
 
@@ -1145,22 +1173,26 @@ export default function LeagueDetails() {
                   />
                 </div>
                 <div>
-                  <label className="label">Start Date</label>
+                  <label className="label">Start Date *</label>
                   <input
                     type="date"
                     value={seasonFormData.start_date}
                     onChange={(e) => setSeasonFormData({ ...seasonFormData, start_date: e.target.value })}
                     className="input"
+                    required
                   />
+                  <p className="text-xs text-gray-500 mt-1">First day of the season</p>
                 </div>
                 <div>
-                  <label className="label">End Date</label>
+                  <label className="label">End Date *</label>
                   <input
                     type="date"
                     value={seasonFormData.end_date}
                     onChange={(e) => setSeasonFormData({ ...seasonFormData, end_date: e.target.value })}
                     className="input"
+                    required
                   />
+                  <p className="text-xs text-gray-500 mt-1">Last day of the season</p>
                 </div>
                 <div className="md:col-span-2">
                   <label className="label">Description</label>
