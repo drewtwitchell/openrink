@@ -10,6 +10,14 @@ export default function Home() {
   const [leagueData, setLeagueData] = useState([]) // Array of {league, standings, upcomingGames}
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [collapsedLeagues, setCollapsedLeagues] = useState(() => {
+    const saved = localStorage.getItem('collapsedLeagues')
+    return saved ? JSON.parse(saved) : {}
+  })
+  const [starredLeagues, setStarredLeagues] = useState(() => {
+    const saved = localStorage.getItem('starredLeagues')
+    return saved ? JSON.parse(saved) : {}
+  })
 
   // Get league from subdomain (e.g., mhl.openrink.app -> "mhl")
   const getLeagueFromSubdomain = () => {
@@ -348,13 +356,34 @@ export default function Home() {
     )
   }
 
+  const toggleLeagueCollapse = (leagueId) => {
+    const newCollapsed = { ...collapsedLeagues, [leagueId]: !collapsedLeagues[leagueId] }
+    setCollapsedLeagues(newCollapsed)
+    localStorage.setItem('collapsedLeagues', JSON.stringify(newCollapsed))
+  }
+
+  const toggleLeagueStar = (leagueId) => {
+    const newStarred = { ...starredLeagues, [leagueId]: !starredLeagues[leagueId] }
+    setStarredLeagues(newStarred)
+    localStorage.setItem('starredLeagues', JSON.stringify(newStarred))
+  }
+
   // Filter leagues based on URL parameter if provided
-  const displayLeagues = leagueFilter
+  let displayLeagues = leagueFilter
     ? leagueData.filter(({ league }) =>
         league.name.toLowerCase() === leagueFilter.toLowerCase() ||
         league.id.toString() === leagueFilter
       )
     : leagueData
+
+  // Sort leagues: starred leagues first, then by name
+  displayLeagues = displayLeagues.sort((a, b) => {
+    const aStarred = starredLeagues[a.league.id] || false
+    const bStarred = starredLeagues[b.league.id] || false
+    if (aStarred && !bStarred) return -1
+    if (!aStarred && bStarred) return 1
+    return a.league.name.localeCompare(b.league.name)
+  })
 
   const isSingleLeague = displayLeagues.length === 1
   const isMultipleLeagues = displayLeagues.length > 1
@@ -392,35 +421,67 @@ export default function Home() {
         )}
       </div>
 
-      {displayLeagues.map(({ league, activeSeason, standings, upcomingGames, announcements, bracket, teams, teamRosters }) => (
-        <div key={league.id} className={`mb-12 ${isMultipleLeagues ? 'border-2 border-gray-200 rounded-lg p-6 bg-white shadow-sm' : ''}`}>
-          {/* League Header - always show for multiple leagues, enhanced with season info */}
-          {isMultipleLeagues && (
-            <div className="mb-6 pb-4 border-b-2 border-gray-200">
-              <div className="flex items-start justify-between flex-wrap gap-3">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                    {league.name}
-                  </h2>
-                  {league.description && (
-                    <p className="text-gray-600">{league.description}</p>
+      {displayLeagues.map(({ league, activeSeason, standings, upcomingGames, announcements, bracket, teams, teamRosters }) => {
+        const isCollapsed = collapsedLeagues[league.id] || false
+        const isStarred = starredLeagues[league.id] || false
+
+        return (
+          <div key={league.id} className={`mb-12 ${isMultipleLeagues ? 'border-2 border-gray-200 rounded-lg p-6 bg-white shadow-sm' : ''}`}>
+            {/* League Header - always show for multiple leagues, enhanced with season info */}
+            {isMultipleLeagues && (
+              <div className="mb-6 pb-4 border-b-2 border-gray-200">
+                <div className="flex items-start justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-3 flex-1">
+                    <button
+                      onClick={() => toggleLeagueCollapse(league.id)}
+                      className="btn-secondary p-2 flex-shrink-0"
+                      title={isCollapsed ? 'Expand league' : 'Collapse league'}
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {isCollapsed ? (
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        ) : (
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        )}
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => toggleLeagueStar(league.id)}
+                      className="p-2 flex-shrink-0"
+                      title={isStarred ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                      <svg className={`w-6 h-6 ${isStarred ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'}`} stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                      </svg>
+                    </button>
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                        {league.name}
+                      </h2>
+                      {league.description && (
+                        <p className="text-gray-600">{league.description}</p>
+                      )}
+                    </div>
+                  </div>
+                  {activeSeason && (
+                    <div className="flex flex-col items-end gap-2">
+                      <span className="badge badge-success text-sm px-3 py-1">
+                        {activeSeason.name}
+                      </span>
+                      {activeSeason.start_date && activeSeason.end_date && (
+                        <span className="text-xs text-gray-500">
+                          {new Date(activeSeason.start_date).toLocaleDateString()} - {new Date(activeSeason.end_date).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
-                {activeSeason && (
-                  <div className="flex flex-col items-end gap-2">
-                    <span className="badge badge-success text-sm px-3 py-1">
-                      {activeSeason.name}
-                    </span>
-                    {activeSeason.start_date && activeSeason.end_date && (
-                      <span className="text-xs text-gray-500">
-                        {new Date(activeSeason.start_date).toLocaleDateString()} - {new Date(activeSeason.end_date).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
-                )}
               </div>
-            </div>
-          )}
+            )}
+
+            {/* League content - hide when collapsed */}
+            {(!isMultipleLeagues || !isCollapsed) && (
+              <div>
 
           {/* Announcements - topmost element */}
           {announcements && announcements.length > 0 && (
@@ -760,8 +821,11 @@ export default function Home() {
               <p className="mt-2 text-gray-600">Calendars refresh automatically every hour with new games and updates.</p>
             </div>
           </div>
-        </div>
-      ))}
+            )}
+          </div>
+        )
+      })}
+
 
     </div>
   )
