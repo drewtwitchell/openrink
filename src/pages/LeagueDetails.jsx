@@ -2049,50 +2049,66 @@ export default function LeagueDetails() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => handlePaymentMethodSelect('venmo')}
-                  className="flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg hover:border-ice-500 hover:bg-ice-50 transition-all"
+                  className="flex flex-col items-center justify-center p-4 border-2 border-[#008CFF] bg-gradient-to-br from-[#008CFF]/10 to-[#3D95CE]/10 rounded-lg hover:border-[#008CFF] hover:shadow-lg transition-all"
                 >
-                  <span className="text-2xl mb-2">💳</span>
-                  <span className="font-semibold">Venmo</span>
+                  <div className="w-12 h-12 bg-[#008CFF] rounded-xl flex items-center justify-center mb-2">
+                    <span className="text-white text-xl font-bold">V</span>
+                  </div>
+                  <span className="font-semibold text-[#008CFF]">Venmo</span>
                 </button>
 
                 <button
                   onClick={() => handlePaymentMethodSelect('zelle')}
-                  className="flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg hover:border-ice-500 hover:bg-ice-50 transition-all"
+                  className="flex flex-col items-center justify-center p-4 border-2 border-[#6D1ED4] bg-gradient-to-br from-[#6D1ED4]/10 to-[#A24DFF]/10 rounded-lg hover:border-[#6D1ED4] hover:shadow-lg transition-all"
                 >
-                  <span className="text-2xl mb-2">📱</span>
-                  <span className="font-semibold">Zelle</span>
+                  <div className="w-12 h-12 bg-[#6D1ED4] rounded-xl flex items-center justify-center mb-2">
+                    <span className="text-white text-xl font-bold">Z</span>
+                  </div>
+                  <span className="font-semibold text-[#6D1ED4]">Zelle</span>
                 </button>
 
                 <button
                   onClick={() => handlePaymentMethodSelect('cash')}
-                  className="flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg hover:border-ice-500 hover:bg-ice-50 transition-all"
+                  className="flex flex-col items-center justify-center p-4 border-2 border-green-600 bg-gradient-to-br from-green-50 to-green-100 rounded-lg hover:border-green-600 hover:shadow-lg transition-all"
                 >
-                  <span className="text-2xl mb-2">💵</span>
-                  <span className="font-semibold">Cash</span>
+                  <div className="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center mb-2">
+                    <span className="text-white text-2xl font-bold">$</span>
+                  </div>
+                  <span className="font-semibold text-green-700">Cash</span>
                 </button>
 
                 <button
                   onClick={() => handlePaymentMethodSelect('check')}
-                  className="flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg hover:border-ice-500 hover:bg-ice-50 transition-all"
+                  className="flex flex-col items-center justify-center p-4 border-2 border-blue-600 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg hover:border-blue-600 hover:shadow-lg transition-all"
                 >
-                  <span className="text-2xl mb-2">✅</span>
-                  <span className="font-semibold">Check</span>
+                  <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mb-2">
+                    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <span className="font-semibold text-blue-700">Check</span>
                 </button>
 
                 <button
                   onClick={() => handlePaymentMethodSelect('paypal')}
-                  className="flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg hover:border-ice-500 hover:bg-ice-50 transition-all"
+                  className="flex flex-col items-center justify-center p-4 border-2 border-[#0070BA] bg-gradient-to-br from-[#0070BA]/10 to-[#003087]/10 rounded-lg hover:border-[#0070BA] hover:shadow-lg transition-all"
                 >
-                  <span className="text-2xl mb-2">🅿️</span>
-                  <span className="font-semibold">PayPal</span>
+                  <div className="w-12 h-12 bg-[#0070BA] rounded-xl flex items-center justify-center mb-2">
+                    <span className="text-white text-xl font-bold">P</span>
+                  </div>
+                  <span className="font-semibold text-[#0070BA]">PayPal</span>
                 </button>
 
                 <button
                   onClick={() => handlePaymentMethodSelect('other')}
-                  className="flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg hover:border-ice-500 hover:bg-ice-50 transition-all"
+                  className="flex flex-col items-center justify-center p-4 border-2 border-gray-400 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg hover:border-gray-500 hover:shadow-lg transition-all"
                 >
-                  <span className="text-2xl mb-2">💰</span>
-                  <span className="font-semibold">Other</span>
+                  <div className="w-12 h-12 bg-gray-500 rounded-xl flex items-center justify-center mb-2">
+                    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <span className="font-semibold text-gray-700">Other</span>
                 </button>
               </div>
 
