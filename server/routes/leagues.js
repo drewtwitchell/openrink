@@ -1,6 +1,7 @@
 import express from 'express'
 import db from '../database.js'
 import { authenticateToken } from '../middleware/auth.js'
+import { requireLeagueManager } from '../middleware/leagueAuth.js'
 
 const router = express.Router()
 
@@ -46,7 +47,7 @@ router.get('/:id/managers', (req, res) => {
 })
 
 // Add league manager
-router.post('/:id/managers', authenticateToken, (req, res) => {
+router.post('/:id/managers', authenticateToken, requireLeagueManager, (req, res) => {
   const { email } = req.body
 
   if (!email) {
@@ -80,7 +81,7 @@ router.post('/:id/managers', authenticateToken, (req, res) => {
 })
 
 // Remove league manager
-router.delete('/:id/managers/:userId', authenticateToken, (req, res) => {
+router.delete('/:id/managers/:userId', authenticateToken, requireLeagueManager, (req, res) => {
   db.run(
     'DELETE FROM league_managers WHERE league_id = ? AND user_id = ?',
     [req.params.id, req.params.userId],
@@ -117,7 +118,7 @@ router.post('/', authenticateToken, (req, res) => {
 })
 
 // Update league
-router.put('/:id', authenticateToken, (req, res) => {
+router.put('/:id', authenticateToken, requireLeagueManager, (req, res) => {
   const { name, description } = req.body
 
   db.run(
@@ -133,7 +134,7 @@ router.put('/:id', authenticateToken, (req, res) => {
 })
 
 // Archive/Unarchive league
-router.patch('/:id/archive', authenticateToken, (req, res) => {
+router.patch('/:id/archive', authenticateToken, requireLeagueManager, (req, res) => {
   const { archived } = req.body // archived should be 1 (archive) or 0 (unarchive)
 
   db.run(
@@ -149,7 +150,7 @@ router.patch('/:id/archive', authenticateToken, (req, res) => {
 })
 
 // Delete league
-router.delete('/:id', authenticateToken, (req, res) => {
+router.delete('/:id', authenticateToken, requireLeagueManager, (req, res) => {
   db.run('DELETE FROM leagues WHERE id = ?', [req.params.id], function (err) {
     if (err) {
       return res.status(500).json({ error: 'Error deleting league' })

@@ -1,6 +1,7 @@
 import express from 'express'
 import db from '../database.js'
 import { authenticateToken } from '../middleware/auth.js'
+import { requireLeagueManager, requireTeamLeagueManager } from '../middleware/leagueAuth.js'
 
 const router = express.Router()
 
@@ -54,7 +55,7 @@ router.get('/', (req, res) => {
 })
 
 // Create team
-router.post('/', authenticateToken, (req, res) => {
+router.post('/', authenticateToken, requireLeagueManager, (req, res) => {
   const { name, league_id, season_id, color } = req.body
 
   if (!name || !league_id) {
@@ -74,7 +75,7 @@ router.post('/', authenticateToken, (req, res) => {
 })
 
 // Delete team
-router.delete('/:id', authenticateToken, (req, res) => {
+router.delete('/:id', authenticateToken, requireTeamLeagueManager, (req, res) => {
   db.run('DELETE FROM teams WHERE id = ?', [req.params.id], function (err) {
     if (err) {
       return res.status(500).json({ error: 'Error deleting team' })

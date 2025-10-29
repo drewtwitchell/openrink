@@ -1,6 +1,7 @@
 import express from 'express'
 import db from '../database.js'
 import { authenticateToken } from '../middleware/auth.js'
+import { requireTeamLeagueManager } from '../middleware/leagueAuth.js'
 
 const router = express.Router()
 
@@ -22,7 +23,7 @@ router.get('/team/:teamId', (req, res) => {
 })
 
 // Add a captain to a team
-router.post('/', authenticateToken, (req, res) => {
+router.post('/', authenticateToken, requireTeamLeagueManager, (req, res) => {
   const { user_id, team_id } = req.body
 
   if (!user_id || !team_id) {
@@ -42,7 +43,7 @@ router.post('/', authenticateToken, (req, res) => {
 })
 
 // Remove a captain from a team
-router.delete('/', authenticateToken, (req, res) => {
+router.delete('/', authenticateToken, requireTeamLeagueManager, (req, res) => {
   const { user_id, team_id } = req.body
 
   if (!user_id || !team_id) {

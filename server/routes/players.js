@@ -1,6 +1,7 @@
 import express from 'express'
 import db from '../database.js'
 import { authenticateToken } from '../middleware/auth.js'
+import { requireTeamLeagueManager, requirePlayerLeagueManager } from '../middleware/leagueAuth.js'
 
 const router = express.Router()
 
@@ -98,7 +99,7 @@ function createPlayerHistory(playerId, userId, teamId, jerseyNumber, playerPosit
 }
 
 // Create player
-router.post('/', authenticateToken, (req, res) => {
+router.post('/', authenticateToken, requireTeamLeagueManager, (req, res) => {
   const { team_id, user_id, name, email, phone, jersey_number, email_notifications, position } = req.body
 
   if (!team_id || !name) {
@@ -204,7 +205,7 @@ router.post('/', authenticateToken, (req, res) => {
 })
 
 // Update player
-router.put('/:id', authenticateToken, (req, res) => {
+router.put('/:id', authenticateToken, requirePlayerLeagueManager, (req, res) => {
   const { user_id, name, email, phone, jersey_number, email_notifications, position } = req.body
 
   // If user_id is provided, get position from user, otherwise use provided position
@@ -273,9 +274,12 @@ router.patch('/:id/transfer', authenticateToken, (req, res) => {
     return res.status(400).json({ error: 'Destination team ID required' })
   }
 
-  // Get current player info before transfer
+  // Get current player info and source team's league
   db.get(
-    'SELECT * FROM players WHERE id = ?',
+    `SELECT players.*, teams.league_id as source_league_id
+     FROM players
+     INNER JOIN teams ON players.team_id = teams.id
+     WHERE players.id = ?`,
     [req.params.id],
     (err, player) => {
       if (err) {
@@ -286,8 +290,55 @@ router.patch('/:id/transfer', authenticateToken, (req, res) => {
         return res.status(404).json({ error: 'Player not found' })
       }
 
-      // Close out old team history entry (set left_date to now)
-      db.run(
+      // Get destination team's league
+      db.get(
+        'SELECT league_id FROM teams WHERE id = ?',
+        [team_id],
+        (err, destTeam) => {
+          if (err) {
+            return res.status(500).json({ error: 'Error fetching destination team' })
+          }
+
+          if (!destTeam) {
+            return res.status(404).json({ error: 'Destination team not found' })
+          }
+
+          // CRITICAL: Prevent cross-league transfers
+          if (player.source_league_id !== destTeam.league_id) {
+            return res.status(400).json({
+              error: 'Cannot transfer players between different leagues'
+            })
+          }
+
+          // Verify user manages this league
+          db.get('SELECT role FROM users WHERE id = ?', [req.user.id], (err, user) => {
+            if (err || !user) {
+              return res.status(403).json({ error: 'Unauthorized' })
+            }
+
+            if (user.role === 'admin') {
+              // Admin can proceed with transfer
+              performTransfer()
+            } else {
+              // Check if user is a league manager for this league
+              db.get(
+                'SELECT id FROM league_managers WHERE user_id = ? AND league_id = ?',
+                [req.user.id, player.source_league_id],
+                (err, manager) => {
+                  if (err || !manager) {
+                    return res.status(403).json({
+                      error: 'Not authorized to transfer players in this league'
+                    })
+                  }
+                  performTransfer()
+                }
+              )
+            }
+          })
+
+          function performTransfer() {
+            // Close out old team history entry (set left_date to now)
+            db.run(
         `UPDATE player_history
          SET left_date = CURRENT_TIMESTAMP
          WHERE player_id = ? AND team_id = ? AND left_date IS NULL`,
@@ -337,13 +388,13 @@ router.patch('/:id/transfer', authenticateToken, (req, res) => {
             }
           )
         }
-      )
+      })
     }
   )
 })
 
 // Delete player
-router.delete('/:id', authenticateToken, (req, res) => {
+router.delete('/:id', authenticateToken, requirePlayerLeagueManager, (req, res) => {
   db.run('DELETE FROM players WHERE id = ?', [req.params.id], function (err) {
     if (err) {
       return res.status(500).json({ error: 'Error deleting player' })

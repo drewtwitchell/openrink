@@ -1,6 +1,7 @@
 import express from 'express'
 import db from '../database.js'
 import { authenticateToken } from '../middleware/auth.js'
+import { requireLeagueManager, requireSeasonLeagueManager } from '../middleware/leagueAuth.js'
 
 const router = express.Router()
 
@@ -50,7 +51,7 @@ router.get('/:id', (req, res) => {
 })
 
 // Create new season
-router.post('/', authenticateToken, (req, res) => {
+router.post('/', authenticateToken, requireLeagueManager, (req, res) => {
   const {
     league_id,
     name,
@@ -77,7 +78,7 @@ router.post('/', authenticateToken, (req, res) => {
 })
 
 // Update season
-router.put('/:id', authenticateToken, (req, res) => {
+router.put('/:id', authenticateToken, requireSeasonLeagueManager, (req, res) => {
   const {
     name,
     description,
@@ -105,7 +106,7 @@ router.put('/:id', authenticateToken, (req, res) => {
 })
 
 // Archive/Unarchive season
-router.patch('/:id/archive', authenticateToken, (req, res) => {
+router.patch('/:id/archive', authenticateToken, requireSeasonLeagueManager, (req, res) => {
   const { archived } = req.body
 
   db.run(
@@ -122,7 +123,7 @@ router.patch('/:id/archive', authenticateToken, (req, res) => {
 })
 
 // Set active season for a league (deactivates others)
-router.patch('/:id/set-active', authenticateToken, (req, res) => {
+router.patch('/:id/set-active', authenticateToken, requireSeasonLeagueManager, (req, res) => {
   const seasonId = req.params.id
 
   // First get the league_id for this season
@@ -159,7 +160,7 @@ router.patch('/:id/set-active', authenticateToken, (req, res) => {
 })
 
 // Delete season
-router.delete('/:id', authenticateToken, (req, res) => {
+router.delete('/:id', authenticateToken, requireSeasonLeagueManager, (req, res) => {
   db.run('DELETE FROM seasons WHERE id = ?', [req.params.id], function (err) {
     if (err) {
       console.error('Error deleting season:', err)

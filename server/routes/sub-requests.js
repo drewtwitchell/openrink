@@ -1,6 +1,7 @@
 import express from 'express'
 import db from '../database.js'
 import { authenticateToken } from '../middleware/auth.js'
+import { requireGameLeagueManager, requireSubRequestLeagueManager } from '../middleware/leagueAuth.js'
 
 const router = express.Router()
 
@@ -53,7 +54,7 @@ router.get('/game/:gameId', (req, res) => {
 })
 
 // Create sub request
-router.post('/', authenticateToken, (req, res) => {
+router.post('/', authenticateToken, requireGameLeagueManager, (req, res) => {
   const {
     game_id,
     requesting_player_id,
@@ -66,6 +67,11 @@ router.post('/', authenticateToken, (req, res) => {
   if (!game_id || !requesting_player_id) {
     return res.status(400).json({ error: 'Game ID and requesting player ID are required' })
   }
+
+  // Note: game_id will be in req.body, so requireGameLeagueManager won't work directly
+  // We need to set it in req.params for the middleware
+  req.params.id = game_id
+  req.params.gameId = game_id
 
   db.run(
     `INSERT INTO sub_requests (game_id, requesting_player_id, payment_required, payment_amount, venmo_link, notes)
@@ -88,7 +94,7 @@ router.post('/', authenticateToken, (req, res) => {
 })
 
 // Accept sub request (assign substitute)
-router.put('/:id/accept', authenticateToken, (req, res) => {
+router.put('/:id/accept', authenticateToken, requireSubRequestLeagueManager, (req, res) => {
   const { substitute_player_id } = req.body
 
   if (!substitute_player_id) {
@@ -111,7 +117,7 @@ router.put('/:id/accept', authenticateToken, (req, res) => {
 })
 
 // Delete sub request
-router.delete('/:id', authenticateToken, (req, res) => {
+router.delete('/:id', authenticateToken, requireSubRequestLeagueManager, (req, res) => {
   db.run('DELETE FROM sub_requests WHERE id = ?', [req.params.id], function (err) {
     if (err) {
       return res.status(500).json({ error: 'Error deleting sub request' })

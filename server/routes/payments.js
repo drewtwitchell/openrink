@@ -1,6 +1,7 @@
 import express from 'express'
 import db from '../database.js'
 import { authenticateToken } from '../middleware/auth.js'
+import { requireTeamLeagueManager, requirePaymentLeagueManager } from '../middleware/leagueAuth.js'
 
 const router = express.Router()
 
@@ -41,7 +42,7 @@ router.get('/player/:playerId', authenticateToken, (req, res) => {
 })
 
 // Create payment record
-router.post('/', authenticateToken, (req, res) => {
+router.post('/', authenticateToken, requireTeamLeagueManager, (req, res) => {
   const {
     player_id,
     team_id,
@@ -71,7 +72,7 @@ router.post('/', authenticateToken, (req, res) => {
 })
 
 // Mark payment as paid
-router.put('/:id/paid', authenticateToken, (req, res) => {
+router.put('/:id/paid', authenticateToken, requirePaymentLeagueManager, (req, res) => {
   const {
     confirmation_number,
     payment_notes,
@@ -122,7 +123,7 @@ router.put('/:id/paid', authenticateToken, (req, res) => {
 })
 
 // Mark payment as unpaid
-router.put('/:id/unpaid', authenticateToken, (req, res) => {
+router.put('/:id/unpaid', authenticateToken, requirePaymentLeagueManager, (req, res) => {
   db.run(
     `UPDATE payments
      SET status = ?,
@@ -142,7 +143,7 @@ router.put('/:id/unpaid', authenticateToken, (req, res) => {
 })
 
 // Update payment amount
-router.put('/:id/amount', authenticateToken, (req, res) => {
+router.put('/:id/amount', authenticateToken, requirePaymentLeagueManager, (req, res) => {
   const { amount } = req.body
 
   if (amount === undefined || amount === null || amount < 0) {
@@ -162,7 +163,7 @@ router.put('/:id/amount', authenticateToken, (req, res) => {
 })
 
 // Delete payment record
-router.delete('/:id', authenticateToken, (req, res) => {
+router.delete('/:id', authenticateToken, requirePaymentLeagueManager, (req, res) => {
   db.run('DELETE FROM payments WHERE id = ?', [req.params.id], function (err) {
     if (err) {
       return res.status(500).json({ error: 'Error deleting payment' })
