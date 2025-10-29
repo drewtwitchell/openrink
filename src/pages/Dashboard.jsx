@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { auth, leagues, teams, players, seasons } from '../lib/api'
 import { useNavigate } from 'react-router-dom'
+import ConfirmModal from '../components/ConfirmModal'
 
 // Admin-only: User Management Card
 function UsersManagementCard() {
@@ -100,6 +101,7 @@ export default function Dashboard() {
   })
   const [expandedTeams, setExpandedTeams] = useState({})
   const [teamRosters, setTeamRosters] = useState({})
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, league: null })
 
   useEffect(() => {
     const currentUser = auth.getUser()
@@ -216,12 +218,14 @@ export default function Dashboard() {
     }
   }
 
-  const handleDeleteLeague = async (e, league) => {
+  const handleDeleteLeague = (e, league) => {
     e.stopPropagation() // Prevent navigation
+    setDeleteModal({ isOpen: true, league })
+  }
 
-    if (!confirm(`Delete league "${league.name}"? This will permanently delete all associated seasons, teams, games, and players. This cannot be undone.`)) {
-      return
-    }
+  const confirmDeleteLeague = async () => {
+    const league = deleteModal.league
+    if (!league) return
 
     try {
       await leagues.delete(league.id)
@@ -884,6 +888,18 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, league: null })}
+        onConfirm={confirmDeleteLeague}
+        title="Delete League"
+        message={`Are you sure you want to delete "${deleteModal.league?.name}"?\n\nThis will permanently delete all associated seasons, teams, games, and players. This action cannot be undone.`}
+        confirmText="Delete League"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   )
 }
