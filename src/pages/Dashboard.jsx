@@ -878,16 +878,25 @@ export default function Dashboard() {
                           </div>
                         </div>
 
-                        {paymentStats && paymentStats.total_players > 0 && (
+                        {activeSeason && paymentStats && (
                           <div>
                             <div className="flex justify-between text-xs text-gray-600 mb-1">
                               <span>Payment Progress</span>
-                              <span>{Math.round((paymentStats.players_paid / paymentStats.total_players) * 100)}%</span>
+                              <span>
+                                {paymentStats.total_players > 0
+                                  ? `${Math.round((paymentStats.players_paid / paymentStats.total_players) * 100)}%`
+                                  : '0%'
+                                }
+                              </span>
                             </div>
                             <div className="progress-bar">
                               <div
                                 className="progress-fill"
-                                style={{ width: `${(paymentStats.players_paid / paymentStats.total_players) * 100}%` }}
+                                style={{
+                                  width: paymentStats.total_players > 0
+                                    ? `${(paymentStats.players_paid / paymentStats.total_players) * 100}%`
+                                    : '0%'
+                                }}
                               ></div>
                             </div>
                           </div>
