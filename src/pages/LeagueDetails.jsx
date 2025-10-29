@@ -168,10 +168,11 @@ export default function LeagueDetails() {
 
   // Set default season sub tab when season is selected
   useEffect(() => {
-    if (selectedSeasonId && !seasonSubTab) {
+    // Auto-navigate to teams tab when season is selected, but NOT when we're showing the season form
+    if (selectedSeasonId && !seasonSubTab && !showSeasonForm) {
       setSeasonSubTab('teams')
     }
-  }, [selectedSeasonId, seasonSubTab])
+  }, [selectedSeasonId, seasonSubTab, showSeasonForm])
 
   const fetchLeagueData = async () => {
     try {
@@ -925,9 +926,10 @@ export default function LeagueDetails() {
                 <button
                   onClick={() => {
                     console.log('🔵 + New Season button clicked')
-                    console.log('Setting mainTab=season, seasonSubTab=null, showSeasonForm=true')
+                    console.log('Setting mainTab=season, seasonSubTab=null, showSeasonForm=true, clearing selectedSeasonId')
                     setMainTab('season')
                     setSeasonSubTab(null)
+                    setSelectedSeasonId(null) // Clear selected season when creating new
                     setShowSeasonForm(true)
                     setEditingSeasonId(null)
                     setSeasonFormData({
