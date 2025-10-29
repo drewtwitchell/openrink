@@ -492,25 +492,25 @@ export default function LeagueDetails() {
         </div>
       )}
 
-      {/* Main Tabs */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="flex space-x-8">
+      {/* Main Tabs - Primary Navigation */}
+      <div className="bg-gray-50 border-b-2 border-gray-300 mb-1">
+        <nav className="flex space-x-2">
           <button
             onClick={() => setMainTab('overview')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+            className={`py-4 px-6 font-bold text-lg transition-all ${
               mainTab === 'overview'
-                ? 'border-ice-600 text-ice-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'bg-white text-ice-700 border-b-4 border-ice-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
             }`}
           >
             General
           </button>
           <button
             onClick={() => setMainTab('season')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+            className={`py-4 px-6 font-bold text-lg transition-all ${
               mainTab === 'season'
-                ? 'border-ice-600 text-ice-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'bg-white text-ice-700 border-b-4 border-ice-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
             }`}
           >
             Season
@@ -518,16 +518,16 @@ export default function LeagueDetails() {
         </nav>
       </div>
 
-      {/* Sub Tabs */}
+      {/* Sub Tabs - Secondary Navigation */}
       {mainTab === 'overview' && (
-        <div className="border-b border-gray-200 mb-6">
-          <nav className="flex space-x-8">
+        <div className="bg-gray-100 border-b border-gray-300 mb-6">
+          <nav className="flex space-x-1 px-4">
             <button
               onClick={() => setOverviewSubTab('managers')}
-              className={`py-3 px-1 border-b-2 font-medium text-sm ${
+              className={`py-3 px-5 font-semibold text-sm rounded-t transition-all ${
                 overviewSubTab === 'managers'
-                  ? 'border-ice-600 text-ice-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'bg-white text-ice-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
               }`}
             >
               Managers
@@ -536,20 +536,20 @@ export default function LeagueDetails() {
               <>
                 <button
                   onClick={() => setOverviewSubTab('announcements')}
-                  className={`py-3 px-1 border-b-2 font-medium text-sm ${
+                  className={`py-3 px-5 font-semibold text-sm rounded-t transition-all ${
                     overviewSubTab === 'announcements'
-                      ? 'border-ice-600 text-ice-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'bg-white text-ice-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
                   }`}
                 >
                   Announcements
                 </button>
                 <button
                   onClick={() => setOverviewSubTab('payments')}
-                  className={`py-3 px-1 border-b-2 font-medium text-sm ${
+                  className={`py-3 px-5 font-semibold text-sm rounded-t transition-all ${
                     overviewSubTab === 'payments'
-                      ? 'border-ice-600 text-ice-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'bg-white text-ice-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
                   }`}
                 >
                   Payments
@@ -561,14 +561,14 @@ export default function LeagueDetails() {
       )}
 
       {mainTab === 'season' && (
-        <div className="border-b border-gray-200 mb-6">
-          <nav className="flex space-x-8">
+        <div className="bg-gray-100 border-b border-gray-300 mb-6">
+          <nav className="flex space-x-1 px-4">
             <button
               onClick={() => setSeasonSubTab(null)}
-              className={`py-3 px-1 border-b-2 font-medium text-sm ${
+              className={`py-3 px-5 font-semibold text-sm rounded-t transition-all ${
                 seasonSubTab === null
-                  ? 'border-ice-600 text-ice-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'bg-white text-ice-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
               }`}
             >
               Seasons ({leagueSeasons.length})
@@ -577,20 +577,20 @@ export default function LeagueDetails() {
               <>
                 <button
                   onClick={() => setSeasonSubTab('teams')}
-                  className={`py-3 px-1 border-b-2 font-medium text-sm ${
+                  className={`py-3 px-5 font-semibold text-sm rounded-t transition-all ${
                     seasonSubTab === 'teams'
-                      ? 'border-ice-600 text-ice-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'bg-white text-ice-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
                   }`}
                 >
                   Teams ({teams.length})
                 </button>
                 <button
                   onClick={() => setSeasonSubTab('schedule')}
-                  className={`py-3 px-1 border-b-2 font-medium text-sm ${
+                  className={`py-3 px-5 font-semibold text-sm rounded-t transition-all ${
                     seasonSubTab === 'schedule'
-                      ? 'border-ice-600 text-ice-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'bg-white text-ice-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
                   }`}
                 >
                   Schedule ({games.length})
@@ -598,10 +598,10 @@ export default function LeagueDetails() {
                 {canManage && (
                   <button
                     onClick={() => setSeasonSubTab('playoffs')}
-                    className={`py-3 px-1 border-b-2 font-medium text-sm ${
+                    className={`py-3 px-5 font-semibold text-sm rounded-t transition-all ${
                       seasonSubTab === 'playoffs'
-                        ? 'border-ice-600 text-ice-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        ? 'bg-white text-ice-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
                     }`}
                   >
                     Playoffs
