@@ -924,6 +924,8 @@ export default function LeagueDetails() {
                 </button>
                 <button
                   onClick={() => {
+                    console.log('🔵 + New Season button clicked')
+                    console.log('Setting mainTab=season, seasonSubTab=null, showSeasonForm=true')
                     setMainTab('season')
                     setSeasonSubTab(null)
                     setShowSeasonForm(true)
@@ -937,6 +939,7 @@ export default function LeagueDetails() {
                       end_date: '',
                       is_active: false,
                     })
+                    console.log('State changes queued')
                   }}
                   className="btn-primary btn-sm"
                   title="Create a new season"
@@ -951,6 +954,23 @@ export default function LeagueDetails() {
             <button onClick={handleDeleteLeague} className="btn-danger btn-sm">
               Delete
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* DEBUG PANEL - TEMPORARY */}
+      <div className="card mb-4 bg-yellow-50 border-2 border-yellow-400">
+        <h4 className="font-bold text-sm mb-2">🐛 Debug Info (will be removed)</h4>
+        <div className="text-xs space-y-1 font-mono">
+          <div>mainTab: <strong>{mainTab}</strong></div>
+          <div>seasonSubTab: <strong>{seasonSubTab || 'null'}</strong></div>
+          <div>selectedSeasonId: <strong>{selectedSeasonId || 'null'}</strong></div>
+          <div>showSeasonForm: <strong>{showSeasonForm ? 'true' : 'false'}</strong></div>
+          <div className="mt-2 pt-2 border-t border-yellow-300">
+            Season Management visible: <strong>{(mainTab === 'season' && seasonSubTab === null) ? 'YES' : 'NO'}</strong>
+          </div>
+          <div>
+            Form visible: <strong>{(mainTab === 'season' && seasonSubTab === null && showSeasonForm) ? 'YES' : 'NO'}</strong>
           </div>
         </div>
       </div>
