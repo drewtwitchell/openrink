@@ -159,15 +159,12 @@ function App() {
                     >
                       Home
                     </Link>
-                    {/* Only show Dashboard for admins and league_managers */}
-                    {user && (user.role === 'admin' || user.role === 'league_manager') && (
-                      <Link
-                        to="/dashboard"
-                        className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-ice-600 hover:bg-gray-100"
-                      >
-                        Dashboard
-                      </Link>
-                    )}
+                    <Link
+                      to="/dashboard"
+                      className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-ice-600 hover:bg-gray-100"
+                    >
+                      Dashboard
+                    </Link>
                   </div>
                 )}
               </div>
