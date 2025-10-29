@@ -959,8 +959,8 @@ export default function LeagueDetails() {
                 >
                   ⚙️ Managers
                 </button>
-                {/* Only show + New Season button when seasons already exist */}
-                {leagueSeasons.length > 0 && (
+                {/* Only show + New Season button when non-archived seasons exist */}
+                {leagueSeasons.some(s => s.archived !== 1) && (
                   <button
                     onClick={() => {
                       setMainTab('season')
@@ -1147,7 +1147,7 @@ export default function LeagueDetails() {
         <div className="card text-center py-16 bg-gradient-to-br from-gray-50 to-white">
           <div className="max-w-md mx-auto">
             <div className="text-4xl mb-4">🏒</div>
-            {leagueSeasons.length === 0 ? (
+            {!leagueSeasons.some(s => s.archived !== 1) ? (
               <>
                 <h3 className="text-2xl font-bold text-gray-800 mb-3">Create Your First Season</h3>
                 <p className="text-gray-600 mb-2">
