@@ -488,15 +488,29 @@ export default function LeagueDetails() {
           payment_method: paymentMethod.toLowerCase().trim()
         })
         // Mark the newly created payment as paid
-        await payments.markPaid(paymentRecord.id, { payment_method: paymentMethod.toLowerCase().trim() })
+        await payments.markPaid(paymentRecord.id, null, null, paymentMethod.toLowerCase().trim())
       } else {
         // Mark existing payment as paid
-        await payments.markPaid(player.payment_id, { payment_method: paymentMethod.toLowerCase().trim() })
+        await payments.markPaid(player.payment_id, null, null, paymentMethod.toLowerCase().trim())
       }
       // Refresh payment data
       await fetchPaymentData(activeSeason.id)
     } catch (error) {
       alert('Error marking payment as paid: ' + error.message)
+    }
+  }
+
+  const handleMarkUnpaid = async (player) => {
+    if (!confirm(`Mark ${player.name}'s payment as unpaid?`)) {
+      return
+    }
+
+    try {
+      await payments.markUnpaid(player.payment_id)
+      // Refresh payment data
+      await fetchPaymentData(activeSeason.id)
+    } catch (error) {
+      alert('Error marking payment as unpaid: ' + error.message)
     }
   }
 
@@ -1868,9 +1882,19 @@ export default function LeagueDetails() {
                                   </td>
                                   <td className="py-2 px-3 text-center">
                                     {player.payment_status === 'paid' ? (
-                                      <span className="text-xs text-gray-500">
-                                        {new Date(player.paid_date).toLocaleDateString()}
-                                      </span>
+                                      <div className="flex flex-col items-center gap-1">
+                                        <span className="text-xs text-gray-500">
+                                          {new Date(player.paid_date).toLocaleDateString()}
+                                        </span>
+                                        {canManage && (
+                                          <button
+                                            onClick={() => handleMarkUnpaid(player)}
+                                            className="text-xs text-red-600 hover:text-red-700 hover:underline"
+                                          >
+                                            Mark Unpaid
+                                          </button>
+                                        )}
+                                      </div>
                                     ) : canManage ? (
                                       <button
                                         onClick={() => handleMarkPaid(player)}

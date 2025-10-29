@@ -212,11 +212,11 @@ router.get('/:id/players-payments', (req, res) => {
     FROM teams t
     LEFT JOIN players p ON p.team_id = t.id
     LEFT JOIN payments pay ON p.id = pay.player_id AND pay.season_id = ?
-    WHERE t.league_id = (SELECT league_id FROM seasons WHERE id = ?)
+    WHERE t.season_id = ? OR (t.league_id = (SELECT league_id FROM seasons WHERE id = ?) AND t.season_id IS NULL)
     ORDER BY t.name, p.name
   `
 
-  db.all(query, [req.params.id, req.params.id], (err, rows) => {
+  db.all(query, [req.params.id, req.params.id, req.params.id], (err, rows) => {
     if (err) {
       console.error('Error fetching players and payments:', err)
       return res.status(500).json({ error: 'Error fetching players and payments' })
