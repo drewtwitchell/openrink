@@ -1338,6 +1338,84 @@ export default function LeagueDetails() {
                 </div>
               )}
 
+              {/* Overall Progress Bar */}
+              {paymentStats && paymentStats.total_players > 0 && (
+                <div className="mb-6 p-4 bg-white border border-gray-200 rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="font-semibold">Overall Payment Progress</h3>
+                    <span className="text-sm text-gray-600">
+                      {paymentStats.players_paid} of {paymentStats.total_players} players paid ({Math.round((paymentStats.players_paid / paymentStats.total_players) * 100)}%)
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-6">
+                    <div
+                      className="bg-green-600 h-6 rounded-full flex items-center justify-center text-white text-xs font-medium transition-all duration-300"
+                      style={{ width: `${(paymentStats.players_paid / paymentStats.total_players) * 100}%` }}
+                    >
+                      {Math.round((paymentStats.players_paid / paymentStats.total_players) * 100)}%
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Progress by Team */}
+              {paymentData.length > 0 && (
+                <div className="mb-6 p-4 bg-white border border-gray-200 rounded-lg">
+                  <h3 className="font-semibold mb-4">Payment Progress by Team</h3>
+                  <div className="space-y-4">
+                    {(() => {
+                      // Group players by team
+                      const teamPayments = {}
+                      paymentData.forEach(player => {
+                        if (!teamPayments[player.team_id]) {
+                          teamPayments[player.team_id] = {
+                            name: player.team_name,
+                            color: player.team_color,
+                            paid: 0,
+                            total: 0
+                          }
+                        }
+                        teamPayments[player.team_id].total++
+                        if (player.payment_status === 'paid') {
+                          teamPayments[player.team_id].paid++
+                        }
+                      })
+
+                      return Object.values(teamPayments).map((team, idx) => {
+                        const percentage = (team.paid / team.total) * 100
+                        return (
+                          <div key={idx}>
+                            <div className="flex justify-between items-center mb-2">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-4 h-4 rounded-full"
+                                  style={{ backgroundColor: team.color }}
+                                />
+                                <span className="font-medium">{team.name}</span>
+                              </div>
+                              <span className="text-sm text-gray-600">
+                                {team.paid} of {team.total} paid ({Math.round(percentage)}%)
+                              </span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-4">
+                              <div
+                                className="h-4 rounded-full flex items-center justify-end pr-2 text-white text-xs font-medium transition-all duration-300"
+                                style={{
+                                  width: `${percentage}%`,
+                                  backgroundColor: team.color
+                                }}
+                              >
+                                {percentage >= 20 && `${Math.round(percentage)}%`}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })
+                    })()}
+                  </div>
+                </div>
+              )}
+
               {/* Payment List */}
               {paymentData.length === 0 ? (
                 <div className="text-center py-12">
