@@ -892,10 +892,11 @@ export default function Home() {
               <p className="mt-2 text-gray-600">Calendars refresh automatically every hour with new games and updates.</p>
             </div>
           </div>
-            )}
-          </div>
-        )
-      })}
+            </div>
+          )}
+        </div>
+      )
+    })}
 
 
     </div>
