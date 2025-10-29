@@ -172,7 +172,7 @@ export default function Dashboard() {
 
         const userManagedLeagues = leaguesData.filter((league, index) => {
           const managers = managersData[index]
-          return managers.some(m => m.user_id === currentUser.id)
+          return managers.some(m => m.id === currentUser.id)
         })
 
         setManagedLeagues(userManagedLeagues)
