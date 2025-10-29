@@ -207,11 +207,12 @@ router.get('/:id/players-payments', (req, res) => {
       pay.id as payment_id,
       pay.status as payment_status,
       pay.amount as payment_amount,
-      pay.paid_date
+      pay.paid_date,
+      pay.payment_method
     FROM teams t
     LEFT JOIN players p ON p.team_id = t.id
     LEFT JOIN payments pay ON p.id = pay.player_id AND pay.season_id = ?
-    WHERE t.season_id = ?
+    WHERE t.league_id = (SELECT league_id FROM seasons WHERE id = ?)
     ORDER BY t.name, p.name
   `
 

@@ -467,6 +467,16 @@ export default function LeagueDetails() {
   }
 
   const handleMarkPaid = async (player) => {
+    // Prompt for payment method
+    const paymentMethod = prompt(
+      'How was the payment received?\n\nOptions:\n- venmo\n- zelle\n- cash\n- check\n- paypal\n- other',
+      'venmo'
+    )
+
+    if (!paymentMethod) {
+      return // User cancelled
+    }
+
     try {
       // If no payment record exists, create one first
       if (!player.payment_id) {
@@ -475,12 +485,13 @@ export default function LeagueDetails() {
           team_id: player.team_id,
           amount: activeSeason.season_dues || 0,
           season_id: activeSeason.id,
+          payment_method: paymentMethod.toLowerCase().trim()
         })
         // Mark the newly created payment as paid
-        await payments.markPaid(paymentRecord.id)
+        await payments.markPaid(paymentRecord.id, { payment_method: paymentMethod.toLowerCase().trim() })
       } else {
         // Mark existing payment as paid
-        await payments.markPaid(player.payment_id)
+        await payments.markPaid(player.payment_id, { payment_method: paymentMethod.toLowerCase().trim() })
       }
       // Refresh payment data
       await fetchPaymentData(activeSeason.id)
@@ -1827,6 +1838,7 @@ export default function LeagueDetails() {
                                 <th className="text-left py-2 px-3">Email</th>
                                 <th className="text-center py-2 px-3">Amount</th>
                                 <th className="text-center py-2 px-3">Status</th>
+                                <th className="text-center py-2 px-3">Method</th>
                                 <th className="text-center py-2 px-3">Actions</th>
                               </tr>
                             </thead>
@@ -1843,6 +1855,15 @@ export default function LeagueDetails() {
                                       <span className="badge badge-success">Paid</span>
                                     ) : (
                                       <span className="badge badge-error">Unpaid</span>
+                                    )}
+                                  </td>
+                                  <td className="py-2 px-3 text-center">
+                                    {player.payment_status === 'paid' && player.payment_method ? (
+                                      <span className="text-xs text-gray-600 capitalize">
+                                        {player.payment_method}
+                                      </span>
+                                    ) : (
+                                      <span className="text-xs text-gray-400">-</span>
                                     )}
                                   </td>
                                   <td className="py-2 px-3 text-center">
