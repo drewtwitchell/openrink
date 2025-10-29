@@ -135,7 +135,7 @@ export default function Settings() {
               placeholder="your@email.com"
               disabled
             />
-            <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
+            <p className="text-xs text-gray-500 mt-1">Used for team notifications and roster display</p>
           </div>
 
           <div>

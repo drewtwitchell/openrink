@@ -179,7 +179,7 @@ function App() {
                       className="flex items-center space-x-2 text-gray-700 hover:text-ice-600 focus:outline-none"
                     >
                       <div className="text-right">
-                        <div className="font-medium">{user?.username || user?.name || user?.email}</div>
+                        <div className="font-medium">{user?.name || user?.username || user?.email}</div>
                         <div className="text-xs text-gray-500">{user?.role?.replace('_', ' ')}</div>
                       </div>
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
