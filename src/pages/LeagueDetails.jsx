@@ -69,6 +69,8 @@ export default function LeagueDetails() {
   const [editingPaymentAmount, setEditingPaymentAmount] = useState('')
   const [editingSeasonDues, setEditingSeasonDues] = useState(false)
   const [tempSeasonDues, setTempSeasonDues] = useState('')
+  const [editingPaymentLink, setEditingPaymentLink] = useState(false)
+  const [tempPaymentLink, setTempPaymentLink] = useState('')
 
   // Check if current user can manage this league
   // User can manage if they're an admin OR if they're in the league_managers table for this league
@@ -579,6 +581,26 @@ export default function LeagueDetails() {
       await fetchPaymentData(activeSeason.id)
     } catch (error) {
       alert('Error updating season dues: ' + error.message)
+    }
+  }
+
+  const handleEditPaymentLink = () => {
+    setEditingPaymentLink(true)
+    setTempPaymentLink(activeSeason.venmo_link || '')
+  }
+
+  const handleSavePaymentLink = async () => {
+    try {
+      await seasons.update(activeSeason.id, {
+        ...activeSeason,
+        venmo_link: tempPaymentLink.trim()
+      })
+
+      setEditingPaymentLink(false)
+      setTempPaymentLink('')
+      await fetchLeagueData()
+    } catch (error) {
+      alert('Error updating payment link: ' + error.message)
     }
   }
 
@@ -1777,57 +1799,123 @@ export default function LeagueDetails() {
                 </button>
               </div>
 
-              {/* Season Dues Editor */}
+              {/* Season Dues and Payment Link Editor */}
               {activeSeason && (
                 <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div>
-                        <div className="text-sm text-gray-600 mb-1">Season Dues</div>
-                        {editingSeasonDues ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl font-bold">$</span>
-                            <input
-                              type="number"
-                              value={tempSeasonDues}
-                              onChange={(e) => setTempSeasonDues(e.target.value)}
-                              className="w-24 px-2 py-1 border border-gray-300 rounded"
-                              step="0.01"
-                              min="0"
-                              autoFocus
-                            />
-                            <button
-                              onClick={handleSaveSeasonDues}
-                              className="text-sm px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={() => setEditingSeasonDues(false)}
-                              className="text-sm px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500"
-                            >
-                              Cancel
-                            </button>
+                  <div className="grid grid-cols-2 gap-6">
+                    {/* Season Dues */}
+                    <div>
+                      <div className="text-sm text-gray-600 mb-1">Season Dues</div>
+                      {editingSeasonDues ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl font-bold">$</span>
+                          <input
+                            type="number"
+                            value={tempSeasonDues}
+                            onChange={(e) => setTempSeasonDues(e.target.value)}
+                            className="w-24 px-2 py-1 border border-gray-300 rounded"
+                            step="0.01"
+                            min="0"
+                            autoFocus
+                          />
+                          <button
+                            onClick={handleSaveSeasonDues}
+                            className="text-sm px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingSeasonDues(false)}
+                            className="text-sm px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <div className="text-2xl font-bold text-ice-600">
+                            ${parseFloat(activeSeason.season_dues || 0).toFixed(2)}
                           </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <div className="text-2xl font-bold text-ice-600">
-                              ${parseFloat(activeSeason.season_dues || 0).toFixed(2)}
-                            </div>
-                            {canManage && (
-                              <button
-                                onClick={handleEditSeasonDues}
-                                className="text-sm text-ice-600 hover:text-ice-700 underline"
-                              >
-                                Edit
-                              </button>
-                            )}
-                          </div>
-                        )}
+                          {canManage && (
+                            <button
+                              onClick={handleEditSeasonDues}
+                              className="text-sm text-ice-600 hover:text-ice-700 underline"
+                            >
+                              Edit
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      <div className="text-xs text-gray-500 mt-1">
+                        Default amount for all players
                       </div>
                     </div>
-                    <div className="text-xs text-gray-500">
-                      Default amount for all players
+
+                    {/* Payment Link */}
+                    <div>
+                      <div className="text-sm text-gray-600 mb-1">Payment Link (Venmo, etc.)</div>
+                      {editingPaymentLink ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={tempPaymentLink}
+                            onChange={(e) => setTempPaymentLink(e.target.value)}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded"
+                            placeholder="https://venmo.com/..."
+                            autoFocus
+                          />
+                          <button
+                            onClick={handleSavePaymentLink}
+                            className="text-sm px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingPaymentLink(false)}
+                            className="text-sm px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          {activeSeason.venmo_link ? (
+                            <>
+                              <a
+                                href={activeSeason.venmo_link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-ice-600 hover:text-ice-700 underline text-sm truncate max-w-xs"
+                              >
+                                {activeSeason.venmo_link}
+                              </a>
+                              {canManage && (
+                                <button
+                                  onClick={handleEditPaymentLink}
+                                  className="text-sm text-ice-600 hover:text-ice-700 underline"
+                                >
+                                  Edit
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-gray-400 text-sm">No payment link set</span>
+                              {canManage && (
+                                <button
+                                  onClick={handleEditPaymentLink}
+                                  className="text-sm text-ice-600 hover:text-ice-700 underline"
+                                >
+                                  Add
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
+                      <div className="text-xs text-gray-500 mt-1">
+                        Link for players to make payments
+                      </div>
                     </div>
                   </div>
                 </div>
