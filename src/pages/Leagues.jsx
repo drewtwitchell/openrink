@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { leagues, seasons, auth } from '../lib/api'
+import ConfirmModal from '../components/ConfirmModal'
 
 export default function Leagues() {
   const navigate = useNavigate()
@@ -13,6 +14,8 @@ export default function Leagues() {
     name: '',
     description: '',
   })
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, leagueId: null, leagueName: '' })
+  const [archiveModal, setArchiveModal] = useState({ isOpen: false, leagueId: null, leagueName: '', isArchived: false })
 
   useEffect(() => {
     setCurrentUser(auth.getUser())
@@ -67,10 +70,14 @@ export default function Leagues() {
     return currentUser?.role === 'admin' || currentUser?.role === 'league_manager'
   }
 
-  const handleDelete = async (leagueId, leagueName) => {
-    if (!window.confirm(`Delete league "${leagueName}"? This will also delete all associated seasons, teams, games, and players.`)) {
-      return
-    }
+  const handleDelete = (leagueId, leagueName) => {
+    setDeleteModal({ isOpen: true, leagueId, leagueName })
+  }
+
+  const confirmDelete = async () => {
+    const { leagueId } = deleteModal
+    if (!leagueId) return
+
     try {
       await leagues.delete(leagueId)
       fetchLeagues()
@@ -79,13 +86,17 @@ export default function Leagues() {
     }
   }
 
-  const handleArchive = async (leagueId, leagueName, currentlyArchived) => {
-    const action = currentlyArchived ? 'unarchive' : 'archive'
-    if (!window.confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} league "${leagueName}"?`)) {
-      return
-    }
+  const handleArchive = (leagueId, leagueName, currentlyArchived) => {
+    setArchiveModal({ isOpen: true, leagueId, leagueName, isArchived: currentlyArchived })
+  }
+
+  const confirmArchive = async () => {
+    const { leagueId, isArchived } = archiveModal
+    if (!leagueId) return
+
+    const action = isArchived ? 'unarchive' : 'archive'
     try {
-      await leagues.archive(leagueId, !currentlyArchived)
+      await leagues.archive(leagueId, !isArchived)
       fetchLeagues()
     } catch (error) {
       alert(`Error ${action}ing league: ${error.message}`)
@@ -237,6 +248,29 @@ export default function Leagues() {
           </table>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, leagueId: null, leagueName: '' })}
+        onConfirm={confirmDelete}
+        title="Delete League"
+        message={`Delete league "${deleteModal.leagueName}"?\n\nThis will also delete all associated seasons, teams, games, and players. This action cannot be undone.`}
+        confirmText="Delete"
+        variant="danger"
+      />
+
+      <ConfirmModal
+        isOpen={archiveModal.isOpen}
+        onClose={() => setArchiveModal({ isOpen: false, leagueId: null, leagueName: '', isArchived: false })}
+        onConfirm={confirmArchive}
+        title={archiveModal.isArchived ? "Unarchive League" : "Archive League"}
+        message={archiveModal.isArchived
+          ? `Unarchive league "${archiveModal.leagueName}"?\n\nThis will make the league visible and active again.`
+          : `Archive league "${archiveModal.leagueName}"?\n\nThis will hide the league from the active list, but all data will be preserved.`
+        }
+        confirmText={archiveModal.isArchived ? "Unarchive" : "Archive"}
+        variant="primary"
+      />
     </div>
   )
 }
