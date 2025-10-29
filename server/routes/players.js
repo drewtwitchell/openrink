@@ -317,10 +317,10 @@ router.patch('/:id/transfer', authenticateToken, (req, res) => {
             }
 
             if (user.role === 'admin') {
-              // Admin can proceed with transfer
+              // Admin can proceed
               performTransfer()
             } else {
-              // Check if user is a league manager for this league
+              // Check if user is a league manager
               db.get(
                 'SELECT id FROM league_managers WHERE user_id = ? AND league_id = ?',
                 [req.user.id, player.source_league_id],
@@ -339,56 +339,59 @@ router.patch('/:id/transfer', authenticateToken, (req, res) => {
           function performTransfer() {
             // Close out old team history entry (set left_date to now)
             db.run(
-        `UPDATE player_history
-         SET left_date = CURRENT_TIMESTAMP
-         WHERE player_id = ? AND team_id = ? AND left_date IS NULL`,
-        [req.params.id, player.team_id],
-        (histErr) => {
-          if (histErr) {
-            console.error('Error closing player history:', histErr)
-          }
-
-          // Remove captain status from old team if this player was a captain
-          if (player.user_id) {
-            db.run(
-              'DELETE FROM team_captains WHERE user_id = ? AND team_id = ?',
-              [player.user_id, player.team_id],
-              (captainErr) => {
-                if (captainErr) {
-                  console.error('Error removing captain status:', captainErr)
+              `UPDATE player_history
+               SET left_date = CURRENT_TIMESTAMP
+               WHERE player_id = ? AND team_id = ? AND left_date IS NULL`,
+              [req.params.id, player.team_id],
+              (histErr) => {
+                if (histErr) {
+                  console.error('Error closing player history:', histErr)
                 }
+
+                // Remove captain status from old team if this player was a captain
+                if (player.user_id) {
+                  db.run(
+                    'DELETE FROM team_captains WHERE user_id = ? AND team_id = ?',
+                    [player.user_id, player.team_id],
+                    (captainErr) => {
+                      if (captainErr) {
+                        console.error('Error removing captain status:', captainErr)
+                      }
+                    }
+                  )
+                }
+
+                // Update player's team
+                db.run(
+                  'UPDATE players SET team_id = ? WHERE id = ?',
+                  [team_id, req.params.id],
+                  function (err) {
+                    if (err) {
+                      return res.status(500).json({ error: 'Error transferring player' })
+                    }
+
+                    // Create new history entry for new team
+                    createPlayerHistory(
+                      player.id,
+                      player.user_id,
+                      team_id,
+                      player.jersey_number,
+                      player.position,
+                      (newHistErr) => {
+                        if (newHistErr) {
+                          console.error('Error creating new player history:', newHistErr)
+                        }
+                      }
+                    )
+
+                    res.json({ message: 'Player transferred successfully' })
+                  }
+                )
               }
             )
           }
-
-          // Update player's team
-          db.run(
-            'UPDATE players SET team_id = ? WHERE id = ?',
-            [team_id, req.params.id],
-            function (err) {
-              if (err) {
-                return res.status(500).json({ error: 'Error transferring player' })
-              }
-
-              // Create new history entry for new team
-              createPlayerHistory(
-                player.id,
-                player.user_id,
-                team_id,
-                player.jersey_number,
-                player.position,
-                (newHistErr) => {
-                  if (newHistErr) {
-                    console.error('Error creating new player history:', newHistErr)
-                  }
-                }
-              )
-
-              res.json({ message: 'Player transferred successfully' })
-            }
-          )
         }
-      })
+      )
     }
   )
 })
