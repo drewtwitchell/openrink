@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { leagues, teams as teamsApi, games as gamesApi, seasons, auth } from '../lib/api'
+import { leagues, teams as teamsApi, games as gamesApi, seasons, auth, announcements } from '../lib/api'
 
 export default function LeagueDetails() {
   const { id } = useParams()
@@ -38,6 +38,14 @@ export default function LeagueDetails() {
   const [showContactModal, setShowContactModal] = useState(false)
   const [contactMessage, setContactMessage] = useState('')
   const [currentUser, setCurrentUser] = useState(null)
+  const [announcementsList, setAnnouncementsList] = useState([])
+  const [showAnnouncementForm, setShowAnnouncementForm] = useState(false)
+  const [editingAnnouncementId, setEditingAnnouncementId] = useState(null)
+  const [announcementFormData, setAnnouncementFormData] = useState({
+    title: '',
+    message: '',
+    expires_at: '',
+  })
 
   // Check if current user can manage this league
   const canManage = currentUser?.role === 'admin' ||
@@ -54,13 +62,7 @@ export default function LeagueDetails() {
     }
   }, [id])
 
-  // Navigate to separate pages for announcements and playoffs
-  useEffect(() => {
-    if (mainTab === 'overview' && overviewSubTab === 'announcements') {
-      navigate(`/leagues/${id}/announcements`)
-    }
-  }, [overviewSubTab, mainTab, id, navigate])
-
+  // Navigate to separate page for playoffs
   useEffect(() => {
     if (mainTab === 'season' && seasonSubTab === 'playoffs') {
       navigate(`/leagues/${id}/playoffs`)
@@ -116,6 +118,75 @@ export default function LeagueDetails() {
       setPaymentData(players)
     } catch (error) {
       console.error('Error fetching payment data:', error)
+    }
+  }
+
+  // Fetch announcements when announcements tab is selected
+  useEffect(() => {
+    if (mainTab === 'overview' && overviewSubTab === 'announcements') {
+      fetchAnnouncements()
+    }
+  }, [mainTab, overviewSubTab, id])
+
+  const fetchAnnouncements = async () => {
+    try {
+      const data = await announcements.getAll(id)
+      setAnnouncementsList(data)
+    } catch (error) {
+      console.error('Error fetching announcements:', error)
+    }
+  }
+
+  const handleAnnouncementSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      if (editingAnnouncementId) {
+        await announcements.update(editingAnnouncementId, announcementFormData)
+      } else {
+        await announcements.create({
+          ...announcementFormData,
+          league_id: id,
+        })
+      }
+      setAnnouncementFormData({ title: '', message: '', expires_at: '' })
+      setShowAnnouncementForm(false)
+      setEditingAnnouncementId(null)
+      fetchAnnouncements()
+    } catch (error) {
+      alert('Error saving announcement: ' + error.message)
+    }
+  }
+
+  const handleEditAnnouncement = (announcement) => {
+    setEditingAnnouncementId(announcement.id)
+    setAnnouncementFormData({
+      title: announcement.title,
+      message: announcement.message,
+      expires_at: announcement.expires_at ? announcement.expires_at.split('T')[0] : '',
+    })
+    setShowAnnouncementForm(true)
+  }
+
+  const handleDeleteAnnouncement = async (announcementId, title) => {
+    if (!confirm(`Delete announcement "${title}"?`)) return
+
+    try {
+      await announcements.delete(announcementId)
+      fetchAnnouncements()
+    } catch (error) {
+      alert('Error deleting announcement: ' + error.message)
+    }
+  }
+
+  const handleToggleAnnouncementActive = async (announcement) => {
+    try {
+      await announcements.update(announcement.id, {
+        ...announcement,
+        is_active: announcement.is_active === 1 ? 0 : 1,
+      })
+      fetchAnnouncements()
+    } catch (error) {
+      alert('Error updating announcement: ' + error.message)
     }
   }
 
@@ -957,6 +1028,147 @@ export default function LeagueDetails() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Announcements Tab */}
+      {mainTab === 'overview' && overviewSubTab === 'announcements' && (
+        <div>
+          <div className="mb-6 flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-semibold">League Announcements</h2>
+              <p className="text-sm text-gray-500 mt-1">{announcementsList.length} total</p>
+            </div>
+            {canManage && (
+              <button
+                onClick={() => {
+                  setShowAnnouncementForm(!showAnnouncementForm)
+                  setEditingAnnouncementId(null)
+                  setAnnouncementFormData({ title: '', message: '', expires_at: '' })
+                }}
+                className="btn-primary"
+              >
+                {showAnnouncementForm ? 'Cancel' : 'New Announcement'}
+              </button>
+            )}
+          </div>
+
+          {showAnnouncementForm && canManage && (
+            <div className="card mb-6">
+              <h3 className="text-lg font-semibold mb-4">
+                {editingAnnouncementId ? 'Edit Announcement' : 'Create New Announcement'}
+              </h3>
+              <form onSubmit={handleAnnouncementSubmit} className="space-y-4">
+                <div>
+                  <label className="label">Title *</label>
+                  <input
+                    type="text"
+                    value={announcementFormData.title}
+                    onChange={(e) => setAnnouncementFormData({ ...announcementFormData, title: e.target.value })}
+                    className="input"
+                    placeholder="Important Update"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="label">Message *</label>
+                  <textarea
+                    value={announcementFormData.message}
+                    onChange={(e) => setAnnouncementFormData({ ...announcementFormData, message: e.target.value })}
+                    className="input"
+                    rows="4"
+                    placeholder="Enter your announcement message..."
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="label">Expiration Date (optional)</label>
+                  <input
+                    type="date"
+                    value={announcementFormData.expires_at}
+                    onChange={(e) => setAnnouncementFormData({ ...announcementFormData, expires_at: e.target.value })}
+                    className="input"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Leave blank for no expiration
+                  </p>
+                </div>
+
+                <button type="submit" className="btn-primary">
+                  {editingAnnouncementId ? 'Update Announcement' : 'Create Announcement'}
+                </button>
+              </form>
+            </div>
+          )}
+
+          {announcementsList.length === 0 ? (
+            <div className="card text-center py-12">
+              <p className="text-gray-500 mb-4">No announcements yet</p>
+              {canManage && (
+                <button onClick={() => setShowAnnouncementForm(true)} className="btn-primary">
+                  Create Your First Announcement
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {announcementsList.map((announcement) => (
+                <div
+                  key={announcement.id}
+                  className={`card ${announcement.is_active === 1 ? 'bg-white' : 'bg-gray-50'}`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="font-semibold text-lg">{announcement.title}</h3>
+                        <span
+                          className={`badge ${
+                            announcement.is_active === 1 ? 'badge-success' : 'badge-neutral'
+                          }`}
+                        >
+                          {announcement.is_active === 1 ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                      <p className="text-gray-700 mb-3">{announcement.message}</p>
+                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <span>Posted {new Date(announcement.created_at).toLocaleDateString()}</span>
+                        {announcement.expires_at && (
+                          <span>
+                            Expires {new Date(announcement.expires_at).toLocaleDateString()}
+                          </span>
+                        )}
+                        {announcement.author_name && <span>By {announcement.author_name}</span>}
+                      </div>
+                    </div>
+                    {canManage && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleToggleAnnouncementActive(announcement)}
+                          className="btn-secondary text-xs py-1 px-3"
+                        >
+                          {announcement.is_active === 1 ? 'Deactivate' : 'Activate'}
+                        </button>
+                        <button
+                          onClick={() => handleEditAnnouncement(announcement)}
+                          className="btn-secondary text-xs py-1 px-3"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAnnouncement(announcement.id, announcement.title)}
+                          className="btn-danger text-xs py-1 px-3"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
