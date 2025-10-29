@@ -242,11 +242,8 @@ export default function Dashboard() {
     const action = league.archived === 1 ? 'unarchive' : 'archive'
 
     try {
-      if (league.archived === 1) {
-        await leagues.unarchive(league.id)
-      } else {
-        await leagues.archive(league.id)
-      }
+      // Archive API takes (id, archived) where archived is a boolean
+      await leagues.archive(league.id, league.archived === 0)
       // Refresh dashboard data
       await fetchDashboardData(user)
     } catch (error) {
