@@ -20,6 +20,7 @@ export default function Home() {
     const saved = localStorage.getItem('starredLeagues')
     return saved ? JSON.parse(saved) : {}
   })
+  const [expandedSchedules, setExpandedSchedules] = useState({})
 
   // Get league from subdomain (e.g., mhl.openrink.app -> "mhl")
   const getLeagueFromSubdomain = () => {
@@ -155,7 +156,15 @@ export default function Home() {
 
         // Calculate standings and upcoming games for each league
         const today = new Date()
-        const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+        today.setHours(0, 0, 0, 0)
+
+        // Get start and end of current week (Sunday to Saturday)
+        const currentDay = today.getDay() // 0 (Sunday) to 6 (Saturday)
+        const startOfWeek = new Date(today)
+        startOfWeek.setDate(today.getDate() - currentDay)
+        const endOfWeek = new Date(startOfWeek)
+        endOfWeek.setDate(startOfWeek.getDate() + 6)
+        endOfWeek.setHours(23, 59, 59, 999)
 
         const allLeagueData = await Promise.all(leaguesData.map(async (league) => {
           const leagueTeams = teamsData.filter(t => t.league_id === league.id)
@@ -228,12 +237,12 @@ export default function Home() {
             return b.gf - b.ga - (a.gf - a.ga)
           })
 
-          // Get upcoming games for this league (next 7 days) - both regular season and playoff games
+          // Get upcoming games for this league (current week only) - both regular season and playoff games
           const regularSeasonGames = gamesData.filter(g => {
             const gameDate = new Date(g.game_date)
-            const isUpcoming = gameDate >= today && gameDate <= nextWeek && !g.home_score
+            const isCurrentWeek = gameDate >= startOfWeek && gameDate <= endOfWeek && !g.home_score
             const isLeagueGame = leagueTeams.some(t => t.id === g.home_team_id || t.id === g.away_team_id)
-            return isUpcoming && isLeagueGame
+            return isCurrentWeek && isLeagueGame
           })
 
           // Get upcoming playoff games
@@ -242,7 +251,7 @@ export default function Home() {
             leagueBrackets[league.id].matches.forEach(match => {
               if (match.game_date && !match.winner_id && match.team1_id && match.team2_id) {
                 const gameDate = new Date(match.game_date)
-                if (gameDate >= today && gameDate <= nextWeek) {
+                if (gameDate >= startOfWeek && gameDate <= endOfWeek) {
                   playoffGames.push({
                     id: `playoff-${match.id}`,
                     home_team_name: match.team1_name,
@@ -261,7 +270,11 @@ export default function Home() {
 
           const upcomingGames = [...regularSeasonGames, ...playoffGames]
             .sort((a, b) => new Date(a.game_date) - new Date(b.game_date))
-            .slice(0, 5)
+
+          // Get all games (for full schedule) - include past, present, and future
+          const allLeagueGames = gamesData.filter(g => {
+            return leagueTeams.some(t => t.id === g.home_team_id || t.id === g.away_team_id)
+          }).sort((a, b) => new Date(b.game_date) - new Date(a.game_date)) // Sort newest first
 
           // Group players by team for this league
           const teamRosters = leagueTeams.reduce((acc, team) => {
@@ -282,6 +295,7 @@ export default function Home() {
             activeSeason,
             standings,
             upcomingGames,
+            allGames: allLeagueGames,
             announcements: leagueAnnouncements[league.id] || [],
             bracket: leagueBrackets[league.id] || null,
             teams: leagueTeams,
@@ -422,6 +436,10 @@ export default function Home() {
     localStorage.setItem('starredLeagues', JSON.stringify(newStarred))
   }
 
+  const toggleScheduleExpanded = (leagueId) => {
+    setExpandedSchedules(prev => ({ ...prev, [leagueId]: !prev[leagueId] }))
+  }
+
   // Filter leagues based on URL parameter if provided
   let displayLeagues = leagueFilter
     ? leagueData.filter(({ league }) =>
@@ -487,9 +505,10 @@ export default function Home() {
         </p>
       </div>
 
-      {displayLeagues.map(({ league, activeSeason, standings, upcomingGames, announcements, bracket, teams, teamRosters }) => {
+      {displayLeagues.map(({ league, activeSeason, standings, upcomingGames, allGames, announcements, bracket, teams, teamRosters }) => {
         const isCollapsed = collapsedLeagues[league.id] || false
         const isStarred = starredLeagues[league.id] || false
+        const isScheduleExpanded = expandedSchedules[league.id] || false
 
         return (
           <div key={league.id} className={`mb-12 ${isMultipleLeagues ? 'border-2 border-gray-200 rounded-lg p-6 bg-white shadow-sm' : ''}`}>
@@ -833,6 +852,82 @@ export default function Home() {
               </div>
             </div>
           )}
+
+          {/* Full Schedule */}
+          <div className="card">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold">
+                {isMultipleLeagues ? `${league.name} - Full Schedule` : 'Full Schedule'}
+                {isMultipleLeagues && activeSeason && (
+                  <span className="text-sm font-normal text-gray-500 ml-2">({activeSeason.name})</span>
+                )}
+              </h3>
+              <button
+                onClick={() => toggleScheduleExpanded(league.id)}
+                className="btn-secondary text-sm"
+              >
+                {isScheduleExpanded ? 'Hide Schedule' : 'View Schedule'}
+              </button>
+            </div>
+
+            {isScheduleExpanded && (
+              <div className="mt-4">
+                {allGames && allGames.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-3 px-4">Date</th>
+                          <th className="text-left py-3 px-4">Time</th>
+                          <th className="text-left py-3 px-4">Matchup</th>
+                          <th className="text-center py-3 px-4">Score</th>
+                          <th className="text-left py-3 px-4">Location</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allGames.map((game) => (
+                          <tr key={game.id} className={`border-b hover:bg-gray-50 ${
+                            game.home_score !== null && game.away_score !== null ? 'bg-gray-50/50' : ''
+                          }`}>
+                            <td className="py-3 px-4">
+                              {new Date(game.game_date).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                              })}
+                            </td>
+                            <td className="py-3 px-4">{game.game_time}</td>
+                            <td className="py-3 px-4">
+                              <span className="font-medium">{game.home_team_name}</span>
+                              <span className="text-gray-500 mx-2">vs</span>
+                              <span className="font-medium">{game.away_team_name}</span>
+                            </td>
+                            <td className="text-center py-3 px-4">
+                              {game.home_score !== null && game.away_score !== null ? (
+                                <span className="font-semibold">
+                                  {game.home_score} - {game.away_score}
+                                </span>
+                              ) : (
+                                <span className="text-gray-400 italic text-xs">Not played</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-gray-600">
+                              {game.rink_name || '-'}
+                              {game.surface_name && game.rink_name && (
+                                <span className="text-xs text-gray-500"> ({game.surface_name})</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-8">No games scheduled</p>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Calendar Subscription */}
           <div className="card bg-blue-50">
