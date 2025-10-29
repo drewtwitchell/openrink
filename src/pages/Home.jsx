@@ -10,6 +10,8 @@ export default function Home() {
   const [leagueData, setLeagueData] = useState([]) // Array of {league, standings, upcomingGames}
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [user, setUser] = useState(null)
+  const [userLeagueIds, setUserLeagueIds] = useState([]) // League IDs user has access to
   const [collapsedLeagues, setCollapsedLeagues] = useState(() => {
     const saved = localStorage.getItem('collapsedLeagues')
     return saved ? JSON.parse(saved) : {}
@@ -43,9 +45,61 @@ export default function Home() {
   const leagueFilter = subdomainLeague || searchParams.get('league')
 
   useEffect(() => {
-    setIsAuthenticated(auth.isAuthenticated())
+    const isAuth = auth.isAuthenticated()
+    setIsAuthenticated(isAuth)
+
+    // Get user information if authenticated
+    if (isAuth) {
+      const currentUser = auth.getUser()
+      setUser(currentUser)
+      fetchUserLeagues(currentUser)
+    }
+
     fetchPublicData()
   }, [])
+
+  const fetchUserLeagues = async (currentUser) => {
+    if (!currentUser) return
+
+    try {
+      // Admin sees all leagues (no filtering needed)
+      if (currentUser.role === 'admin') {
+        setUserLeagueIds([]) // Empty array means "all leagues" for admin
+        return
+      }
+
+      // For league managers, fetch leagues they manage
+      if (currentUser.role === 'league_manager') {
+        const response = await fetch(`${API_URL}/api/league-managers/user/${currentUser.id}`)
+        if (response.ok) {
+          const managerData = await response.json()
+          const leagueIds = managerData.map(lm => lm.league_id)
+          setUserLeagueIds(leagueIds)
+          return
+        }
+      }
+
+      // For players, fetch teams they're on to determine which leagues they can see
+      const playersResponse = await fetch(`${API_URL}/api/players`)
+      if (playersResponse.ok) {
+        const allPlayers = await playersResponse.json()
+        const userPlayers = allPlayers.filter(p => p.user_id === currentUser.id)
+
+        if (userPlayers.length > 0) {
+          // Get teams for these players
+          const teamsResponse = await fetch(`${API_URL}/api/teams`)
+          if (teamsResponse.ok) {
+            const allTeams = await teamsResponse.json()
+            const userTeams = allTeams.filter(t => userPlayers.some(p => p.team_id === t.id))
+            const leagueIds = [...new Set(userTeams.map(t => t.league_id))]
+            setUserLeagueIds(leagueIds)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user leagues:', error)
+    }
+  }
 
   const fetchPublicData = async () => {
     try {
@@ -375,6 +429,23 @@ export default function Home() {
         league.id.toString() === leagueFilter
       )
     : leagueData
+
+  // Apply role-based filtering for authenticated users
+  if (isAuthenticated && user) {
+    if (user.role === 'admin') {
+      // Admin sees all leagues - no filtering needed
+    } else if (user.role === 'league_manager' || user.role === 'player') {
+      // League managers and players only see leagues they have access to
+      if (userLeagueIds.length > 0) {
+        displayLeagues = displayLeagues.filter(({ league }) =>
+          userLeagueIds.includes(league.id)
+        )
+      } else {
+        // If user has no league assignments, show no leagues
+        displayLeagues = []
+      }
+    }
+  }
 
   // Sort leagues: starred leagues first, then by name
   displayLeagues = displayLeagues.sort((a, b) => {

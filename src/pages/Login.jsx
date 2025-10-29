@@ -171,13 +171,13 @@ export default function Login({ onLogin }) {
           )}
 
           <div>
-            <label className="label">Email</label>
+            <label className="label">{isSignUp ? 'Email' : 'Username or Email'}</label>
             <input
-              type="email"
+              type={isSignUp ? "email" : "text"}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="input"
-              placeholder="you@example.com"
+              placeholder={isSignUp ? "you@example.com" : "admin or you@example.com"}
               required
             />
           </div>

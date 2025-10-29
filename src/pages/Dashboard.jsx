@@ -70,6 +70,7 @@ function UsersManagementCard() {
                     className="input text-sm py-1"
                   >
                     <option value="player">Player</option>
+                    <option value="league_manager">League Manager</option>
                     <option value="admin">Admin</option>
                   </select>
                 </td>
@@ -86,8 +87,10 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [userPlayerProfiles, setUserPlayerProfiles] = useState([])
-  const [leagueData, setLeagueData] = useState(null)
+  const [userLeagues, setUserLeagues] = useState([]) // All leagues user is a player in
+  const [leagueData, setLeagueData] = useState(null) // Deprecated: keeping for backwards compatibility
   const [teamsData, setTeamsData] = useState([])
+  const [allTeams, setAllTeams] = useState([]) // All teams across all leagues
   const [managedLeagues, setManagedLeagues] = useState([])
   const [leagueSeasons, setLeagueSeasons] = useState({})
   const [paymentStats, setPaymentStats] = useState({})
@@ -100,6 +103,7 @@ export default function Dashboard() {
     description: '',
   })
   const [expandedTeams, setExpandedTeams] = useState({})
+  const [expandedLeagues, setExpandedLeagues] = useState({})
   const [teamRosters, setTeamRosters] = useState({})
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, league: null })
 
@@ -117,6 +121,9 @@ export default function Dashboard() {
         players.getAll(),
       ])
 
+      // Store all teams for reference
+      setAllTeams(teamsDataAll)
+
       // Find player profiles linked to this user
       if (currentUser) {
         const userProfiles = playersData.filter(p => p.user_id === currentUser.id)
@@ -128,14 +135,22 @@ export default function Dashboard() {
         }
         setUserPlayerProfiles(userProfiles)
 
-        // Get player's league if they have player profiles
+        // Get ALL leagues the player is a member of
         if (userProfiles.length > 0) {
-          const firstProfile = userProfiles[0]
-          const team = teamsDataAll.find(t => t.id === firstProfile.team_id)
-          if (team) {
-            const league = leaguesData.find(l => l.id === team.league_id)
-            setLeagueData(league)
-            const leagueTeams = teamsDataAll.filter(t => t.league_id === team.league_id)
+          const playerLeagueIds = [...new Set(
+            userProfiles.map(profile => {
+              const team = teamsDataAll.find(t => t.id === profile.team_id)
+              return team?.league_id
+            }).filter(Boolean)
+          )]
+
+          const playerLeagues = leaguesData.filter(l => playerLeagueIds.includes(l.id))
+          setUserLeagues(playerLeagues)
+
+          // For backwards compatibility, set first league as leagueData
+          if (playerLeagues.length > 0) {
+            setLeagueData(playerLeagues[0])
+            const leagueTeams = teamsDataAll.filter(t => t.league_id === playerLeagues[0].id)
             setTeamsData(leagueTeams)
           }
         }
@@ -321,31 +336,40 @@ export default function Dashboard() {
       </div>
 
       <div className="space-y-6">
-        {/* Player Info Section */}
-        {userPlayerProfiles.length > 0 && leagueData && (
+        {/* Player Info Section - All Leagues */}
+        {userPlayerProfiles.length > 0 && userLeagues.length > 0 && (
           <div className="card">
-            <div className="flex items-center justify-between mb-6 pb-4 border-b">
-              <div>
-                <h2 className="text-2xl font-bold">{leagueData?.name || 'My League'}</h2>
-                {leagueData?.description && (
-                  <p className="text-sm text-gray-600 mt-1">{leagueData.description}</p>
-                )}
-              </div>
-              {leagueData && (
-                <button
-                  onClick={() => navigate(`/leagues/${leagueData.id}`)}
-                  className="btn-primary"
-                >
-                  View League Details
-                </button>
-              )}
-            </div>
+            <h2 className="text-2xl font-bold mb-6">
+              My Teams {userLeagues.length > 1 && <span className="text-sm font-normal text-gray-500">({userLeagues.length} leagues)</span>}
+            </h2>
 
-            {/* My Teams */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-3 text-gray-700">My Team{userPlayerProfiles.length > 1 ? 's' : ''}</h3>
-              <div className="space-y-4">
-                {userPlayerProfiles.map((profile) => (
+            {/* Display teams grouped by league */}
+            <div className="space-y-6">
+              {userLeagues.map((league) => {
+                const leagueProfiles = userPlayerProfiles.filter(profile => {
+                  const team = allTeams.find(t => t.id === profile.team_id)
+                  return team && team.league_id === league.id
+                })
+
+                return (
+                  <div key={league.id} className={`border-2 rounded-lg p-5 ${userLeagues.length > 1 ? 'border-ice-200 bg-gradient-to-r from-ice-50/30 to-white' : 'border-transparent'}`}>
+                    <div className="flex items-center justify-between mb-4 pb-3 border-b">
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900">{league.name}</h3>
+                        {league.description && (
+                          <p className="text-sm text-gray-600 mt-1">{league.description}</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => navigate(`/leagues/${league.id}`)}
+                        className="btn-primary text-sm whitespace-nowrap"
+                      >
+                        View League
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      {leagueProfiles.map((profile) => (
                   <div
                     key={profile.id}
                     className="p-5 bg-gradient-to-r from-ice-50 to-white border border-ice-200 rounded-lg"
@@ -483,153 +507,14 @@ export default function Dashboard() {
                     )}
                   </div>
                 ))}
-              </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-
-            {/* Season Dues */}
-            {(leagueData?.season_dues || leagueData?.venmo_link) && (
-              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <h3 className="font-semibold mb-2 text-green-900">Season Dues</h3>
-                {leagueData.season_dues && (
-                  <div className="mb-2">
-                    <span className="text-xl font-bold text-green-700">${parseFloat(leagueData.season_dues).toFixed(2)}</span>
-                    <span className="text-gray-600 ml-2 text-sm">per player</span>
-                  </div>
-                )}
-                {leagueData.venmo_link && (
-                  <a
-                    href={leagueData.venmo_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-primary text-sm inline-block mt-2"
-                  >
-                    Pay via Venmo
-                  </a>
-                )}
-              </div>
-            )}
-
-            {/* Other Teams */}
-            {teamsData.length > 1 && (
-              <details className="group">
-                <summary className="cursor-pointer list-none">
-                  <div className="flex items-center justify-between py-2 text-sm font-medium text-gray-600 hover:text-gray-900">
-                    <span>Other Teams ({teamsData.length - userPlayerProfiles.length})</span>
-                    <svg className="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </summary>
-                <div className="mt-2 space-y-2">
-                  {teamsData
-                    .filter(team => !userPlayerProfiles.some(p => p.team_id === team.id))
-                    .map((team) => (
-                      <div key={team.id} className="border border-gray-200 rounded-lg overflow-hidden">
-                        <div
-                          onClick={() => toggleTeamRoster(team.id)}
-                          className="p-3 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors flex items-center justify-between"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="w-8 h-8 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: team.color }}
-                            />
-                            <div className="font-medium text-sm">{team.name}</div>
-                          </div>
-                          <span className="text-xs text-gray-500">
-                            {expandedTeams[team.id] ? 'Hide Roster' : 'View Roster'}
-                          </span>
-                        </div>
-
-                        {expandedTeams[team.id] && (
-                          <div className="p-4 bg-white border-t border-gray-200">
-                            {(user?.role === 'admin' || managedLeagues.some(ml => ml.id === leagueData?.id)) && (
-                              <div className="flex justify-end mb-3">
-                                <button
-                                  onClick={() => navigate(`/teams/${team.id}/roster`)}
-                                  className="btn-primary text-xs"
-                                >
-                                  Manage Roster
-                                </button>
-                              </div>
-                            )}
-                            {teamRosters[team.id] ? (
-                              teamRosters[team.id].length > 0 ? (
-                                <div className="overflow-x-auto">
-                                  <table className="w-full text-sm">
-                                    <thead>
-                                      <tr className="border-b">
-                                        <th className="text-left py-2 px-2">#</th>
-                                        <th className="text-left py-2 px-2">Name</th>
-                                        <th className="text-left py-2 px-2">Position</th>
-                                        <th className="text-left py-2 px-2">Email</th>
-                                        <th className="text-left py-2 px-2">Phone</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {teamRosters[team.id].map((player) => (
-                                        <tr key={player.id} className="border-b hover:bg-gray-50">
-                                          <td className="py-2 px-2">
-                                            {player.jersey_number ? (
-                                              <div
-                                                className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs"
-                                                style={{ backgroundColor: team.color }}
-                                              >
-                                                {player.jersey_number}
-                                              </div>
-                                            ) : (
-                                              <span className="text-gray-400">-</span>
-                                            )}
-                                          </td>
-                                          <td className="py-2 px-2">
-                                            <div className="flex items-center gap-2">
-                                              {player.name}
-                                              {player.is_captain === 1 && (
-                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-ice-100 text-ice-800">
-                                                  ⭐ C
-                                                </span>
-                                              )}
-                                            </div>
-                                          </td>
-                                          <td className="py-2 px-2 capitalize">{player.position || 'player'}</td>
-                                          <td className="py-2 px-2">
-                                            {player.email ? (
-                                              <a href={`mailto:${player.email}`} className="text-ice-600 hover:underline">
-                                                {player.email}
-                                              </a>
-                                            ) : (
-                                              <span className="text-gray-400">-</span>
-                                            )}
-                                          </td>
-                                          <td className="py-2 px-2">
-                                            {player.phone ? (
-                                              <a href={`tel:${player.phone}`} className="text-ice-600 hover:underline">
-                                                {player.phone}
-                                              </a>
-                                            ) : (
-                                              <span className="text-gray-400">-</span>
-                                            )}
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              ) : (
-                                <p className="text-gray-500 text-sm">No players on this team yet.</p>
-                              )
-                            ) : (
-                              <p className="text-gray-500 text-sm">Loading roster...</p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                </div>
-              </details>
-            )}
           </div>
         )}
+
 
         {/* League Management Section */}
         {managedLeagues.length > 0 && (
