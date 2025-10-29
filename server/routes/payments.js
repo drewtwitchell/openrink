@@ -141,6 +141,26 @@ router.put('/:id/unpaid', authenticateToken, (req, res) => {
   )
 })
 
+// Update payment amount
+router.put('/:id/amount', authenticateToken, (req, res) => {
+  const { amount } = req.body
+
+  if (amount === undefined || amount === null || amount < 0) {
+    return res.status(400).json({ error: 'Valid amount is required' })
+  }
+
+  db.run(
+    'UPDATE payments SET amount = ? WHERE id = ?',
+    [amount, req.params.id],
+    function (err) {
+      if (err) {
+        return res.status(500).json({ error: 'Error updating payment amount' })
+      }
+      res.json({ message: 'Payment amount updated successfully' })
+    }
+  )
+})
+
 // Delete payment record
 router.delete('/:id', authenticateToken, (req, res) => {
   db.run('DELETE FROM payments WHERE id = ?', [req.params.id], function (err) {

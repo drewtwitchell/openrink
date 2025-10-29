@@ -180,10 +180,10 @@ router.get('/:id/payment-stats', (req, res) => {
     FROM players p
     INNER JOIN teams t ON p.team_id = t.id
     LEFT JOIN payments pay ON p.id = pay.player_id AND pay.season_id = ? AND pay.status = 'paid'
-    WHERE t.season_id = ?
+    WHERE t.season_id = ? OR (t.league_id = (SELECT league_id FROM seasons WHERE id = ?) AND t.season_id IS NULL)
   `
 
-  db.get(query, [req.params.id, req.params.id], (err, row) => {
+  db.get(query, [req.params.id, req.params.id, req.params.id], (err, row) => {
     if (err) {
       console.error('Error fetching payment stats:', err)
       return res.status(500).json({ error: 'Error fetching payment stats' })

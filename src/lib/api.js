@@ -331,6 +331,10 @@ export const payments = {
   markUnpaid: (id) => apiRequest(`/api/payments/${id}/unpaid`, {
     method: 'PUT',
   }),
+  updateAmount: (id, amount) => apiRequest(`/api/payments/${id}/amount`, {
+    method: 'PUT',
+    body: JSON.stringify({ amount }),
+  }),
   delete: (id) => apiRequest(`/api/payments/${id}`, {
     method: 'DELETE',
   }),

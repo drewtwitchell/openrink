@@ -65,6 +65,10 @@ export default function LeagueDetails() {
   const [managerEmail, setManagerEmail] = useState('')
   const [showPaymentMethodModal, setShowPaymentMethodModal] = useState(false)
   const [playerToMarkPaid, setPlayerToMarkPaid] = useState(null)
+  const [editingPaymentId, setEditingPaymentId] = useState(null)
+  const [editingPaymentAmount, setEditingPaymentAmount] = useState('')
+  const [editingSeasonDues, setEditingSeasonDues] = useState(false)
+  const [tempSeasonDues, setTempSeasonDues] = useState('')
 
   // Check if current user can manage this league
   // User can manage if they're an admin OR if they're in the league_managers table for this league
@@ -513,6 +517,68 @@ export default function LeagueDetails() {
       await fetchPaymentData(activeSeason.id)
     } catch (error) {
       alert('Error marking payment as unpaid: ' + error.message)
+    }
+  }
+
+  const handleEditPaymentAmount = (player) => {
+    setEditingPaymentId(player.payment_id || `new-${player.id}`)
+    setEditingPaymentAmount(player.payment_amount || activeSeason.season_dues || '0')
+  }
+
+  const handleSavePaymentAmount = async (player) => {
+    try {
+      const amount = parseFloat(editingPaymentAmount)
+      if (isNaN(amount) || amount < 0) {
+        alert('Please enter a valid amount')
+        return
+      }
+
+      if (player.payment_id) {
+        // Update existing payment amount
+        await payments.updateAmount(player.payment_id, amount)
+      } else {
+        // Create new payment record with custom amount
+        await payments.create({
+          player_id: player.id,
+          team_id: player.team_id,
+          amount: amount,
+          season_id: activeSeason.id,
+          status: 'pending'
+        })
+      }
+
+      setEditingPaymentId(null)
+      setEditingPaymentAmount('')
+      await fetchPaymentData(activeSeason.id)
+    } catch (error) {
+      alert('Error updating payment amount: ' + error.message)
+    }
+  }
+
+  const handleEditSeasonDues = () => {
+    setEditingSeasonDues(true)
+    setTempSeasonDues(activeSeason.season_dues || '0')
+  }
+
+  const handleSaveSeasonDues = async () => {
+    try {
+      const amount = parseFloat(tempSeasonDues)
+      if (isNaN(amount) || amount < 0) {
+        alert('Please enter a valid amount')
+        return
+      }
+
+      await seasons.update(activeSeason.id, {
+        ...activeSeason,
+        season_dues: amount
+      })
+
+      setEditingSeasonDues(false)
+      setTempSeasonDues('')
+      await fetchLeagueData()
+      await fetchPaymentData(activeSeason.id)
+    } catch (error) {
+      alert('Error updating season dues: ' + error.message)
     }
   }
 
@@ -1711,6 +1777,62 @@ export default function LeagueDetails() {
                 </button>
               </div>
 
+              {/* Season Dues Editor */}
+              {activeSeason && (
+                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <div className="text-sm text-gray-600 mb-1">Season Dues</div>
+                        {editingSeasonDues ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl font-bold">$</span>
+                            <input
+                              type="number"
+                              value={tempSeasonDues}
+                              onChange={(e) => setTempSeasonDues(e.target.value)}
+                              className="w-24 px-2 py-1 border border-gray-300 rounded"
+                              step="0.01"
+                              min="0"
+                              autoFocus
+                            />
+                            <button
+                              onClick={handleSaveSeasonDues}
+                              className="text-sm px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditingSeasonDues(false)}
+                              className="text-sm px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <div className="text-2xl font-bold text-ice-600">
+                              ${parseFloat(activeSeason.season_dues || 0).toFixed(2)}
+                            </div>
+                            {canManage && (
+                              <button
+                                onClick={handleEditSeasonDues}
+                                className="text-sm text-ice-600 hover:text-ice-700 underline"
+                              >
+                                Edit
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Default amount for all players
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Payment Stats */}
               {paymentStats && (
                 <div className="grid grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
@@ -1877,7 +1999,47 @@ export default function LeagueDetails() {
                                     <td className="py-2 px-3 font-medium">{player.name}</td>
                                     <td className="py-2 px-3 text-sm text-gray-600">{player.email || '-'}</td>
                                     <td className="py-2 px-3 text-center">
-                                      ${parseFloat(activeSeason.season_dues || 0).toFixed(2)}
+                                      {editingPaymentId === (player.payment_id || `new-${player.id}`) ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <span className="text-sm">$</span>
+                                          <input
+                                            type="number"
+                                            value={editingPaymentAmount}
+                                            onChange={(e) => setEditingPaymentAmount(e.target.value)}
+                                            className="w-20 px-1 py-0.5 text-sm border border-gray-300 rounded"
+                                            step="0.01"
+                                            min="0"
+                                            autoFocus
+                                          />
+                                          <button
+                                            onClick={() => handleSavePaymentAmount(player)}
+                                            className="text-xs px-2 py-0.5 bg-green-600 text-white rounded hover:bg-green-700"
+                                          >
+                                            ✓
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              setEditingPaymentId(null)
+                                              setEditingPaymentAmount('')
+                                            }}
+                                            className="text-xs px-2 py-0.5 bg-gray-400 text-white rounded hover:bg-gray-500"
+                                          >
+                                            ✕
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <span>${parseFloat(player.payment_amount || activeSeason.season_dues || 0).toFixed(2)}</span>
+                                          {canManage && (
+                                            <button
+                                              onClick={() => handleEditPaymentAmount(player)}
+                                              className="text-xs text-ice-600 hover:text-ice-700"
+                                            >
+                                              ✎
+                                            </button>
+                                          )}
+                                        </div>
+                                      )}
                                     </td>
                                     <td className="py-2 px-3 text-center">
                                       {player.payment_status === 'paid' ? (
