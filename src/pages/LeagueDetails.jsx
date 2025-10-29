@@ -20,6 +20,7 @@ export default function LeagueDetails() {
   const [seasonSubTab, setSeasonSubTab] = useState(null) // null shows seasons, or 'teams', 'schedule', 'playoffs'
   const [showTeamForm, setShowTeamForm] = useState(false)
   const [showSeasonForm, setShowSeasonForm] = useState(false)
+  const [showArchivedSeasons, setShowArchivedSeasons] = useState(false)
   const [editingSeasonId, setEditingSeasonId] = useState(null)
   const [teamFormData, setTeamFormData] = useState({
     name: '',
@@ -475,6 +476,13 @@ export default function LeagueDetails() {
   const handleArchiveSeason = async (seasonId, archived) => {
     try {
       await seasons.archive(seasonId, archived)
+
+      // If archiving the currently selected season, deselect it
+      if (archived && selectedSeasonId === seasonId) {
+        setSelectedSeasonId(null)
+        setSeasonSubTab(null)
+      }
+
       fetchLeagueData()
     } catch (error) {
       alert('Error archiving season: ' + error.message)
@@ -862,29 +870,46 @@ export default function LeagueDetails() {
             </div>
 
             {/* Season Context Selector - Dropdown style */}
-            <div className="flex items-center gap-2 mt-2">
-              <label className="text-sm font-semibold text-gray-600">Season:</label>
-              <select
-                value={selectedSeasonId || ''}
-                onChange={(e) => {
-                  const seasonId = e.target.value ? parseInt(e.target.value) : null
-                  setSelectedSeasonId(seasonId)
-                  if (seasonId && !seasonSubTab) {
-                    setMainTab('season')
-                    setSeasonSubTab('teams')
-                  }
-                }}
-                className="input py-1 px-3 text-sm max-w-xs"
-              >
-                <option value="">Select a season...</option>
-                {leagueSeasons.map((season) => (
-                  <option key={season.id} value={season.id}>
-                    {season.name}
-                    {season.is_active === 1 ? ' ★ Active' : ''}
-                    {season.archived === 1 ? ' (Archived)' : ''}
-                  </option>
-                ))}
-              </select>
+            <div className="flex items-center gap-3 mt-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-semibold text-gray-600">Season:</label>
+                <select
+                  value={selectedSeasonId || ''}
+                  onChange={(e) => {
+                    const seasonId = e.target.value ? parseInt(e.target.value) : null
+                    setSelectedSeasonId(seasonId)
+                    if (seasonId && !seasonSubTab) {
+                      setMainTab('season')
+                      setSeasonSubTab('teams')
+                    }
+                  }}
+                  className="input py-1 px-3 text-sm max-w-xs"
+                >
+                  <option value="">Select a season...</option>
+                  {leagueSeasons
+                    .filter(season => showArchivedSeasons || season.archived !== 1)
+                    .map((season) => (
+                      <option key={season.id} value={season.id}>
+                        {season.name}
+                        {season.is_active === 1 ? ' ★ Active' : ''}
+                        {season.archived === 1 ? ' (Archived)' : ''}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {leagueSeasons.some(s => s.archived === 1) && (
+                <label className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showArchivedSeasons}
+                    onChange={(e) => setShowArchivedSeasons(e.target.checked)}
+                    className="rounded"
+                  />
+                  Show archived
+                </label>
+              )}
+            </div>
 
               {/* Season quick info inline */}
               {selectedSeasonId && (() => {
