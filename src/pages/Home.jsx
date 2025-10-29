@@ -887,7 +887,6 @@ export default function Home() {
               <ul className="list-disc list-inside space-y-1">
                 <li><strong>Desktop:</strong> Click a link above to open in your calendar app</li>
                 <li><strong>iPhone/iPad:</strong> Tap a link and choose "Subscribe" when prompted</li>
-                <li><strong>Google Calendar:</strong> Click link, then copy URL and add via "Other calendars" → "From URL"</li>
               </ul>
               <p className="mt-2 text-gray-600">Calendars refresh automatically every hour with new games and updates.</p>
             </div>

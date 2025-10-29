@@ -452,21 +452,100 @@ function initDatabase() {
     })
 
     // Add username column to users if it doesn't exist (migration)
-    db.run(`ALTER TABLE users ADD COLUMN username TEXT UNIQUE`, (err) => {
+    // Step 1: Add column without UNIQUE constraint
+    db.run(`ALTER TABLE users ADD COLUMN username TEXT`, (err) => {
       if (err && !err.message.includes('duplicate column')) {
         console.error('Error adding username column:', err)
       } else {
-        // Update existing admin user to have username "admin"
+        // Step 2: Update existing admin user to have username "admin"
         db.run(`UPDATE users SET username = 'admin' WHERE email = 'admin@openrink.local' AND username IS NULL`, (updateErr) => {
           if (updateErr) {
             console.error('Error setting admin username:', updateErr)
+          } else {
+            // Step 3: Create UNIQUE index on username column
+            db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)`, (indexErr) => {
+              if (indexErr) {
+                console.error('Error creating username unique index:', indexErr)
+              } else {
+                console.log('Username column added successfully with UNIQUE constraint')
+              }
+            })
           }
         })
       }
     })
 
+    // Migration: Make email column nullable
+    db.get("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'", (err, row) => {
+      if (err) {
+        console.error('Error checking users table schema:', err)
+        return
+      }
+
+      // Check if email is still NOT NULL
+      if (row && row.sql && row.sql.includes('email TEXT UNIQUE NOT NULL')) {
+        console.log('Migrating users table to make email nullable...')
+
+        db.run(`
+          CREATE TABLE users_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE,
+            email TEXT UNIQUE,
+            password TEXT NOT NULL,
+            name TEXT,
+            phone TEXT,
+            role TEXT DEFAULT 'player',
+            position TEXT DEFAULT 'player',
+            password_reset_required INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `, (createErr) => {
+          if (createErr) {
+            console.error('Error creating users_new table:', createErr)
+            return
+          }
+
+          // Copy all data
+          db.run(`
+            INSERT INTO users_new (id, username, email, password, name, phone, role, position, password_reset_required, created_at)
+            SELECT id, username, email, password, name, phone, role, position, password_reset_required, created_at FROM users
+          `, (copyErr) => {
+            if (copyErr) {
+              console.error('Error copying data to users_new:', copyErr)
+              return
+            }
+
+            // Drop old table
+            db.run('DROP TABLE users', (dropErr) => {
+              if (dropErr) {
+                console.error('Error dropping old users table:', dropErr)
+                return
+              }
+
+              // Rename new table
+              db.run('ALTER TABLE users_new RENAME TO users', (renameErr) => {
+                if (renameErr) {
+                  console.error('Error renaming users_new to users:', renameErr)
+                  return
+                }
+
+                // Remove email from admin user
+                db.run("UPDATE users SET email = NULL WHERE username = 'admin'", (updateErr) => {
+                  if (updateErr) {
+                    console.error('Error removing admin email:', updateErr)
+                  } else {
+                    console.log('✅ Email column migrated to nullable and admin email removed')
+                  }
+                })
+              })
+            })
+          })
+        })
+      }
+    })
+
     // Create default admin user if it doesn't exist
-    db.get('SELECT id FROM users WHERE email = ?', ['admin@openrink.local'], async (err, row) => {
+    db.get('SELECT id FROM users WHERE username = ?', ['admin'], async (err, row) => {
       if (err) {
         console.error('Error checking for default admin:', err)
         return
@@ -476,17 +555,15 @@ function initDatabase() {
         try {
           const hashedPassword = await bcrypt.hash('admin123', 10)
           db.run(
-            'INSERT INTO users (username, email, password, name, role, password_reset_required) VALUES (?, ?, ?, ?, ?, ?)',
-            ['admin', 'admin@openrink.local', hashedPassword, 'Administrator', 'admin', 1],
+            'INSERT INTO users (username, password, name, role, password_reset_required) VALUES (?, ?, ?, ?, ?)',
+            ['admin', hashedPassword, 'admin', 'admin', 0],
             (insertErr) => {
               if (insertErr) {
                 console.error('Error creating default admin:', insertErr)
               } else {
                 console.log('✅ Default admin user created')
                 console.log('   Username: admin')
-                console.log('   Email: admin@openrink.local')
                 console.log('   Password: admin123')
-                console.log('   ⚠️  Password change required on first login!')
               }
             }
           )

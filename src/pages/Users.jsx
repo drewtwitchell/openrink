@@ -8,6 +8,8 @@ export default function Users() {
   const [allUsers, setAllUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
+  const [resetPasswordModal, setResetPasswordModal] = useState({ isOpen: false, user: null })
+  const [newPassword, setNewPassword] = useState('')
 
   useEffect(() => {
     const currentUser = auth.getUser()
@@ -41,6 +43,23 @@ export default function Users() {
       setTimeout(() => setMessage(''), 3000)
     } catch (error) {
       setMessage('Error updating role: ' + error.message)
+    }
+  }
+
+  const handleResetPassword = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      setMessage('Password must be at least 6 characters')
+      return
+    }
+
+    try {
+      await auth.resetUserPassword(resetPasswordModal.user.id, newPassword)
+      setMessage(`Password reset successfully for ${resetPasswordModal.user.name || resetPasswordModal.user.email}`)
+      setResetPasswordModal({ isOpen: false, user: null })
+      setNewPassword('')
+      setTimeout(() => setMessage(''), 3000)
+    } catch (error) {
+      setMessage('Error resetting password: ' + error.message)
     }
   }
 
@@ -88,6 +107,7 @@ export default function Users() {
                 <th className="text-left py-3 px-4">Phone</th>
                 <th className="text-left py-3 px-4">Role</th>
                 <th className="text-left py-3 px-4">Joined</th>
+                <th className="text-left py-3 px-4">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -111,6 +131,14 @@ export default function Users() {
                   </td>
                   <td className="py-3 px-4 text-sm text-gray-600">
                     {new Date(u.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="py-3 px-4">
+                    <button
+                      onClick={() => setResetPasswordModal({ isOpen: true, user: u })}
+                      className="btn-secondary text-sm"
+                    >
+                      Reset Password
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -148,6 +176,47 @@ export default function Users() {
           </div>
         </div>
       </div>
+
+      {/* Reset Password Modal */}
+      {resetPasswordModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <h3 className="text-xl font-bold mb-4">Reset Password</h3>
+            <p className="text-gray-600 mb-4">
+              Reset password for <strong>{resetPasswordModal.user?.name || resetPasswordModal.user?.email}</strong>
+            </p>
+            <div className="mb-4">
+              <label className="label">New Password</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="input w-full"
+                placeholder="Enter new password (min 6 characters)"
+                minLength={6}
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setResetPasswordModal({ isOpen: false, user: null })
+                  setNewPassword('')
+                }}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleResetPassword}
+                className="btn-primary"
+              >
+                Reset Password
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

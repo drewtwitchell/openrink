@@ -52,6 +52,10 @@ export default function Settings() {
       const updatedUser = auth.getUser()
       setUser(updatedUser)
       setMessage('Profile updated successfully!')
+
+      // Notify App.jsx to refresh user display
+      window.dispatchEvent(new Event('profileUpdated'))
+
       setTimeout(() => setMessage(''), 3000)
     } catch (error) {
       setMessage('Error updating profile: ' + error.message)

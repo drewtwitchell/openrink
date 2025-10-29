@@ -86,6 +86,11 @@ export const auth = {
     body: JSON.stringify({ role }),
   }),
 
+  resetUserPassword: (userId, newPassword) => apiRequest(`/api/auth/users/${userId}/reset-password`, {
+    method: 'PUT',
+    body: JSON.stringify({ new_password: newPassword }),
+  }),
+
   changePassword: async (currentPassword, newPassword) => {
     return apiRequest('/api/auth/change-password', {
       method: 'PUT',

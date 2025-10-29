@@ -177,7 +177,7 @@ export default function Login({ onLogin }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="input"
-              placeholder={isSignUp ? "you@example.com" : "admin or you@example.com"}
+              placeholder={isSignUp ? "you@example.com" : "Enter username or email"}
               required
             />
           </div>

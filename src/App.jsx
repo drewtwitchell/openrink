@@ -34,8 +34,7 @@ function App() {
     const isAuth = auth.isAuthenticated()
     setIsAuthenticated(isAuth)
 
-    // If authenticated, refresh user data from server to ensure we have latest (including role)
-    if (isAuth) {
+    const refreshUserData = () => {
       fetch('http://localhost:3001/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -56,6 +55,21 @@ function App() {
       .catch(err => {
         console.error('Failed to refresh user data:', err)
       })
+    }
+
+    // If authenticated, refresh user data from server to ensure we have latest (including role)
+    if (isAuth) {
+      refreshUserData()
+
+      // Listen for profile updates
+      const handleProfileUpdate = () => {
+        refreshUserData()
+      }
+      window.addEventListener('profileUpdated', handleProfileUpdate)
+
+      return () => {
+        window.removeEventListener('profileUpdated', handleProfileUpdate)
+      }
     } else {
       setUser(null)
     }
@@ -152,7 +166,7 @@ function App() {
                       className="flex items-center space-x-2 text-gray-700 hover:text-ice-600 focus:outline-none"
                     >
                       <div className="text-right">
-                        <div className="font-medium">{user?.name || user?.email}</div>
+                        <div className="font-medium">{user?.username || user?.name || user?.email}</div>
                         <div className="text-xs text-gray-500">{user?.role?.replace('_', ' ')}</div>
                       </div>
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

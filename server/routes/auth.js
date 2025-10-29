@@ -236,6 +236,48 @@ router.put('/users/:id/role', authenticateToken, (req, res) => {
   })
 })
 
+// Reset user password (admin only)
+router.put('/users/:id/reset-password', authenticateToken, async (req, res) => {
+  const { new_password } = req.body
+
+  if (!new_password) {
+    return res.status(400).json({ error: 'New password required' })
+  }
+
+  if (new_password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters' })
+  }
+
+  try {
+    // Check if user is admin
+    db.get('SELECT role FROM users WHERE id = ?', [req.user.id], async (err, user) => {
+      if (err || !user || user.role !== 'admin') {
+        return res.status(403).json({ error: 'Admin access required' })
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(new_password, 10)
+
+      // Update password
+      db.run(
+        'UPDATE users SET password = ?, password_reset_required = 0 WHERE id = ?',
+        [hashedPassword, req.params.id],
+        function (err) {
+          if (err) {
+            return res.status(500).json({ error: 'Error resetting password' })
+          }
+          if (this.changes === 0) {
+            return res.status(404).json({ error: 'User not found' })
+          }
+          res.json({ message: 'Password reset successfully' })
+        }
+      )
+    })
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
 // Delete user (admin only)
 router.delete('/users/:id', authenticateToken, (req, res) => {
   // Check if user is admin
