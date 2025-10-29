@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { leagues, seasons, auth } from '../lib/api'
-import Breadcrumbs from '../components/Breadcrumbs'
 
 export default function Leagues() {
   const navigate = useNavigate()
@@ -99,13 +98,6 @@ export default function Leagues() {
 
   return (
     <div>
-      <Breadcrumbs
-        items={[
-          { label: 'Dashboard', href: '/dashboard' },
-          { label: 'Leagues' }
-        ]}
-      />
-
       <div className="page-header">
         <div>
           <h1 className="page-title">Leagues</h1>
@@ -137,7 +129,7 @@ export default function Leagues() {
 
       {showForm && (
         <div className="card mb-8">
-          <h2 className="text-xl font-semibold mb-4">Create New League</h2>
+          <h2 className="text-2xl font-bold mb-4">Create New League</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="label">League Name</label>

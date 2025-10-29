@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { playoffs, auth, rinks } from '../lib/api'
-import Breadcrumbs from '../components/Breadcrumbs'
+import { playoffs, auth, rinks, leagues } from '../lib/api'
 
 export default function PlayoffBracketView() {
   const { bracketId } = useParams()
@@ -13,6 +12,7 @@ export default function PlayoffBracketView() {
   const [currentUser, setCurrentUser] = useState(null)
   const [editingMatch, setEditingMatch] = useState(null)
   const [allRinks, setAllRinks] = useState([])
+  const [canManage, setCanManage] = useState(false)
   const [matchForm, setMatchForm] = useState({
     team1_score: '',
     team2_score: '',
@@ -44,6 +44,22 @@ export default function PlayoffBracketView() {
         grouped[match.round].push(match)
       })
       setMatchesByRound(grouped)
+
+      // Check if current user can manage this bracket's league
+      const user = auth.getUser()
+      const isAdmin = user?.role === 'admin'
+      let isLeagueManager = false
+
+      if (data.bracket?.league_id) {
+        try {
+          const managersData = await leagues.getManagers(data.bracket.league_id)
+          isLeagueManager = managersData.some(m => m.user_id === user?.id)
+        } catch (error) {
+          console.error('Error fetching league managers:', error)
+        }
+      }
+
+      setCanManage(isAdmin || isLeagueManager)
     } catch (error) {
       console.error('Error fetching bracket:', error)
       alert('Error loading bracket')
@@ -96,7 +112,6 @@ export default function PlayoffBracketView() {
     }
   }
 
-  const canManage = currentUser?.role === 'admin' || currentUser?.role === 'league_manager'
   const numRounds = Object.keys(matchesByRound).length
 
   if (loading) {
@@ -109,22 +124,22 @@ export default function PlayoffBracketView() {
 
   return (
     <div>
-      <Breadcrumbs
-        items={[
-          { label: 'Dashboard', href: '/dashboard' },
-          { label: 'Playoff Brackets', href: `/leagues/${bracket.league_id}/playoffs` },
-          { label: bracket.name }
-        ]}
-      />
+      {/* Back Navigation */}
+      <button
+        onClick={() => navigate(`/leagues/${bracket.league_id}`)}
+        className="mb-4 text-ice-600 hover:text-ice-700 flex items-center gap-2 text-sm"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+        Back to League
+      </button>
 
       <div className="page-header">
         <div>
           <h1 className="page-title">{bracket.name}</h1>
           <p className="page-subtitle">{bracket.format}</p>
         </div>
-        <button onClick={() => navigate(-1)} className="btn-secondary">
-          Back
-        </button>
       </div>
 
       {/* Bracket Visualization */}

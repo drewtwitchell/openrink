@@ -75,7 +75,15 @@ router.post('/signin', (req, res) => {
       const token = generateToken({ id: user.id, email: user.email })
       res.json({
         token,
-        user: { id: user.id, email: user.email, name: user.name, phone: user.phone, position: user.position, role: user.role }
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          phone: user.phone,
+          position: user.position,
+          role: user.role,
+          password_reset_required: user.password_reset_required || 0
+        }
       })
     } catch (error) {
       res.status(500).json({ error: 'Server error' })
@@ -85,7 +93,7 @@ router.post('/signin', (req, res) => {
 
 // Get current user
 router.get('/me', authenticateToken, (req, res) => {
-  db.get('SELECT id, email, name, phone, position, role FROM users WHERE id = ?', [req.user.id], (err, user) => {
+  db.get('SELECT id, email, name, phone, position, role, password_reset_required FROM users WHERE id = ?', [req.user.id], (err, user) => {
     if (err || !user) {
       return res.status(404).json({ error: 'User not found' })
     }
@@ -105,7 +113,7 @@ router.put('/profile', authenticateToken, (req, res) => {
         return res.status(500).json({ error: 'Error updating profile' })
       }
 
-      db.get('SELECT id, email, name, phone, position, role FROM users WHERE id = ?', [req.user.id], (err, user) => {
+      db.get('SELECT id, email, name, phone, position, role, password_reset_required FROM users WHERE id = ?', [req.user.id], (err, user) => {
         if (err || !user) {
           return res.status(404).json({ error: 'User not found' })
         }
@@ -154,11 +162,56 @@ router.get('/users', authenticateToken, (req, res) => {
   })
 })
 
+// Change password
+router.put('/change-password', authenticateToken, async (req, res) => {
+  const { current_password, new_password } = req.body
+
+  if (!current_password || !new_password) {
+    return res.status(400).json({ error: 'Current password and new password required' })
+  }
+
+  if (new_password.length < 6) {
+    return res.status(400).json({ error: 'New password must be at least 6 characters' })
+  }
+
+  try {
+    // Get current user
+    db.get('SELECT * FROM users WHERE id = ?', [req.user.id], async (err, user) => {
+      if (err || !user) {
+        return res.status(404).json({ error: 'User not found' })
+      }
+
+      // Verify current password
+      const validPassword = await bcrypt.compare(current_password, user.password)
+      if (!validPassword) {
+        return res.status(401).json({ error: 'Current password is incorrect' })
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(new_password, 10)
+
+      // Update password and clear reset flag
+      db.run(
+        'UPDATE users SET password = ?, password_reset_required = 0 WHERE id = ?',
+        [hashedPassword, req.user.id],
+        function (err) {
+          if (err) {
+            return res.status(500).json({ error: 'Error updating password' })
+          }
+          res.json({ message: 'Password updated successfully' })
+        }
+      )
+    })
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
 // Update user role (admin only)
 router.put('/users/:id/role', authenticateToken, (req, res) => {
   const { role } = req.body
 
-  if (!['admin', 'league_manager', 'team_captain', 'player'].includes(role)) {
+  if (!['admin', 'player'].includes(role)) {
     return res.status(400).json({ error: 'Invalid role' })
   }
 

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { leagues, games } from '../lib/api'
-import Breadcrumbs from '../components/Breadcrumbs'
 
 export default function Standings() {
   const [leaguesList, setLeaguesList] = useState([])
@@ -117,13 +116,6 @@ export default function Standings() {
 
   return (
     <div>
-      <Breadcrumbs
-        items={[
-          { label: 'Dashboard', href: '/dashboard' },
-          { label: 'Standings' }
-        ]}
-      />
-
       <h1 className="text-3xl font-bold mb-8">Standings</h1>
 
       {leaguesList.length === 0 ? (

@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { games, teams, rinks, leagues, csv, players, subRequests, auth, seasons } from '../lib/api'
-import Breadcrumbs from '../components/Breadcrumbs'
 
 export default function Games() {
   const [gamesList, setGamesList] = useState([])
@@ -185,13 +184,6 @@ export default function Games() {
 
   return (
     <div>
-      <Breadcrumbs
-        items={[
-          { label: 'Dashboard', href: '/dashboard' },
-          { label: 'Games' }
-        ]}
-      />
-
       <div className="page-header">
         <div>
           <h1 className="page-title">Games</h1>
@@ -260,7 +252,7 @@ export default function Games() {
 
       {showSubRequestForm && selectedGameForSub && (
         <div className="card mb-8 border-2 border-ice-600">
-          <h2 className="text-xl font-semibold mb-4">Request a Substitute</h2>
+          <h2 className="text-2xl font-bold mb-4">Request a Substitute</h2>
           <div className="mb-4 p-3 bg-gray-50 rounded">
             <div className="font-semibold">
               {selectedGameForSub.home_team_name} vs {selectedGameForSub.away_team_name}
@@ -360,7 +352,7 @@ export default function Games() {
 
       {showForm && (
         <div className="card mb-8">
-          <h2 className="text-xl font-semibold mb-4">Schedule New Game</h2>
+          <h2 className="text-2xl font-bold mb-4">Schedule New Game</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
@@ -547,14 +539,6 @@ export default function Games() {
                   </td>
                   <td>
                     <div className="flex items-center justify-end gap-2">
-                      {!game.home_score && currentUser && (
-                        <button
-                          onClick={() => openSubRequestForm(game)}
-                          className="btn-secondary text-xs py-1 px-3"
-                        >
-                          Request Sub
-                        </button>
-                      )}
                       {canScheduleGames() && (
                         <button
                           onClick={() => handleDeleteGame(game.id)}

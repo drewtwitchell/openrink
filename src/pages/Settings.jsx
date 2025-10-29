@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { auth } from '../lib/api'
-import Breadcrumbs from '../components/Breadcrumbs'
 
 export default function Settings() {
+  const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
@@ -11,6 +12,12 @@ export default function Settings() {
     position: 'player',
   })
   const [message, setMessage] = useState('')
+  const [passwordData, setPasswordData] = useState({
+    current_password: '',
+    new_password: '',
+    confirm_password: ''
+  })
+  const [passwordMessage, setPasswordMessage] = useState('')
 
   useEffect(() => {
     const currentUser = auth.getUser()
@@ -28,8 +35,6 @@ export default function Settings() {
   const getRoleBadge = (role) => {
     const roles = {
       admin: { label: 'Admin', color: 'bg-purple-100 text-purple-800' },
-      league_manager: { label: 'League Manager', color: 'bg-blue-100 text-blue-800' },
-      team_captain: { label: 'Team Captain', color: 'bg-green-100 text-green-800' },
       player: { label: 'Player', color: 'bg-gray-100 text-gray-800' },
     }
     const roleInfo = roles[role] || roles.player
@@ -53,15 +58,41 @@ export default function Settings() {
     }
   }
 
+  const handlePasswordChange = async (e) => {
+    e.preventDefault()
+    setPasswordMessage('')
+
+    if (passwordData.new_password !== passwordData.confirm_password) {
+      setPasswordMessage('New passwords do not match')
+      return
+    }
+
+    if (passwordData.new_password.length < 6) {
+      setPasswordMessage('New password must be at least 6 characters')
+      return
+    }
+
+    try {
+      await auth.changePassword(passwordData.current_password, passwordData.new_password)
+      setPasswordMessage('Password changed successfully!')
+      setPasswordData({ current_password: '', new_password: '', confirm_password: '' })
+
+      // Update user in localStorage to clear password_reset_required flag
+      const currentUser = auth.getUser()
+      if (currentUser) {
+        currentUser.password_reset_required = 0
+        localStorage.setItem('user', JSON.stringify(currentUser))
+        setUser(currentUser)
+      }
+
+      setTimeout(() => setPasswordMessage(''), 3000)
+    } catch (error) {
+      setPasswordMessage('Error: ' + error.message)
+    }
+  }
+
   return (
     <div className="max-w-4xl mx-auto">
-      <Breadcrumbs
-        items={[
-          { label: 'Dashboard', href: '/dashboard' },
-          { label: 'Profile Settings' }
-        ]}
-      />
-
       <h1 className="text-3xl font-bold mb-8">Profile Settings</h1>
 
       <div className="card mb-6">
@@ -135,19 +166,101 @@ export default function Settings() {
       </div>
 
       <div className="card">
-        <h2 className="text-xl font-semibold mb-4">About Roles</h2>
-        <div className="space-y-3 text-sm text-gray-600">
-          <div>
-            <strong className="text-gray-900">Admin:</strong> Full access to all features and settings. Can manage all leagues, teams, and users.
+        <h2 className="text-xl font-semibold mb-4">Change Password</h2>
+
+        {passwordMessage && (
+          <div className={`mb-4 p-3 rounded ${passwordMessage.includes('Error') || passwordMessage.includes('not match') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+            {passwordMessage}
           </div>
+        )}
+
+        <form onSubmit={handlePasswordChange} className="space-y-4">
           <div>
-            <strong className="text-gray-900">League Manager:</strong> Can manage their assigned leagues, including teams, games, and schedules.
+            <label className="label">Current Password</label>
+            <input
+              type="password"
+              value={passwordData.current_password}
+              onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
+              className="input"
+              required
+              autoComplete="current-password"
+            />
           </div>
+
           <div>
-            <strong className="text-gray-900">Team Captain:</strong> Can manage their team roster, request subs, and update team information.
+            <label className="label">New Password</label>
+            <input
+              type="password"
+              value={passwordData.new_password}
+              onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
+              className="input"
+              required
+              autoComplete="new-password"
+              minLength="6"
+            />
+            <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
           </div>
+
           <div>
-            <strong className="text-gray-900">Player:</strong> Can view schedules, standings, and manage their own player profile.
+            <label className="label">Confirm New Password</label>
+            <input
+              type="password"
+              value={passwordData.confirm_password}
+              onChange={(e) => setPasswordData({ ...passwordData, confirm_password: e.target.value })}
+              className="input"
+              required
+              autoComplete="new-password"
+              minLength="6"
+            />
+          </div>
+
+          <button type="submit" className="btn-primary">
+            Update Password
+          </button>
+        </form>
+      </div>
+
+      {user?.role === 'admin' && (
+        <div className="card">
+          <h2 className="text-xl font-semibold mb-4">Administration</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            As an admin, you have access to system-wide user management.
+          </p>
+          <button
+            onClick={() => navigate('/users')}
+            className="btn-primary"
+          >
+            Manage All Users
+          </button>
+        </div>
+      )}
+
+      <div className="card">
+        <h2 className="text-xl font-semibold mb-4">About Roles & Permissions</h2>
+        <div className="space-y-4">
+          <div>
+            <h3 className="font-semibold text-gray-900 mb-2 text-sm">System Roles</h3>
+            <div className="space-y-2 text-sm text-gray-600">
+              <div>
+                <strong className="text-gray-900">Admin:</strong> Full access to all features and settings. Can manage all leagues, teams, users, and system-wide configurations.
+              </div>
+              <div>
+                <strong className="text-gray-900">Player:</strong> Standard user account. Can view schedules, standings, and manage their own player profile.
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-3 border-t">
+            <h3 className="font-semibold text-gray-900 mb-2 text-sm">Additional Permissions</h3>
+            <p className="text-xs text-gray-600 mb-2">These are assigned per-league or per-team, not as system roles:</p>
+            <div className="space-y-2 text-sm text-gray-600">
+              <div>
+                <strong className="text-gray-900">League Manager:</strong> Assigned per league. Can manage their assigned leagues, including teams, games, schedules, and payments. Assigned in the league's "Managers" section.
+              </div>
+              <div>
+                <strong className="text-gray-900">Team Captain:</strong> Assigned per team. Can be designated as captain on their team roster. Shown with a captain badge throughout the system.
+              </div>
+            </div>
           </div>
         </div>
       </div>

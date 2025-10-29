@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { teams, leagues as leaguesApi, auth } from '../lib/api'
-import Breadcrumbs from '../components/Breadcrumbs'
+import { teams, leagues as leaguesApi, auth, players } from '../lib/api'
 
 export default function Teams() {
   const navigate = useNavigate()
@@ -15,6 +14,8 @@ export default function Teams() {
     league_id: '',
     color: '#0284c7',
   })
+  const [expandedTeams, setExpandedTeams] = useState({})
+  const [teamRosters, setTeamRosters] = useState({})
 
   useEffect(() => {
     setCurrentUser(auth.getUser())
@@ -64,19 +65,33 @@ export default function Teams() {
     return currentUser?.role === 'admin' || currentUser?.role === 'league_manager'
   }
 
+  const toggleTeamRoster = async (teamId) => {
+    // Toggle expanded state
+    setExpandedTeams(prev => ({
+      ...prev,
+      [teamId]: !prev[teamId]
+    }))
+
+    // Fetch roster if not already loaded
+    if (!teamRosters[teamId]) {
+      try {
+        const roster = await players.getByTeam(teamId)
+        setTeamRosters(prev => ({
+          ...prev,
+          [teamId]: roster
+        }))
+      } catch (error) {
+        console.error('Error fetching roster:', error)
+      }
+    }
+  }
+
   if (loading) {
     return <div>Loading teams...</div>
   }
 
   return (
     <div>
-      <Breadcrumbs
-        items={[
-          { label: 'Dashboard', href: '/dashboard' },
-          { label: 'Teams' }
-        ]}
-      />
-
       <div className="page-header">
         <div>
           <h1 className="page-title">Teams</h1>
@@ -101,7 +116,7 @@ export default function Teams() {
 
       {showForm && (
         <div className="card mb-8">
-          <h2 className="text-xl font-semibold mb-4">Create New Team</h2>
+          <h2 className="text-2xl font-bold mb-4">Create New Team</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="label">Team Name</label>
@@ -164,58 +179,143 @@ export default function Teams() {
           </div>
         </div>
       ) : (
-        <div className="card">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Team</th>
-                <th>League</th>
-                <th>Captain</th>
-                <th>Players</th>
-                <th className="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {teamsList.map((team) => (
-                <tr key={team.id}>
-                  <td>
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-3 h-3 rounded"
-                        style={{ backgroundColor: team.color }}
-                      />
-                      <span className="font-medium">{team.name}</span>
-                    </div>
-                  </td>
-                  <td className="text-gray-600">{team.league_name || '-'}</td>
-                  <td className="text-gray-600">
-                    {team.captains && team.captains.length > 0
-                      ? team.captains.map(c => c.name).join(', ')
-                      : '-'}
-                  </td>
-                  <td className="text-gray-600">{team.player_count || 0}</td>
-                  <td>
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => navigate(`/teams/${team.id}/roster`)}
-                        className="btn-secondary text-xs py-1 px-3"
-                      >
-                        View Roster
-                      </button>
-                      {canManageTeams() && (
-                        <button
-                          onClick={() => handleDelete(team.id, team.name)}
-                          className="btn-danger text-xs py-1 px-3"
-                        >
-                          Delete
-                        </button>
+        <div className="space-y-4">
+          {teamsList.map((team) => (
+            <div key={team.id} className="card overflow-hidden">
+              <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                <div className="flex items-center gap-4 flex-1">
+                  <div
+                    className="w-12 h-12 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: team.color }}
+                  />
+                  <div className="flex-1">
+                    <h3 className="font-bold text-lg text-gray-900">{team.name}</h3>
+                    <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
+                      <span>{team.league_name || 'No League'}</span>
+                      <span>•</span>
+                      <span>{team.player_count || 0} players</span>
+                      {team.captains && team.captains.length > 0 && (
+                        <>
+                          <span>•</span>
+                          <span>Captain: {team.captains.map(c => c.name).join(', ')}</span>
+                        </>
                       )}
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => toggleTeamRoster(team.id)}
+                    className="btn-secondary text-sm"
+                  >
+                    {expandedTeams[team.id] ? 'Hide Roster' : 'View Roster'}
+                  </button>
+                  {canManageTeams() && (
+                    <button
+                      onClick={() => handleDelete(team.id, team.name)}
+                      className="btn-danger text-sm"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Inline Roster Display */}
+              {expandedTeams[team.id] && (
+                <div className="p-4 bg-gray-50">
+                  {canManageTeams() && (
+                    <div className="flex justify-end mb-3">
+                      <button
+                        onClick={() => navigate(`/teams/${team.id}/roster`)}
+                        className="btn-primary text-xs"
+                      >
+                        Manage Roster
+                      </button>
+                    </div>
+                  )}
+                  {teamRosters[team.id] ? (
+                    teamRosters[team.id].length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left py-2 px-2">#</th>
+                              <th className="text-left py-2 px-2">Name</th>
+                              <th className="text-left py-2 px-2">Position</th>
+                              <th className="text-left py-2 px-2">Email</th>
+                              <th className="text-left py-2 px-2">Phone</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {teamRosters[team.id].map((player) => (
+                              <tr key={player.id} className="border-b hover:bg-white">
+                                <td className="py-2 px-2">
+                                  {player.jersey_number ? (
+                                    <div
+                                      className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs"
+                                      style={{ backgroundColor: team.color }}
+                                    >
+                                      {player.jersey_number}
+                                    </div>
+                                  ) : (
+                                    <span className="text-gray-400">-</span>
+                                  )}
+                                </td>
+                                <td className="py-2 px-2">
+                                  <div className="flex items-center gap-2">
+                                    {player.name}
+                                    {player.is_captain === 1 && (
+                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-ice-100 text-ice-800">
+                                        ⭐ C
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="py-2 px-2 capitalize">{player.position || 'player'}</td>
+                                <td className="py-2 px-2">
+                                  {player.email ? (
+                                    <a href={`mailto:${player.email}`} className="text-ice-600 hover:underline">
+                                      {player.email}
+                                    </a>
+                                  ) : (
+                                    <span className="text-gray-400">-</span>
+                                  )}
+                                </td>
+                                <td className="py-2 px-2">
+                                  {player.phone ? (
+                                    <a href={`tel:${player.phone}`} className="text-ice-600 hover:underline">
+                                      {player.phone}
+                                    </a>
+                                  ) : (
+                                    <span className="text-gray-400">-</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <p>No players on this team yet.</p>
+                        {canManageTeams() && (
+                          <button
+                            onClick={() => navigate(`/teams/${team.id}/roster`)}
+                            className="btn-primary mt-4"
+                          >
+                            Add Players
+                          </button>
+                        )}
+                      </div>
+                    )
+                  ) : (
+                    <p className="text-gray-500 text-center py-4">Loading roster...</p>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>

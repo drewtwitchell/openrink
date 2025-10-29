@@ -7,9 +7,13 @@ const router = express.Router()
 // Get all payments for a team
 router.get('/team/:teamId', authenticateToken, (req, res) => {
   db.all(
-    `SELECT payments.*, players.name as player_name, players.email as player_email
+    `SELECT payments.*,
+       players.name as player_name,
+       players.email as player_email,
+       users.name as marked_by_name
      FROM payments
      LEFT JOIN players ON payments.player_id = players.id
+     LEFT JOIN users ON payments.marked_paid_by = users.id
      WHERE payments.team_id = ?
      ORDER BY payments.created_at DESC`,
     [req.params.teamId],
@@ -44,7 +48,9 @@ router.post('/', authenticateToken, (req, res) => {
     amount,
     description,
     venmo_link,
-    due_date
+    due_date,
+    payment_method,
+    season_id
   } = req.body
 
   if (!player_id || !team_id || !amount) {
@@ -52,8 +58,9 @@ router.post('/', authenticateToken, (req, res) => {
   }
 
   db.run(
-    'INSERT INTO payments (player_id, team_id, amount, description, venmo_link, due_date) VALUES (?, ?, ?, ?, ?, ?)',
-    [player_id, team_id, amount, description, venmo_link, due_date],
+    `INSERT INTO payments (player_id, team_id, amount, description, venmo_link, due_date, payment_method, season_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [player_id, team_id, amount, description, venmo_link, due_date, payment_method || 'venmo', season_id],
     function (err) {
       if (err) {
         return res.status(500).json({ error: 'Error creating payment record' })
@@ -65,9 +72,22 @@ router.post('/', authenticateToken, (req, res) => {
 
 // Mark payment as paid
 router.put('/:id/paid', authenticateToken, (req, res) => {
+  const {
+    confirmation_number,
+    payment_notes,
+    payment_method
+  } = req.body
+
   db.run(
-    'UPDATE payments SET status = ?, paid_date = CURRENT_TIMESTAMP WHERE id = ?',
-    ['paid', req.params.id],
+    `UPDATE payments
+     SET status = ?,
+         paid_date = CURRENT_TIMESTAMP,
+         confirmation_number = ?,
+         payment_notes = ?,
+         payment_method = COALESCE(?, payment_method),
+         marked_paid_by = ?
+     WHERE id = ?`,
+    ['paid', confirmation_number, payment_notes, payment_method, req.user.id, req.params.id],
     function (err) {
       if (err) {
         return res.status(500).json({ error: 'Error updating payment' })
@@ -97,6 +117,26 @@ router.put('/:id/paid', authenticateToken, (req, res) => {
           })
         }
       )
+    }
+  )
+})
+
+// Mark payment as unpaid
+router.put('/:id/unpaid', authenticateToken, (req, res) => {
+  db.run(
+    `UPDATE payments
+     SET status = ?,
+         paid_date = NULL,
+         confirmation_number = NULL,
+         payment_notes = NULL,
+         marked_paid_by = NULL
+     WHERE id = ?`,
+    ['pending', req.params.id],
+    function (err) {
+      if (err) {
+        return res.status(500).json({ error: 'Error updating payment' })
+      }
+      res.json({ message: 'Payment marked as unpaid' })
     }
   )
 })

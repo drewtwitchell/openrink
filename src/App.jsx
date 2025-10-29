@@ -14,8 +14,6 @@ import Games from './pages/Games'
 import Standings from './pages/Standings'
 import Settings from './pages/Settings'
 import Users from './pages/Users'
-import Announcements from './pages/Announcements'
-import Playoffs from './pages/Playoffs'
 import PlayoffBracketView from './pages/PlayoffBracketView'
 
 function App() {
@@ -23,6 +21,13 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [user, setUser] = useState(null)
+  const [showPasswordResetModal, setShowPasswordResetModal] = useState(false)
+  const [passwordData, setPasswordData] = useState({
+    current_password: '',
+    new_password: '',
+    confirm_password: ''
+  })
+  const [passwordMessage, setPasswordMessage] = useState('')
 
   useEffect(() => {
     // Check if user is authenticated
@@ -41,6 +46,11 @@ function App() {
         if (data.user) {
           localStorage.setItem('user', JSON.stringify(data.user))
           setUser(data.user)
+
+          // Check if password reset is required
+          if (data.user.password_reset_required === 1) {
+            setShowPasswordResetModal(true)
+          }
         }
       })
       .catch(err => {
@@ -52,6 +62,42 @@ function App() {
 
     setLoading(false)
   }, [isAuthenticated])
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault()
+    setPasswordMessage('')
+
+    if (passwordData.new_password !== passwordData.confirm_password) {
+      setPasswordMessage('New passwords do not match')
+      return
+    }
+
+    if (passwordData.new_password.length < 6) {
+      setPasswordMessage('New password must be at least 6 characters')
+      return
+    }
+
+    try {
+      await auth.changePassword(passwordData.current_password, passwordData.new_password)
+      setPasswordMessage('Password changed successfully!')
+      setPasswordData({ current_password: '', new_password: '', confirm_password: '' })
+
+      // Update user in localStorage to clear password_reset_required flag
+      const currentUser = auth.getUser()
+      if (currentUser) {
+        currentUser.password_reset_required = 0
+        localStorage.setItem('user', JSON.stringify(currentUser))
+        setUser(currentUser)
+      }
+
+      setTimeout(() => {
+        setPasswordMessage('')
+        setShowPasswordResetModal(false)
+      }, 1500)
+    } catch (error) {
+      setPasswordMessage('Error: ' + error.message)
+    }
+  }
 
   const handleSignOut = () => {
     auth.signOut()
@@ -157,6 +203,77 @@ function App() {
           </div>
         </nav>
 
+        {/* Password Reset Modal (Required for new admin accounts) */}
+        {showPasswordResetModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+              <div className="mb-4 p-3 bg-yellow-100 border border-yellow-400 rounded">
+                <h3 className="text-lg font-semibold text-yellow-800 mb-2">⚠️ Password Change Required</h3>
+                <p className="text-sm text-yellow-700">
+                  For security reasons, you must change your password before continuing.
+                </p>
+              </div>
+
+              {passwordMessage && (
+                <div className={`mb-4 p-3 rounded ${
+                  passwordMessage.includes('Error') || passwordMessage.includes('not match') || passwordMessage.includes('incorrect')
+                    ? 'bg-red-100 text-red-700 border border-red-400'
+                    : 'bg-green-100 text-green-700 border border-green-400'
+                }`}>
+                  {passwordMessage}
+                </div>
+              )}
+
+              <form onSubmit={handlePasswordChange} className="space-y-4">
+                <div>
+                  <label className="label">Current Password</label>
+                  <input
+                    type="password"
+                    value={passwordData.current_password}
+                    onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
+                    className="input w-full"
+                    required
+                    autoComplete="current-password"
+                    placeholder="Enter your current password"
+                  />
+                </div>
+
+                <div>
+                  <label className="label">New Password</label>
+                  <input
+                    type="password"
+                    value={passwordData.new_password}
+                    onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
+                    className="input w-full"
+                    required
+                    autoComplete="new-password"
+                    minLength="6"
+                    placeholder="Enter new password (min 6 characters)"
+                  />
+                </div>
+
+                <div>
+                  <label className="label">Confirm New Password</label>
+                  <input
+                    type="password"
+                    value={passwordData.confirm_password}
+                    onChange={(e) => setPasswordData({ ...passwordData, confirm_password: e.target.value })}
+                    className="input w-full"
+                    required
+                    autoComplete="new-password"
+                    minLength="6"
+                    placeholder="Re-enter new password"
+                  />
+                </div>
+
+                <button type="submit" className="btn-primary w-full">
+                  Change Password
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Routes>
@@ -171,8 +288,6 @@ function App() {
             <Route path="/standings" element={isAuthenticated ? <Standings /> : <Navigate to="/login" />} />
             <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
             <Route path="/users" element={isAuthenticated ? <Users /> : <Navigate to="/login" />} />
-            <Route path="/leagues/:leagueId/announcements" element={isAuthenticated ? <Announcements /> : <Navigate to="/login" />} />
-            <Route path="/leagues/:leagueId/playoffs" element={isAuthenticated ? <Playoffs /> : <Navigate to="/login" />} />
             <Route path="/playoffs/:bracketId/view" element={isAuthenticated ? <PlayoffBracketView /> : <Navigate to="/login" />} />
           </Routes>
         </main>

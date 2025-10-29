@@ -41,10 +41,11 @@ export default function Home() {
 
   const fetchPublicData = async () => {
     try {
-      const [leaguesData, teamsData, gamesData] = await Promise.all([
+      const [leaguesData, teamsData, gamesData, playersData] = await Promise.all([
         fetch(`${API_URL}/api/leagues`).then(r => r.json()).catch(() => []),
         fetch(`${API_URL}/api/teams`).then(r => r.json()).catch(() => []),
         fetch(`${API_URL}/api/games`).then(r => r.json()).catch(() => []),
+        fetch(`${API_URL}/api/players`).then(r => r.json()).catch(() => []),
       ])
 
       // Fetch announcements for each league
@@ -112,6 +113,11 @@ export default function Home() {
             // No active season
           }
 
+          // Get point values from active season or use defaults
+          const pointsWin = activeSeason?.points_win ?? 2
+          const pointsLoss = activeSeason?.points_loss ?? 0
+          const pointsTie = activeSeason?.points_tie ?? 1
+
           // Calculate standings
           const teamStats = {}
           leagueTeams.forEach(team => {
@@ -139,17 +145,19 @@ export default function Home() {
 
             if (game.home_score > game.away_score) {
               homeTeam.wins++
-              homeTeam.points += 2
+              homeTeam.points += pointsWin
               awayTeam.losses++
+              awayTeam.points += pointsLoss
             } else if (game.away_score > game.home_score) {
               awayTeam.wins++
-              awayTeam.points += 2
+              awayTeam.points += pointsWin
               homeTeam.losses++
+              homeTeam.points += pointsLoss
             } else {
               homeTeam.ties++
               awayTeam.ties++
-              homeTeam.points += 1
-              awayTeam.points += 1
+              homeTeam.points += pointsTie
+              awayTeam.points += pointsTie
             }
           })
 
@@ -158,13 +166,54 @@ export default function Home() {
             return b.gf - b.ga - (a.gf - a.ga)
           })
 
-          // Get upcoming games for this league (next 7 days)
-          const upcomingGames = gamesData.filter(g => {
+          // Get upcoming games for this league (next 7 days) - both regular season and playoff games
+          const regularSeasonGames = gamesData.filter(g => {
             const gameDate = new Date(g.game_date)
             const isUpcoming = gameDate >= today && gameDate <= nextWeek && !g.home_score
             const isLeagueGame = leagueTeams.some(t => t.id === g.home_team_id || t.id === g.away_team_id)
             return isUpcoming && isLeagueGame
-          }).slice(0, 5)
+          })
+
+          // Get upcoming playoff games
+          const playoffGames = []
+          if (leagueBrackets[league.id]?.matches) {
+            leagueBrackets[league.id].matches.forEach(match => {
+              if (match.game_date && !match.winner_id && match.team1_id && match.team2_id) {
+                const gameDate = new Date(match.game_date)
+                if (gameDate >= today && gameDate <= nextWeek) {
+                  playoffGames.push({
+                    id: `playoff-${match.id}`,
+                    home_team_name: match.team1_name,
+                    away_team_name: match.team2_name,
+                    game_date: match.game_date,
+                    game_time: match.game_time,
+                    rink_name: match.rink_name,
+                    surface_name: match.surface_name,
+                    isPlayoff: true,
+                    round: match.round
+                  })
+                }
+              }
+            })
+          }
+
+          const upcomingGames = [...regularSeasonGames, ...playoffGames]
+            .sort((a, b) => new Date(a.game_date) - new Date(b.game_date))
+            .slice(0, 5)
+
+          // Group players by team for this league
+          const teamRosters = leagueTeams.reduce((acc, team) => {
+            acc[team.id] = playersData
+              .filter(p => p.team_id === team.id)
+              .sort((a, b) => {
+                // Sort by position (captain first), then by jersey number, then by name
+                if (a.position === 'captain' && b.position !== 'captain') return -1
+                if (b.position === 'captain' && a.position !== 'captain') return 1
+                if (a.jersey_number && b.jersey_number) return a.jersey_number - b.jersey_number
+                return (a.name || '').localeCompare(b.name || '')
+              })
+            return acc
+          }, {})
 
           return {
             league,
@@ -172,7 +221,9 @@ export default function Home() {
             standings,
             upcomingGames,
             announcements: leagueAnnouncements[league.id] || [],
-            bracket: leagueBrackets[league.id] || null
+            bracket: leagueBrackets[league.id] || null,
+            teams: leagueTeams,
+            teamRosters
           }
         }))
 
@@ -208,7 +259,7 @@ export default function Home() {
               </Link>
             ) : (
               <Link to="/login" className="btn-primary">
-                Get Started
+                Sign In/Register
               </Link>
             )}
             <a
@@ -289,7 +340,7 @@ export default function Home() {
             </Link>
           ) : (
             <Link to="/login" className="btn-primary">
-              Sign In to Get Started
+              Sign In/Register
             </Link>
           )}
         </div>
@@ -341,30 +392,14 @@ export default function Home() {
         )}
       </div>
 
-      {/* Need a Sub? - only for non-authenticated users */}
-      {!isAuthenticated && isSingleLeague && (
-        <div className="card bg-red-50 border-red-200 mb-8">
-          <h3 className="text-xl font-semibold mb-3 text-red-900">Need a Sub?</h3>
-          <p className="text-gray-700 mb-4">
-            Can't make it to a game? Sign in to request a substitute and notify your team captain and league owners.
-          </p>
-          <Link
-            to="/login?intent=request-sub"
-            className="btn-primary w-full block text-center bg-red-600 hover:bg-red-700"
-          >
-            Sign In to Request Sub
-          </Link>
-        </div>
-      )}
-
-      {displayLeagues.map(({ league, activeSeason, standings, upcomingGames, announcements, bracket }) => (
+      {displayLeagues.map(({ league, activeSeason, standings, upcomingGames, announcements, bracket, teams, teamRosters }) => (
         <div key={league.id} className="mb-12">
           {/* League Header - only show for multiple leagues */}
           {isMultipleLeagues && (
             <div className="mb-6">
-              <h2 className="text-3xl font-bold text-gray-900">
+              <h2 className="text-2xl font-bold text-gray-900">
                 {league.name}
-                {league.season && <span className="text-2xl text-gray-600 ml-2">({league.season})</span>}
+                {league.season && <span className="text-xl text-gray-600 ml-2">({league.season})</span>}
               </h2>
               {league.description && (
                 <p className="text-gray-600 mt-1">{league.description}</p>
@@ -372,34 +407,7 @@ export default function Home() {
             </div>
           )}
 
-          {/* Quick Actions - only for authenticated users */}
-          {isAuthenticated && (
-            <div className="card bg-gradient-to-r from-ice-50 to-blue-50 border-ice-200 mb-8">
-              <h3 className="text-xl font-semibold mb-4 text-gray-900">Quick Actions</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <Link
-                  to="/dashboard"
-                  className="btn-primary text-center py-3"
-                >
-                  Go to Dashboard
-                </Link>
-                <Link
-                  to="/games"
-                  className="btn-secondary text-center py-3"
-                >
-                  View All Games
-                </Link>
-                <Link
-                  to="/teams"
-                  className="btn-secondary text-center py-3"
-                >
-                  Manage Teams
-                </Link>
-              </div>
-            </div>
-          )}
-
-          {/* Announcements */}
+          {/* Announcements - topmost element */}
           {announcements && announcements.length > 0 && (
             <div className="mb-8 space-y-3">
               {announcements.map((announcement) => (
@@ -429,7 +437,7 @@ export default function Home() {
           {/* Playoff Bracket */}
           {bracket && bracket.bracket && bracket.matches && (
             <div className="card mb-8">
-              <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
                 <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -546,7 +554,7 @@ export default function Home() {
           <div className="grid md:grid-cols-2 gap-8 mb-8">
             {/* Standings */}
             <div className="card">
-              <h3 className="text-2xl font-semibold mb-4">Standings</h3>
+              <h3 className="text-xl font-semibold mb-4">Standings</h3>
               {standings.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">No games played yet</p>
               ) : (
@@ -554,19 +562,19 @@ export default function Home() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b">
-                        <th className="text-left py-2 px-2">#</th>
-                        <th className="text-left py-2 px-2">Team</th>
-                        <th className="text-center py-2 px-2">W</th>
-                        <th className="text-center py-2 px-2">L</th>
-                        <th className="text-center py-2 px-2">T</th>
-                        <th className="text-center py-2 px-2 font-bold">PTS</th>
+                        <th className="text-left py-3 px-4">#</th>
+                        <th className="text-left py-3 px-4">Team</th>
+                        <th className="text-center py-3 px-4">W</th>
+                        <th className="text-center py-3 px-4">L</th>
+                        <th className="text-center py-3 px-4">T</th>
+                        <th className="text-center py-3 px-4 font-bold">PTS</th>
                       </tr>
                     </thead>
                     <tbody>
                       {standings.slice(0, 8).map((standing, index) => (
                         <tr key={standing.team.id} className="border-b hover:bg-gray-50">
-                          <td className="py-2 px-2 font-semibold">{index + 1}</td>
-                          <td className="py-2 px-2">
+                          <td className="py-3 px-4 font-semibold">{index + 1}</td>
+                          <td className="py-3 px-4">
                             <div className="flex items-center space-x-2">
                               <div
                                 className="w-3 h-3 rounded-full"
@@ -575,10 +583,10 @@ export default function Home() {
                               <span className="font-medium">{standing.team.name}</span>
                             </div>
                           </td>
-                          <td className="text-center py-2 px-2">{standing.wins}</td>
-                          <td className="text-center py-2 px-2">{standing.losses}</td>
-                          <td className="text-center py-2 px-2">{standing.ties}</td>
-                          <td className="text-center py-2 px-2 font-bold">{standing.points}</td>
+                          <td className="text-center py-3 px-4">{standing.wins}</td>
+                          <td className="text-center py-3 px-4">{standing.losses}</td>
+                          <td className="text-center py-3 px-4">{standing.ties}</td>
+                          <td className="text-center py-3 px-4 font-bold">{standing.points}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -589,15 +597,22 @@ export default function Home() {
 
             {/* Upcoming Games */}
             <div className="card">
-              <h3 className="text-2xl font-semibold mb-4">Upcoming Games This Week</h3>
+              <h3 className="text-xl font-semibold mb-4">Upcoming Games This Week</h3>
               {upcomingGames.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">No upcoming games this week</p>
               ) : (
                 <div className="space-y-3">
                   {upcomingGames.map((game) => (
-                    <div key={game.id} className="p-3 bg-gray-50 rounded">
-                      <div className="font-semibold text-sm mb-1">
-                        {game.home_team_name} vs {game.away_team_name}
+                    <div key={game.id} className={`p-3 rounded ${game.isPlayoff ? 'bg-yellow-50 border border-yellow-200' : 'bg-gray-50'}`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-sm">
+                          {game.home_team_name} vs {game.away_team_name}
+                        </span>
+                        {game.isPlayoff && (
+                          <span className="text-xs px-2 py-0.5 bg-yellow-200 text-yellow-800 rounded font-medium">
+                            Playoff
+                          </span>
+                        )}
                       </div>
                       <div className="text-xs text-gray-600">
                         {new Date(game.game_date).toLocaleDateString('en-US', {
@@ -608,7 +623,7 @@ export default function Home() {
                       </div>
                       {game.rink_name && (
                         <div className="text-xs text-gray-500 mt-1">
-                          {game.rink_name} - {game.surface_name}
+                          {game.rink_name}{game.surface_name ? ` - ${game.surface_name}` : ''}
                         </div>
                       )}
                     </div>
@@ -617,28 +632,99 @@ export default function Home() {
               )}
             </div>
           </div>
+
+          {/* Team Rosters */}
+          {teams && teams.length > 0 && (
+            <div className="card">
+              <h3 className="text-xl font-semibold mb-4">Team Rosters</h3>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {teams.map((team) => (
+                  <div key={team.id} className="border border-gray-200 rounded-lg p-4 bg-white">
+                    <div className="flex items-center gap-2 mb-3 pb-2 border-b">
+                      <div
+                        className="w-4 h-4 rounded"
+                        style={{ backgroundColor: team.color }}
+                      />
+                      <h4 className="font-semibold text-gray-900">{team.name}</h4>
+                    </div>
+                    {teamRosters[team.id] && teamRosters[team.id].length > 0 ? (
+                      <div className="space-y-2">
+                        {teamRosters[team.id].map((player) => (
+                          <div key={player.id} className="flex items-center gap-2 text-sm">
+                            {player.jersey_number && (
+                              <span className="text-gray-500 font-mono w-6">#{player.jersey_number}</span>
+                            )}
+                            <span className="flex-1">{player.name}</span>
+                            {player.position === 'captain' && (
+                              <span className="text-xs px-2 py-0.5 bg-ice-100 text-ice-700 rounded font-medium">
+                                C
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-400 text-sm italic">No players on roster</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Calendar Subscription */}
+          <div className="card bg-blue-50">
+            <h3 className="text-xl font-semibold mb-3">Subscribe to Game Calendar</h3>
+            <p className="text-gray-600 mb-4">
+              Subscribe to automatically sync games to your calendar app (Google Calendar, Apple Calendar, Outlook, etc.). Your calendar will stay up-to-date as new games are added.
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">All League Games</label>
+                <a
+                  href={`${API_URL}/api/calendar/league/${league.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary inline-block"
+                >
+                  Subscribe to All Games
+                </a>
+              </div>
+              {teams && teams.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Individual Team Games</label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                    {teams.map((team) => (
+                      <a
+                        key={team.id}
+                        href={`${API_URL}/api/calendar/team/${team.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-secondary text-xs py-2 flex items-center gap-2"
+                      >
+                        <div
+                          className="w-3 h-3 rounded"
+                          style={{ backgroundColor: team.color }}
+                        />
+                        {team.name}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="mt-4 p-3 bg-blue-100 rounded text-xs text-gray-700">
+              <p className="font-semibold mb-1">📅 How to subscribe:</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li><strong>Desktop:</strong> Click a link above to open in your calendar app</li>
+                <li><strong>iPhone/iPad:</strong> Tap a link and choose "Subscribe" when prompted</li>
+                <li><strong>Google Calendar:</strong> Click link, then copy URL and add via "Other calendars" → "From URL"</li>
+              </ul>
+              <p className="mt-2 text-gray-600">Calendars refresh automatically every hour with new games and updates.</p>
+            </div>
+          </div>
         </div>
       ))}
-
-      {/* Calendar Subscription */}
-      <div className="card mb-6 bg-blue-50">
-        <h3 className="text-xl font-semibold mb-3">Subscribe to Game Calendar</h3>
-        <p className="text-gray-600 mb-4">
-          Add all league games to your calendar app (Google Calendar, Apple Calendar, Outlook, etc.)
-        </p>
-        <div className="flex gap-3">
-          <a
-            href={`${API_URL}/api/calendar/league/${displayLeagues[0]?.league.id}`}
-            download
-            className="btn-primary"
-          >
-            Subscribe to All Games
-          </a>
-        </div>
-        <p className="text-xs text-gray-500 mt-3">
-          Downloads an .ics file that automatically updates when new games are added
-        </p>
-      </div>
 
     </div>
   )

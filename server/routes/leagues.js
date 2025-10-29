@@ -45,6 +45,57 @@ router.get('/:id/managers', (req, res) => {
   )
 })
 
+// Add league manager
+router.post('/:id/managers', authenticateToken, (req, res) => {
+  const { email } = req.body
+
+  if (!email) {
+    return res.status(400).json({ error: 'Email required' })
+  }
+
+  // Find user by email
+  db.get('SELECT id FROM users WHERE email = ?', [email], (err, user) => {
+    if (err) {
+      return res.status(500).json({ error: 'Database error' })
+    }
+    if (!user) {
+      return res.status(404).json({ error: 'User not found with this email' })
+    }
+
+    // Add as league manager
+    db.run(
+      'INSERT INTO league_managers (user_id, league_id) VALUES (?, ?)',
+      [user.id, req.params.id],
+      function (err) {
+        if (err) {
+          if (err.message.includes('UNIQUE constraint')) {
+            return res.status(400).json({ error: 'User is already a manager of this league' })
+          }
+          return res.status(500).json({ error: 'Error adding manager' })
+        }
+        res.json({ message: 'Manager added successfully', id: this.lastID })
+      }
+    )
+  })
+})
+
+// Remove league manager
+router.delete('/:id/managers/:userId', authenticateToken, (req, res) => {
+  db.run(
+    'DELETE FROM league_managers WHERE league_id = ? AND user_id = ?',
+    [req.params.id, req.params.userId],
+    function (err) {
+      if (err) {
+        return res.status(500).json({ error: 'Error removing manager' })
+      }
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'Manager assignment not found' })
+      }
+      res.json({ message: 'Manager removed successfully' })
+    }
+  )
+})
+
 // Create league
 router.post('/', authenticateToken, (req, res) => {
   const { name, description } = req.body

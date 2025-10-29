@@ -86,6 +86,16 @@ export const auth = {
     body: JSON.stringify({ role }),
   }),
 
+  changePassword: async (currentPassword, newPassword) => {
+    return apiRequest('/api/auth/change-password', {
+      method: 'PUT',
+      body: JSON.stringify({
+        current_password: currentPassword,
+        new_password: newPassword
+      }),
+    })
+  },
+
   deleteUser: (userId) => apiRequest(`/api/auth/users/${userId}`, {
     method: 'DELETE',
   }),
@@ -100,6 +110,13 @@ export const leagues = {
   getAll: (showArchived = false) => apiRequest(`/api/leagues${showArchived ? '?showArchived=true' : ''}`),
   getById: (id) => apiRequest(`/api/leagues/${id}`),
   getManagers: (id) => apiRequest(`/api/leagues/${id}/managers`),
+  addManager: (id, email) => apiRequest(`/api/leagues/${id}/managers`, {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  }),
+  removeManager: (id, userId) => apiRequest(`/api/leagues/${id}/managers/${userId}`, {
+    method: 'DELETE',
+  }),
   create: (data) => apiRequest('/api/leagues', {
     method: 'POST',
     body: JSON.stringify(data),
@@ -200,6 +217,8 @@ export const players = {
   delete: (id) => apiRequest(`/api/players/${id}`, {
     method: 'DELETE',
   }),
+  getHistory: (id) => apiRequest(`/api/players/${id}/history`),
+  getHistoryByUser: (userId) => apiRequest(`/api/players/user/${userId}/history`),
 }
 
 // Announcements API
@@ -301,7 +320,15 @@ export const payments = {
     method: 'POST',
     body: JSON.stringify(data),
   }),
-  markPaid: (id) => apiRequest(`/api/payments/${id}/paid`, {
+  markPaid: (id, confirmationNumber = null, paymentNotes = null, paymentMethod = null) => apiRequest(`/api/payments/${id}/paid`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      confirmation_number: confirmationNumber,
+      payment_notes: paymentNotes,
+      payment_method: paymentMethod,
+    }),
+  }),
+  markUnpaid: (id) => apiRequest(`/api/payments/${id}/unpaid`, {
     method: 'PUT',
   }),
   delete: (id) => apiRequest(`/api/payments/${id}`, {
@@ -323,5 +350,18 @@ export const subRequests = {
   }),
   delete: (id) => apiRequest(`/api/sub-requests/${id}`, {
     method: 'DELETE',
+  }),
+}
+
+// Team Captains API
+export const teamCaptains = {
+  getByTeam: (teamId) => apiRequest(`/api/team-captains/team/${teamId}`),
+  add: (userId, teamId) => apiRequest('/api/team-captains', {
+    method: 'POST',
+    body: JSON.stringify({ user_id: userId, team_id: teamId }),
+  }),
+  remove: (userId, teamId) => apiRequest('/api/team-captains', {
+    method: 'DELETE',
+    body: JSON.stringify({ user_id: userId, team_id: teamId }),
   }),
 }

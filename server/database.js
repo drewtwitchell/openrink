@@ -295,6 +295,48 @@ function initDatabase() {
       }
     })
 
+    // Add payment tracking fields (migration)
+    db.run(`ALTER TABLE payments ADD COLUMN payment_method TEXT DEFAULT 'venmo'`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding payment_method column to payments:', err)
+      }
+    })
+
+    db.run(`ALTER TABLE payments ADD COLUMN confirmation_number TEXT`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding confirmation_number column to payments:', err)
+      }
+    })
+
+    db.run(`ALTER TABLE payments ADD COLUMN payment_notes TEXT`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding payment_notes column to payments:', err)
+      }
+    })
+
+    db.run(`ALTER TABLE payments ADD COLUMN marked_paid_by INTEGER REFERENCES users(id)`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding marked_paid_by column to payments:', err)
+      }
+    })
+
+    // Add standings weight columns to seasons if they don't exist (migration)
+    db.run(`ALTER TABLE seasons ADD COLUMN points_win INTEGER DEFAULT 2`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding points_win column to seasons:', err)
+      }
+    })
+    db.run(`ALTER TABLE seasons ADD COLUMN points_loss INTEGER DEFAULT 0`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding points_loss column to seasons:', err)
+      }
+    })
+    db.run(`ALTER TABLE seasons ADD COLUMN points_tie INTEGER DEFAULT 1`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding points_tie column to seasons:', err)
+      }
+    })
+
     // Sub requests table
     db.run(`
       CREATE TABLE IF NOT EXISTS sub_requests (
@@ -379,6 +421,35 @@ function initDatabase() {
       )
     `)
 
+    // Create player history table to track team/season history
+    db.run(`
+      CREATE TABLE IF NOT EXISTS player_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        player_id INTEGER NOT NULL,
+        user_id INTEGER,
+        team_id INTEGER NOT NULL,
+        season_id INTEGER NOT NULL,
+        league_id INTEGER NOT NULL,
+        jersey_number INTEGER,
+        position TEXT DEFAULT 'player',
+        joined_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+        left_date DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+        FOREIGN KEY (team_id) REFERENCES teams(id),
+        FOREIGN KEY (season_id) REFERENCES seasons(id),
+        FOREIGN KEY (league_id) REFERENCES leagues(id)
+      )
+    `)
+
+    // Add password_reset_required column to users if it doesn't exist (migration)
+    db.run(`ALTER TABLE users ADD COLUMN password_reset_required INTEGER DEFAULT 0`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding password_reset_required column:', err)
+      }
+    })
+
     // Create default admin user if it doesn't exist
     db.get('SELECT id FROM users WHERE email = ?', ['admin@openrink.local'], async (err, row) => {
       if (err) {
@@ -390,8 +461,8 @@ function initDatabase() {
         try {
           const hashedPassword = await bcrypt.hash('admin123', 10)
           db.run(
-            'INSERT INTO users (email, password, name, role) VALUES (?, ?, ?, ?)',
-            ['admin@openrink.local', hashedPassword, 'Default Admin', 'admin'],
+            'INSERT INTO users (email, password, name, role, password_reset_required) VALUES (?, ?, ?, ?, ?)',
+            ['admin@openrink.local', hashedPassword, 'admin', 'admin', 1],
             (insertErr) => {
               if (insertErr) {
                 console.error('Error creating default admin:', insertErr)
@@ -399,7 +470,7 @@ function initDatabase() {
                 console.log('✅ Default admin user created')
                 console.log('   Email: admin@openrink.local')
                 console.log('   Password: admin123')
-                console.log('   ⚠️  Please change this password in production!')
+                console.log('   ⚠️  Password change required on first login!')
               }
             }
           )

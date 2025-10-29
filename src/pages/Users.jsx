@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { auth } from '../lib/api'
-import Breadcrumbs from '../components/Breadcrumbs'
 
 export default function Users() {
   const navigate = useNavigate()
@@ -48,8 +47,6 @@ export default function Users() {
   const getRoleBadge = (role) => {
     const roles = {
       admin: { label: 'Admin', color: 'bg-purple-100 text-purple-800' },
-      league_manager: { label: 'League Manager', color: 'bg-blue-100 text-blue-800' },
-      team_captain: { label: 'Team Captain', color: 'bg-green-100 text-green-800' },
       player: { label: 'Player', color: 'bg-gray-100 text-gray-800' },
     }
     const roleInfo = roles[role] || roles.player
@@ -66,13 +63,6 @@ export default function Users() {
 
   return (
     <div className="max-w-6xl mx-auto">
-      <Breadcrumbs
-        items={[
-          { label: 'Dashboard', href: '/dashboard' },
-          { label: 'User Management' }
-        ]}
-      />
-
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">User Management</h1>
         <p className="text-gray-600">Manage user roles and permissions</p>
@@ -86,7 +76,7 @@ export default function Users() {
 
       <div className="card mb-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">All Users ({allUsers.length})</h2>
+          <h2 className="text-2xl font-bold">All Users ({allUsers.length})</h2>
         </div>
 
         <div className="overflow-x-auto">
@@ -113,8 +103,6 @@ export default function Users() {
                       className="input text-sm py-1 px-2"
                     >
                       <option value="player">Player</option>
-                      <option value="team_captain">Team Captain</option>
-                      <option value="league_manager">League Manager</option>
                       <option value="admin">Admin</option>
                     </select>
                     {u.id === user?.id && (
@@ -132,19 +120,31 @@ export default function Users() {
       </div>
 
       <div className="card">
-        <h2 className="text-xl font-semibold mb-4">About Roles</h2>
-        <div className="space-y-3 text-sm text-gray-600">
+        <h2 className="text-2xl font-bold mb-4">About Roles & Permissions</h2>
+        <div className="space-y-4">
           <div>
-            <strong className="text-gray-900">Admin:</strong> Full access to all features and settings. Can manage all leagues, teams, and users.
+            <h3 className="font-semibold text-gray-900 mb-2">System Roles</h3>
+            <div className="space-y-2 text-sm text-gray-600">
+              <div>
+                <strong className="text-gray-900">Admin:</strong> Full access to all features and settings. Can manage all leagues, teams, users, and system-wide configurations.
+              </div>
+              <div>
+                <strong className="text-gray-900">Player:</strong> Standard user account. Can view schedules, standings, and manage their own player profile.
+              </div>
+            </div>
           </div>
-          <div>
-            <strong className="text-gray-900">League Manager:</strong> Can manage their assigned leagues, including teams, games, and schedules.
-          </div>
-          <div>
-            <strong className="text-gray-900">Team Captain:</strong> Can manage their team roster, request subs, and update team information.
-          </div>
-          <div>
-            <strong className="text-gray-900">Player:</strong> Can view schedules, standings, and manage their own player profile.
+
+          <div className="pt-4 border-t">
+            <h3 className="font-semibold text-gray-900 mb-2">Additional Permissions</h3>
+            <p className="text-sm text-gray-600 mb-2">These are assigned per-league or per-team, not as system roles:</p>
+            <div className="space-y-2 text-sm text-gray-600">
+              <div>
+                <strong className="text-gray-900">League Manager:</strong> Assigned per league. Can manage their assigned leagues, including teams, games, schedules, and payments. Assigned in the league's "Managers" section.
+              </div>
+              <div>
+                <strong className="text-gray-900">Team Captain:</strong> Assigned per team. Can be designated as captain on their team roster. Shown with a captain badge throughout the system.
+              </div>
+            </div>
           </div>
         </div>
       </div>

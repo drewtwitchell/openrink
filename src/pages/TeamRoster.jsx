@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { teams, players, csv, auth, leagues } from '../lib/api'
-import Breadcrumbs from '../components/Breadcrumbs'
 
 export default function TeamRoster() {
   const { id } = useParams()
@@ -240,22 +239,18 @@ export default function TeamRoster() {
     )
   }
 
-  const breadcrumbItems = leagueId
-    ? [
-        { label: 'Dashboard', href: '/dashboard' },
-        { label: 'Leagues', href: '/leagues' },
-        { label: league?.name || 'League', href: `/leagues/${leagueId}` },
-        { label: team?.name || 'Team Roster' }
-      ]
-    : [
-        { label: 'Dashboard', href: '/dashboard' },
-        { label: 'Teams', href: '/teams' },
-        { label: team?.name || 'Team Roster' }
-      ]
-
   return (
     <div>
-      <Breadcrumbs items={breadcrumbItems} />
+      {/* Back Navigation */}
+      <button
+        onClick={() => leagueId ? navigate(`/leagues/${leagueId}`) : navigate('/teams')}
+        className="mb-4 text-ice-600 hover:text-ice-700 flex items-center gap-2 text-sm"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+        {leagueId ? `Back to ${league?.name || 'League'}` : 'Back to Teams'}
+      </button>
 
       <div className="mb-6">
         <div className="flex justify-between items-start">
@@ -341,7 +336,7 @@ export default function TeamRoster() {
 
       {showForm && (
         <div className="card mb-8">
-          <h2 className="text-xl font-semibold mb-4">Add Player to Roster</h2>
+          <h2 className="text-2xl font-bold mb-4">Add Player to Roster</h2>
           {selectedUser && (
             <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded flex items-center justify-between">
               <div>
@@ -492,7 +487,7 @@ export default function TeamRoster() {
       ) : (
         <div className="card">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Roster ({roster.length} players)</h2>
+            <h2 className="text-2xl font-bold">Roster ({roster.length} players)</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -565,7 +560,7 @@ export default function TeamRoster() {
       {showTransferModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-semibold mb-4">Transfer Player</h3>
+            <h3 className="text-2xl font-bold mb-4">Transfer Player</h3>
             <p className="text-gray-600 mb-4">
               Transfer <strong>{playerToTransfer?.name}</strong> to another team
             </p>

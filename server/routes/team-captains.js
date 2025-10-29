@@ -1,5 +1,6 @@
 import express from 'express'
 import db from '../database.js'
+import { authenticateToken } from '../middleware/auth.js'
 
 const router = express.Router()
 
@@ -16,6 +17,46 @@ router.get('/team/:teamId', (req, res) => {
         return res.status(500).json({ error: 'Error fetching team captains' })
       }
       res.json(rows)
+    }
+  )
+})
+
+// Add a captain to a team
+router.post('/', authenticateToken, (req, res) => {
+  const { user_id, team_id } = req.body
+
+  if (!user_id || !team_id) {
+    return res.status(400).json({ error: 'user_id and team_id are required' })
+  }
+
+  db.run(
+    'INSERT OR IGNORE INTO team_captains (user_id, team_id) VALUES (?, ?)',
+    [user_id, team_id],
+    function(err) {
+      if (err) {
+        return res.status(500).json({ error: 'Error adding team captain' })
+      }
+      res.json({ message: 'Team captain added successfully' })
+    }
+  )
+})
+
+// Remove a captain from a team
+router.delete('/', authenticateToken, (req, res) => {
+  const { user_id, team_id } = req.body
+
+  if (!user_id || !team_id) {
+    return res.status(400).json({ error: 'user_id and team_id are required' })
+  }
+
+  db.run(
+    'DELETE FROM team_captains WHERE user_id = ? AND team_id = ?',
+    [user_id, team_id],
+    function(err) {
+      if (err) {
+        return res.status(500).json({ error: 'Error removing team captain' })
+      }
+      res.json({ message: 'Team captain removed successfully' })
     }
   )
 })
