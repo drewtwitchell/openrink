@@ -83,6 +83,8 @@ router.post('/signin', (req, res) => {
           name: user.name,
           phone: user.phone,
           position: user.position,
+          sub_position: user.sub_position,
+          jersey_number: user.jersey_number,
           role: user.role,
           password_reset_required: user.password_reset_required || 0
         }
@@ -95,7 +97,7 @@ router.post('/signin', (req, res) => {
 
 // Get current user
 router.get('/me', authenticateToken, (req, res) => {
-  db.get('SELECT id, username, email, name, phone, position, role, password_reset_required FROM users WHERE id = ?', [req.user.id], (err, user) => {
+  db.get('SELECT id, username, email, name, phone, position, sub_position, jersey_number, role, password_reset_required FROM users WHERE id = ?', [req.user.id], (err, user) => {
     if (err || !user) {
       return res.status(404).json({ error: 'User not found' })
     }
@@ -107,10 +109,10 @@ router.get('/me', authenticateToken, (req, res) => {
 router.put('/profile', authenticateToken, (req, res) => {
   const { name, phone, position, sub_position, jersey_number } = req.body
 
-  // Update user table
+  // Update user table with all fields including sub_position and jersey_number
   db.run(
-    'UPDATE users SET name = ?, phone = ?, position = ? WHERE id = ?',
-    [name, phone, position, req.user.id],
+    'UPDATE users SET name = ?, phone = ?, position = ?, sub_position = ?, jersey_number = ? WHERE id = ?',
+    [name, phone, position, sub_position || null, jersey_number || null, req.user.id],
     function (err) {
       if (err) {
         return res.status(500).json({ error: 'Error updating profile' })
@@ -119,19 +121,16 @@ router.put('/profile', authenticateToken, (req, res) => {
       // Also update all player records for this user
       db.run(
         'UPDATE players SET position = ?, sub_position = ?, jersey_number = ? WHERE user_id = ?',
-        [position, sub_position, jersey_number || null, req.user.id],
+        [position, sub_position || null, jersey_number || null, req.user.id],
         function (err) {
           if (err) {
             console.error('Error updating player records:', err)
           }
 
-          db.get('SELECT id, username, email, name, phone, position, role, password_reset_required FROM users WHERE id = ?', [req.user.id], (err, user) => {
+          db.get('SELECT id, username, email, name, phone, position, sub_position, jersey_number, role, password_reset_required FROM users WHERE id = ?', [req.user.id], (err, user) => {
             if (err || !user) {
               return res.status(404).json({ error: 'User not found' })
             }
-            // Add sub_position and jersey_number to the returned user object
-            user.sub_position = sub_position
-            user.jersey_number = jersey_number
             res.json({ user })
           })
         }

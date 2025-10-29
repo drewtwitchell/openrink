@@ -22,18 +22,65 @@ export default function Settings() {
   const [passwordMessage, setPasswordMessage] = useState('')
 
   useEffect(() => {
-    const currentUser = auth.getUser()
-    setUser(currentUser)
-    if (currentUser) {
-      setFormData({
-        name: currentUser.name || '',
-        email: currentUser.email || '',
-        phone: currentUser.phone || '',
-        position: currentUser.position || 'player',
-        sub_position: currentUser.sub_position || '',
-        jersey_number: currentUser.jersey_number || '',
-      })
+    // Fetch fresh user data from API instead of using stale localStorage
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          const freshUser = data.user
+
+          // Update localStorage with fresh data
+          localStorage.setItem('user', JSON.stringify(freshUser))
+
+          setUser(freshUser)
+          setFormData({
+            name: freshUser.name || '',
+            email: freshUser.email || '',
+            phone: freshUser.phone || '',
+            position: freshUser.position || 'player',
+            sub_position: freshUser.sub_position || '',
+            jersey_number: freshUser.jersey_number || '',
+          })
+        } else {
+          // Fallback to localStorage if API fails
+          const currentUser = auth.getUser()
+          setUser(currentUser)
+          if (currentUser) {
+            setFormData({
+              name: currentUser.name || '',
+              email: currentUser.email || '',
+              phone: currentUser.phone || '',
+              position: currentUser.position || 'player',
+              sub_position: currentUser.sub_position || '',
+              jersey_number: currentUser.jersey_number || '',
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error)
+        // Fallback to localStorage if API fails
+        const currentUser = auth.getUser()
+        setUser(currentUser)
+        if (currentUser) {
+          setFormData({
+            name: currentUser.name || '',
+            email: currentUser.email || '',
+            phone: currentUser.phone || '',
+            position: currentUser.position || 'player',
+            sub_position: currentUser.sub_position || '',
+            jersey_number: currentUser.jersey_number || '',
+          })
+        }
+      }
     }
+
+    fetchUserData()
   }, [])
 
   const getRoleBadge = (role) => {
