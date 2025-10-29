@@ -157,7 +157,7 @@ function App() {
                       to="/"
                       className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-ice-600 hover:bg-gray-100"
                     >
-                      Home
+                      Standings/Schedule
                     </Link>
                     <Link
                       to="/dashboard"
