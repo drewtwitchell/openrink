@@ -1073,7 +1073,7 @@ export default function LeagueDetails() {
       </div>
 
       {/* No season selected state */}
-      {!selectedSeasonId && mainTab === 'season' && (
+      {!selectedSeasonId && mainTab === 'season' && seasonSubTab !== null && (
         <div className="card text-center py-12">
           <h3 className="text-xl font-semibold text-gray-700 mb-2">Select a Season</h3>
           <p className="text-gray-500 mb-4">Choose a season from the dropdown above to view teams, schedule, and standings</p>
