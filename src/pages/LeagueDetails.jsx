@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { leagues, teams as teamsApi, games as gamesApi, seasons, auth, announcements, players } from '../lib/api'
 
@@ -52,11 +52,22 @@ export default function LeagueDetails() {
   const [playerToTransfer, setPlayerToTransfer] = useState(null)
   const [selectedTeamId, setSelectedTeamId] = useState('')
   const [selectedSeasonId, setSelectedSeasonId] = useState(null) // Track which season is selected in Season tab
+  const [showGameForm, setShowGameForm] = useState(false)
+  const [gameFormData, setGameFormData] = useState({
+    home_team_id: '',
+    away_team_id: '',
+    game_date: '',
+    game_time: '',
+    rink_name: '',
+  })
+  const [showPlayerForm, setShowPlayerForm] = useState(null) // Track which team's form is showing
 
   // Check if current user can manage this league
   // User can manage if they're an admin OR if they're in the league_managers table for this league
-  const canManage = currentUser?.role === 'admin' ||
-    managers.some(m => m.user_id === currentUser.id)
+  const canManage = useMemo(() => {
+    return currentUser?.role === 'admin' ||
+      managers.some(m => m.user_id === currentUser.id)
+  }, [currentUser, managers])
 
   useEffect(() => {
     setCurrentUser(auth.getUser())
@@ -68,13 +79,6 @@ export default function LeagueDetails() {
       setShowSeasonForm(true)
     }
   }, [id])
-
-  // Navigate to separate page for playoffs
-  useEffect(() => {
-    if (mainTab === 'season' && seasonSubTab === 'playoffs') {
-      navigate(`/leagues/${id}/playoffs`)
-    }
-  }, [seasonSubTab, mainTab, id, navigate])
 
   // Set default season sub tab when season is selected
   useEffect(() => {
@@ -405,6 +409,45 @@ export default function LeagueDetails() {
       fetchLeagueData()
     } catch (error) {
       alert('Error deleting team: ' + error.message)
+    }
+  }
+
+  const handleGameSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      await gamesApi.create({
+        ...gameFormData,
+        season_id: selectedSeasonId,
+      })
+      setGameFormData({
+        home_team_id: '',
+        away_team_id: '',
+        game_date: '',
+        game_time: '',
+        rink_name: '',
+      })
+      setShowGameForm(false)
+      fetchLeagueData()
+    } catch (error) {
+      alert('Error creating game: ' + error.message)
+    }
+  }
+
+  const handlePlayerSubmit = async (e, teamId) => {
+    e.preventDefault()
+    const formData = new FormData(e.target)
+    try {
+      await players.create({
+        team_id: teamId,
+        name: formData.get('name'),
+        jersey_number: formData.get('jersey_number'),
+        position: formData.get('position'),
+        email: formData.get('email'),
+      })
+      setShowPlayerForm(null)
+      await fetchTeamPlayers(teamId)
+    } catch (error) {
+      alert('Error adding player: ' + error.message)
     }
   }
 
@@ -1065,10 +1108,81 @@ export default function LeagueDetails() {
 
                   {expandedTeamId === team.id && (
                     <div className="mt-4 border-t pt-4">
+                      {canManage && (
+                        <div className="mb-4">
+                          <button
+                            onClick={() => setShowPlayerForm(showPlayerForm === team.id ? null : team.id)}
+                            className="btn-primary text-sm"
+                          >
+                            {showPlayerForm === team.id ? 'Cancel' : '+ Add Player'}
+                          </button>
+                        </div>
+                      )}
+
+                      {showPlayerForm === team.id && (
+                        <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                          <h4 className="font-semibold mb-3">Add Player to {team.name}</h4>
+                          <form onSubmit={(e) => handlePlayerSubmit(e, team.id)} className="space-y-3">
+                            <div className="grid md:grid-cols-2 gap-3">
+                              <div>
+                                <label className="label">Player Name *</label>
+                                <input
+                                  type="text"
+                                  name="name"
+                                  className="input"
+                                  placeholder="John Doe"
+                                  required
+                                />
+                              </div>
+                              <div>
+                                <label className="label">Email</label>
+                                <input
+                                  type="email"
+                                  name="email"
+                                  className="input"
+                                  placeholder="player@example.com"
+                                />
+                              </div>
+                              <div>
+                                <label className="label">Jersey Number</label>
+                                <input
+                                  type="number"
+                                  name="jersey_number"
+                                  className="input"
+                                  placeholder="99"
+                                />
+                              </div>
+                              <div>
+                                <label className="label">Position</label>
+                                <select name="position" className="input">
+                                  <option value="player">Player</option>
+                                  <option value="forward">Forward</option>
+                                  <option value="defense">Defense</option>
+                                  <option value="goalie">Goalie</option>
+                                </select>
+                              </div>
+                            </div>
+                            <button type="submit" className="btn-primary text-sm">
+                              Add Player
+                            </button>
+                          </form>
+                        </div>
+                      )}
+
                       {!teamPlayers[team.id] ? (
                         <div className="text-center py-4 text-gray-500">Loading roster...</div>
-                      ) : teamPlayers[team.id].length === 0 ? (
-                        <div className="text-center py-4 text-gray-500">No players on this team</div>
+                      ) : teamPlayers[team.id].length === 0 && showPlayerForm !== team.id ? (
+                        <div className="text-center py-4 text-gray-500">
+                          <p className="mb-2">No players on this team</p>
+                          {canManage && (
+                            <button
+                              onClick={() => setShowPlayerForm(team.id)}
+                              className="btn-primary text-sm"
+                            >
+                              Add First Player
+                            </button>
+                          )}
+                        </div>
                       ) : (
                         <div className="space-y-2">
                           {teamPlayers[team.id].map((player) => (
@@ -1116,12 +1230,96 @@ export default function LeagueDetails() {
 
       {mainTab === 'season' && seasonSubTab === 'schedule' && (
         <div>
-          {games.length === 0 ? (
+          <div className="mb-6 flex justify-end">
+            {canManage && (
+              <button
+                onClick={() => setShowGameForm(!showGameForm)}
+                className="btn-primary"
+              >
+                {showGameForm ? 'Cancel' : '+ Add Game'}
+              </button>
+            )}
+          </div>
+
+          {showGameForm && (
+            <div className="card mb-6">
+              <h2 className="text-xl font-semibold mb-4">Schedule New Game</h2>
+              <form onSubmit={handleGameSubmit} className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Home Team *</label>
+                    <select
+                      value={gameFormData.home_team_id}
+                      onChange={(e) => setGameFormData({ ...gameFormData, home_team_id: e.target.value })}
+                      className="input"
+                      required
+                    >
+                      <option value="">Select home team</option>
+                      {teams.map(team => (
+                        <option key={team.id} value={team.id}>{team.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">Away Team *</label>
+                    <select
+                      value={gameFormData.away_team_id}
+                      onChange={(e) => setGameFormData({ ...gameFormData, away_team_id: e.target.value })}
+                      className="input"
+                      required
+                    >
+                      <option value="">Select away team</option>
+                      {teams.map(team => (
+                        <option key={team.id} value={team.id}>{team.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">Game Date *</label>
+                    <input
+                      type="date"
+                      value={gameFormData.game_date}
+                      onChange={(e) => setGameFormData({ ...gameFormData, game_date: e.target.value })}
+                      className="input"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Game Time *</label>
+                    <input
+                      type="time"
+                      value={gameFormData.game_time}
+                      onChange={(e) => setGameFormData({ ...gameFormData, game_time: e.target.value })}
+                      className="input"
+                      required
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="label">Rink Name</label>
+                    <input
+                      type="text"
+                      value={gameFormData.rink_name}
+                      onChange={(e) => setGameFormData({ ...gameFormData, rink_name: e.target.value })}
+                      className="input"
+                      placeholder="e.g., Main Arena"
+                    />
+                  </div>
+                </div>
+                <button type="submit" className="btn-primary">
+                  Schedule Game
+                </button>
+              </form>
+            </div>
+          )}
+
+          {games.length === 0 && !showGameForm ? (
             <div className="card text-center py-12">
               <p className="text-gray-500 mb-4">No games scheduled yet</p>
-              <button onClick={() => navigate('/games')} className="btn-primary">
-                Schedule Games
-              </button>
+              {canManage && (
+                <button onClick={() => setShowGameForm(true)} className="btn-primary">
+                  Schedule Your First Game
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
@@ -1133,6 +1331,9 @@ export default function LeagueDetails() {
                       <div className="text-sm text-gray-600">
                         {new Date(game.game_date).toLocaleDateString()} at {game.game_time}
                       </div>
+                      {game.rink_name && (
+                        <div className="text-xs text-gray-500">{game.rink_name}</div>
+                      )}
                     </div>
                     <div className="text-right">
                       {game.home_score != null ? (
@@ -1148,6 +1349,18 @@ export default function LeagueDetails() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {mainTab === 'season' && seasonSubTab === 'playoffs' && (
+        <div>
+          <div className="card text-center py-12">
+            <h3 className="text-xl font-semibold mb-4">Playoffs Management</h3>
+            <p className="text-gray-500 mb-4">Playoff bracket and management features coming soon</p>
+            <button onClick={() => setSeasonSubTab('schedule')} className="btn-secondary">
+              Back to Schedule
+            </button>
+          </div>
         </div>
       )}
 
