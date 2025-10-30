@@ -498,7 +498,7 @@ export default function Dashboard() {
       <div className="space-y-6">
         {/* Player Info Section - All Leagues */}
         {userPlayerProfiles.length > 0 && userLeagues.length > 0 && (
-          <div className="card">
+          <div className="card mb-8">
             <h2 className="section-header mb-6">
               My Teams {userLeagues.length > 1 && <span className="text-sm font-normal text-gray-500">({userLeagues.length} leagues)</span>}
             </h2>
@@ -856,7 +856,7 @@ export default function Dashboard() {
                           {leagueAnnouncements[league.id].map((announcement) => (
                             <div
                               key={announcement.id}
-                              className="p-4 bg-blue-50 border border-blue-200 rounded-lg"
+                              className="p-4 bg-gray-50 border border-gray-200 rounded-lg"
                             >
                               <div className="flex items-start justify-between mb-2">
                                 <h5 className="font-semibold text-gray-900">{announcement.title}</h5>
@@ -884,15 +884,15 @@ export default function Dashboard() {
 
         {/* Captain Attendance Tracking */}
         {userPlayerProfiles.some(profile => profile.is_captain === 1) && (
-          <div className="card">
+          <div className="card mb-8">
             <h2 className="section-header mb-6">Team Captain - Attendance Tracking</h2>
-            <div className="space-y-6">
+            <div className="space-y-4">
               {userPlayerProfiles.filter(profile => profile.is_captain === 1).map((captainProfile) => {
                 const teamGames = upcomingGames[captainProfile.team_id] || []
                 const team = allTeams.find(t => t.id === captainProfile.team_id)
 
                 return (
-                  <div key={captainProfile.team_id} className="border border-gray-200 rounded-lg p-4">
+                  <div key={captainProfile.team_id} className="border border-gray-200 rounded-lg p-4 bg-white">
                     <h3 className="font-semibold text-gray-900 mb-3">
                       {captainProfile.team_name} - Upcoming Games
                     </h3>
@@ -900,7 +900,7 @@ export default function Dashboard() {
                     {teamGames.length === 0 ? (
                       <p className="text-gray-500 text-sm">No upcoming games scheduled</p>
                     ) : (
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         {teamGames.map((game) => {
                           const attendance = gameAttendance[game.id] || []
                           const attendingCount = attendance.filter(a => a.status === 'yes').length
@@ -908,7 +908,7 @@ export default function Dashboard() {
                           const noCount = attendance.filter(a => a.status === 'no').length
 
                           return (
-                            <div key={game.id} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div key={game.id} className="border border-gray-200 rounded-lg p-4 bg-white">
                               <div className="flex items-start justify-between mb-2">
                                 <div>
                                   <div className="font-semibold text-sm">
@@ -943,7 +943,7 @@ export default function Dashboard() {
 
         {/* League Management Section */}
         {managedLeagues.length > 0 && (
-          <div className="card">
+          <div className="card mb-8">
             <h2 className="section-header mb-6">League Management</h2>
             <div className="space-y-4">
               {managedLeagues.map((league) => {
@@ -974,7 +974,7 @@ export default function Dashboard() {
                     </div>
 
                     {activeSeason && stats && (
-                      <div className="p-3 bg-ice-50 rounded-lg border border-ice-200">
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                         <div className="text-xs font-semibold text-gray-700 mb-2">
                           Active Season: {activeSeason.name}
                         </div>
@@ -1049,7 +1049,7 @@ export default function Dashboard() {
 
         {/* Admin Section: All Leagues */}
         {isAdmin && (
-          <div className="card">
+          <div className="card mb-8">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="section-header">All Leagues</h2>
@@ -1222,7 +1222,7 @@ export default function Dashboard() {
 
         {/* Admin Section: User Management Link */}
         {isAdmin && (
-          <div className="card">
+          <div className="card mb-8">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="section-header mb-2">User Management</h2>
