@@ -4,6 +4,16 @@ import { auth } from '../lib/api'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
+// Helper function to generate map URLs
+const getMapUrls = (location) => {
+  const encoded = encodeURIComponent(location)
+  return {
+    google: `https://www.google.com/maps/search/?api=1&query=${encoded}`,
+    apple: `https://maps.apple.com/?q=${encoded}`,
+    waze: `https://waze.com/ul?q=${encoded}`
+  }
+}
+
 export default function Home() {
   const [searchParams] = useSearchParams()
   const [hasLeagues, setHasLeagues] = useState(false)
@@ -498,11 +508,18 @@ export default function Home() {
             )}
           </div>
         )}
-        <p className="text-gray-600">
-          {isSingleLeague && displayLeagues[0]?.league.description
-            ? displayLeagues[0].league.description
-            : 'View current standings and upcoming games'}
-        </p>
+        {isSingleLeague && displayLeagues[0]?.league.description && (
+          <p className="text-gray-600 mb-3">
+            {displayLeagues[0].league.description}
+          </p>
+        )}
+        {isSingleLeague && displayLeagues[0]?.league.league_info && (
+          <div className="max-w-3xl mx-auto mt-4 p-4 bg-ice-50 rounded-lg">
+            <div className="text-gray-700 whitespace-pre-wrap text-sm">
+              {displayLeagues[0].league.league_info}
+            </div>
+          </div>
+        )}
       </div>
 
       {displayLeagues.map(({ league, activeSeason, standings, upcomingGames, allGames, announcements, bracket, teams, teamRosters }) => {
@@ -544,7 +561,12 @@ export default function Home() {
                         {league.name}
                       </h2>
                       {league.description && (
-                        <p className="text-gray-600">{league.description}</p>
+                        <p className="text-gray-600 mb-2">{league.description}</p>
+                      )}
+                      {league.league_info && (
+                        <div className="mt-3 p-3 bg-ice-50 rounded text-sm text-gray-700 whitespace-pre-wrap">
+                          {league.league_info}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -567,14 +589,6 @@ export default function Home() {
             {/* League content - hide when collapsed */}
             {(!isMultipleLeagues || !isCollapsed) && (
               <div>
-
-          {/* League Info Blurb */}
-          {league.league_info && (
-            <div className="card bg-ice-50 mb-8">
-              <h3 className="section-header mb-3">League Information</h3>
-              <div className="text-gray-700 whitespace-pre-wrap">{league.league_info}</div>
-            </div>
-          )}
 
           {/* Login Prompt for Unauthenticated Users */}
           {!isAuthenticated && (
@@ -733,7 +747,40 @@ export default function Home() {
                                       {match.game_time && ` ${match.game_time}`}
                                     </div>
                                   )}
-                                  {match.rink_name && <div>{match.rink_name}</div>}
+                                  {match.rink_name && (
+                                    <div className="flex items-center justify-between gap-2 mt-1">
+                                      <span>{match.rink_name}</span>
+                                      <div className="flex gap-1">
+                                        <a
+                                          href={getMapUrls(match.rink_name).google}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="px-1.5 py-0.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-xs transition-colors"
+                                          title="Google Maps"
+                                        >
+                                          G
+                                        </a>
+                                        <a
+                                          href={getMapUrls(match.rink_name).apple}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="px-1.5 py-0.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs transition-colors"
+                                          title="Apple Maps"
+                                        >
+                                          A
+                                        </a>
+                                        <a
+                                          href={getMapUrls(match.rink_name).waze}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="px-1.5 py-0.5 bg-cyan-100 hover:bg-cyan-200 text-cyan-700 rounded text-xs transition-colors"
+                                          title="Waze"
+                                        >
+                                          W
+                                        </a>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -828,8 +875,41 @@ export default function Home() {
                         })} at {game.game_time}
                       </div>
                       {game.rink_name && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          {game.rink_name}{game.surface_name ? ` - ${game.surface_name}` : ''}
+                        <div className="text-xs text-gray-500 mt-2">
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <span>
+                              {game.rink_name}{game.surface_name ? ` - ${game.surface_name}` : ''}
+                            </span>
+                            <div className="flex gap-1">
+                              <a
+                                href={getMapUrls(game.rink_name).google}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-xs font-medium transition-colors"
+                                title="Open in Google Maps"
+                              >
+                                Google
+                              </a>
+                              <a
+                                href={getMapUrls(game.rink_name).apple}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-medium transition-colors"
+                                title="Open in Apple Maps"
+                              >
+                                Apple
+                              </a>
+                              <a
+                                href={getMapUrls(game.rink_name).waze}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-2 py-1 bg-cyan-100 hover:bg-cyan-200 text-cyan-700 rounded text-xs font-medium transition-colors"
+                                title="Open in Waze"
+                              >
+                                Waze
+                              </a>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>

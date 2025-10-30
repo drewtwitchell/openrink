@@ -100,20 +100,20 @@ router.delete('/:id/managers/:userId', authenticateToken, requireLeagueManager, 
 
 // Create league
 router.post('/', authenticateToken, (req, res) => {
-  const { name, description } = req.body
+  const { name, description, league_info } = req.body
 
   if (!name) {
     return res.status(400).json({ error: 'League name required' })
   }
 
   db.run(
-    'INSERT INTO leagues (name, description, created_by) VALUES (?, ?, ?)',
-    [name, description, req.user.id],
+    'INSERT INTO leagues (name, description, league_info, created_by) VALUES (?, ?, ?, ?)',
+    [name, description, league_info, req.user.id],
     function (err) {
       if (err) {
         return res.status(500).json({ error: 'Error creating league' })
       }
-      res.json({ id: this.lastID, name, description })
+      res.json({ id: this.lastID, name, description, league_info })
     }
   )
 })

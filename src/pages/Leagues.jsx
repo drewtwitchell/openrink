@@ -13,6 +13,7 @@ export default function Leagues() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    league_info: '',
   })
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, leagueId: null, leagueName: '' })
   const [archiveModal, setArchiveModal] = useState({ isOpen: false, leagueId: null, leagueName: '', isArchived: false })
@@ -57,7 +58,7 @@ export default function Leagues() {
     e.preventDefault()
     try {
       const response = await leagues.create(formData)
-      setFormData({ name: '', description: '' })
+      setFormData({ name: '', description: '', league_info: '' })
       setShowForm(false)
       // Redirect to league details to create a season
       navigate(`/leagues/${response.id}?tab=seasons`)
@@ -162,6 +163,20 @@ export default function Leagues() {
                 className="input"
                 rows="3"
                 placeholder="Brief description of your league..."
+              />
+            </div>
+
+            <div>
+              <label className="label">
+                League Information
+                <span className="text-xs text-gray-500 ml-2">(Optional - Game locations, typical times, etc.)</span>
+              </label>
+              <textarea
+                value={formData.league_info}
+                onChange={(e) => setFormData({ ...formData, league_info: e.target.value })}
+                className="input"
+                rows="4"
+                placeholder="Example: Games are typically played at Main Ice Arena on Tuesday and Thursday evenings from 8:00-10:00 PM. Check the schedule for specific times and locations."
               />
             </div>
 

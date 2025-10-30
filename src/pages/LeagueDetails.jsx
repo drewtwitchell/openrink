@@ -16,7 +16,6 @@ export default function LeagueDetails() {
   const [activeSeason, setActiveSeason] = useState(null)
   const [loading, setLoading] = useState(true)
   const [mainTab, setMainTab] = useState('overview') // 'overview' or 'season'
-  const [overviewSubTab, setOverviewSubTab] = useState('managers') // 'managers', 'announcements', or 'payments'
   const [seasonSubTab, setSeasonSubTab] = useState(null) // null shows seasons, or 'teams', 'schedule', 'playoffs'
   const [showTeamForm, setShowTeamForm] = useState(false)
   const [showSeasonForm, setShowSeasonForm] = useState(false)
@@ -73,7 +72,6 @@ export default function LeagueDetails() {
     _fullPlayer: null
   })
   const [showManagerForm, setShowManagerForm] = useState(false)
-  const [managerEmail, setManagerEmail] = useState('')
   const [showPaymentMethodModal, setShowPaymentMethodModal] = useState(false)
   const [playerToMarkPaid, setPlayerToMarkPaid] = useState(null)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('')
@@ -269,19 +267,19 @@ export default function LeagueDetails() {
     }
   }
 
-  // Fetch announcements when announcements tab is selected
+  // Fetch announcements when General tab is selected
   useEffect(() => {
-    if (mainTab === 'overview' && overviewSubTab === 'announcements') {
+    if (mainTab === 'overview') {
       fetchAnnouncements()
     }
-  }, [mainTab, overviewSubTab, id])
+  }, [mainTab, id])
 
-  // Fetch payment data when on managers tab with active season
+  // Fetch payment data when on General tab with active season
   useEffect(() => {
-    if (mainTab === 'overview' && overviewSubTab === 'managers' && activeSeason) {
+    if (mainTab === 'overview' && activeSeason) {
       fetchPaymentData(activeSeason.id)
     }
-  }, [mainTab, overviewSubTab, activeSeason])
+  }, [mainTab, activeSeason])
 
   const fetchAnnouncements = async () => {
     try {
@@ -953,14 +951,16 @@ export default function LeagueDetails() {
 
   const handleAddManager = async (e) => {
     e.preventDefault()
-    if (!managerEmail.trim()) {
-      alert('Please enter an email address')
+    if (!selectedUser) {
+      alert('Please select a user from the search results')
       return
     }
 
     try {
-      await leagues.addManager(id, managerEmail)
-      setManagerEmail('')
+      await leagues.addManager(id, selectedUser.email)
+      setSelectedUser(null)
+      setUserSearchQuery('')
+      setUserSearchResults([])
       setShowManagerForm(false)
       await fetchLeagueData()
     } catch (error) {
@@ -1313,38 +1313,15 @@ export default function LeagueDetails() {
               {/* General Tab - always visible for managers */}
               {canManage && (
                 <button
-                  onClick={() => {
-                    setMainTab('overview')
-                    setOverviewSubTab('managers')
-                  }}
+                  onClick={() => setMainTab('overview')}
                   className={`px-6 py-3 font-semibold transition-colors relative ${
-                    mainTab === 'overview' && overviewSubTab === 'managers'
+                    mainTab === 'overview'
                       ? 'text-ice-700 bg-white'
                       : 'text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100'
                   }`}
                 >
                   General
-                  {mainTab === 'overview' && overviewSubTab === 'managers' && (
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-ice-600"></div>
-                  )}
-                </button>
-              )}
-
-              {/* Announcements Tab - always visible for managers */}
-              {canManage && (
-                <button
-                  onClick={() => {
-                    setMainTab('overview')
-                    setOverviewSubTab('announcements')
-                  }}
-                  className={`px-6 py-3 font-semibold transition-colors relative ${
-                    mainTab === 'overview' && overviewSubTab === 'announcements'
-                      ? 'text-ice-700 bg-white'
-                      : 'text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100'
-                  }`}
-                >
-                  Announcements
-                  {mainTab === 'overview' && overviewSubTab === 'announcements' && (
+                  {mainTab === 'overview' && (
                     <div className="absolute bottom-0 left-0 right-0 h-1 bg-ice-600"></div>
                   )}
                 </button>
@@ -1513,18 +1490,22 @@ export default function LeagueDetails() {
       )}
 
       {/* Content */}
-      {mainTab === 'overview' && overviewSubTab === 'managers' && (
+      {mainTab === 'overview' && (
         <div>
-          {/* League Information Section */}
+          {/* League Information Section - Consolidated */}
           <div className="card mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="section-header">League Information</h3>
+            <h3 className="section-header mb-6">League Information</h3>
+
+            {/* League Info Text */}
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="font-semibold text-gray-900">General Information</h4>
               {canManage && !editingLeagueInfo && (
                 <button
                   onClick={handleEditLeagueInfo}
-                  className="btn-secondary btn-sm"
+                  className="btn-primary"
                 >
-                  {league.league_info ? 'Edit' : 'Add Information'}
+                  {league.league_info ? 'Edit Information' : 'Add Information'}
                 </button>
               )}
             </div>
@@ -1568,29 +1549,21 @@ export default function LeagueDetails() {
                 ) : (
                   <div className="text-center py-8">
                     <p className="text-gray-500 mb-4">No league information set</p>
-                    <p className="text-sm text-gray-400 mb-4">
+                    <p className="text-sm text-gray-400">
                       Add information about game locations, typical times, and other general details for players and visitors.
                     </p>
-                    {canManage && (
-                      <button
-                        onClick={handleEditLeagueInfo}
-                        className="btn-primary"
-                      >
-                        Add League Information
-                      </button>
-                    )}
                   </div>
                 )}
               </div>
             )}
-          </div>
+            </div>
 
-          {/* League Managers Section */}
-          <div className="card mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="section-header">
-                League Manager{managers.length !== 1 ? 's' : ''}
-              </h3>
+            {/* League Managers Subsection */}
+            <div className="mb-6 pb-6 border-b border-gray-200">
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="font-semibold text-gray-900">
+                  League Manager{managers.length !== 1 ? 's' : ''}
+                </h4>
               {canManage && (
                 <button
                   onClick={() => setShowManagerForm(!showManagerForm)}
@@ -1604,22 +1577,78 @@ export default function LeagueDetails() {
             {showManagerForm && (
               <div className="mb-4 p-4 bg-gray-50 rounded-lg">
                 <h4 className="font-semibold mb-3">Add Manager</h4>
-                <form onSubmit={handleAddManager} className="flex gap-2">
-                  <input
-                    type="email"
-                    value={managerEmail}
-                    onChange={(e) => setManagerEmail(e.target.value)}
-                    className="input flex-1"
-                    placeholder="manager@example.com"
-                    required
-                  />
-                  <button type="submit" className="btn-primary">
-                    Add
-                  </button>
+                <form onSubmit={handleAddManager} className="space-y-4">
+                  {/* User Search */}
+                  <div>
+                    <label className="label">Search for User *</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={userSearchQuery}
+                        onChange={(e) => handleUserSearch(e.target.value)}
+                        className="input"
+                        placeholder="Type name or email (min 2 characters)..."
+                      />
+                      {isSearching && (
+                        <div className="absolute right-3 top-3 text-gray-400">
+                          Searching...
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Search Results */}
+                    {userSearchResults.length > 0 && (
+                      <div className="mt-2 border border-gray-200 rounded-lg bg-white shadow-sm max-h-48 overflow-y-auto">
+                        {userSearchResults.map((user) => (
+                          <button
+                            key={user.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedUser(user)
+                              setUserSearchQuery(user.name || user.email)
+                              setUserSearchResults([])
+                            }}
+                            className="w-full text-left px-4 py-2 hover:bg-gray-50 border-b last:border-b-0"
+                          >
+                            <div className="font-medium">{user.name || 'No name'}</div>
+                            <div className="text-sm text-gray-600">{user.email}</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {userSearchQuery.length >= 2 && userSearchResults.length === 0 && !isSearching && (
+                      <div className="mt-2 text-sm text-gray-500">
+                        No users found. User must have an account to be added as a manager.
+                      </div>
+                    )}
+
+                    {selectedUser && (
+                      <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="text-sm font-medium text-green-900">Selected User:</div>
+                        <div className="text-sm text-green-700">{selectedUser.name || 'No name'} ({selectedUser.email})</div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button type="submit" className="btn-primary" disabled={!selectedUser}>
+                      Add Manager
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowManagerForm(false)
+                        setSelectedUser(null)
+                        setUserSearchQuery('')
+                        setUserSearchResults([])
+                      }}
+                      className="btn-secondary"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </form>
-                <p className="text-sm text-gray-600 mt-2">
-                  Enter the email address of a registered user to add them as a league manager
-                </p>
               </div>
             )}
 
@@ -1668,19 +1697,159 @@ export default function LeagueDetails() {
                 ))}
               </div>
             )}
+            </div>
+
+            {/* Communication Subsection */}
+            <div>
+              <div className="flex justify-between items-center">
+                <h4 className="font-semibold text-gray-900">Communication</h4>
+                <button
+                  onClick={() => setShowContactModal(true)}
+                  className="btn-primary"
+                >
+                  Contact All Players
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* Communication */}
-          <div className="card mb-6">
-            <div className="flex justify-between items-center">
-              <h3 className="section-header">Communication</h3>
-              <button
-                onClick={() => setShowContactModal(true)}
-                className="btn-primary"
-              >
-                Contact All Players
-              </button>
+          {/* Announcements Section */}
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="section-header">League Announcements</h3>
+                <p className="text-sm text-gray-500 mt-1">{announcementsList.length} total</p>
+              </div>
+              {canManage && (
+                <button
+                  onClick={() => {
+                    setShowAnnouncementForm(!showAnnouncementForm)
+                    setEditingAnnouncementId(null)
+                    setAnnouncementFormData({ title: '', message: '', expires_at: '' })
+                  }}
+                  className="btn-primary"
+                >
+                  {showAnnouncementForm ? 'Cancel' : 'New Announcement'}
+                </button>
+              )}
             </div>
+
+            {showAnnouncementForm && canManage && (
+              <div className="card mb-6">
+                <h3 className="text-lg font-semibold mb-4">
+                  {editingAnnouncementId ? 'Edit Announcement' : 'Create New Announcement'}
+                </h3>
+                <form onSubmit={handleAnnouncementSubmit} className="space-y-4">
+                  <div>
+                    <label className="label">Title *</label>
+                    <input
+                      type="text"
+                      value={announcementFormData.title}
+                      onChange={(e) => setAnnouncementFormData({ ...announcementFormData, title: e.target.value })}
+                      className="input"
+                      placeholder="Important Update"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="label">Message *</label>
+                    <textarea
+                      value={announcementFormData.message}
+                      onChange={(e) => setAnnouncementFormData({ ...announcementFormData, message: e.target.value })}
+                      className="input"
+                      rows="4"
+                      placeholder="Enter your announcement message..."
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="label">Expiration Date (optional)</label>
+                    <input
+                      type="date"
+                      value={announcementFormData.expires_at}
+                      onChange={(e) => setAnnouncementFormData({ ...announcementFormData, expires_at: e.target.value })}
+                      className="input"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Leave blank for no expiration
+                    </p>
+                  </div>
+
+                  <button type="submit" className="btn-primary">
+                    {editingAnnouncementId ? 'Update Announcement' : 'Create Announcement'}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {announcementsList.length === 0 ? (
+              <div className="card text-center py-12">
+                <p className="text-gray-500 mb-4">No announcements yet</p>
+                {canManage && (
+                  <button onClick={() => setShowAnnouncementForm(true)} className="btn-primary">
+                    Create Your First Announcement
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {announcementsList.map((announcement) => (
+                  <div
+                    key={announcement.id}
+                    className={`card ${announcement.is_active === 1 ? 'bg-white' : 'bg-gray-50'}`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-semibold text-lg">{announcement.title}</h3>
+                          <span
+                            className={`badge ${
+                              announcement.is_active === 1 ? 'badge-success' : 'badge-neutral'
+                            }`}
+                          >
+                            {announcement.is_active === 1 ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                        <p className="text-gray-700 mb-3">{announcement.message}</p>
+                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                          <span>Posted {new Date(announcement.created_at).toLocaleDateString()}</span>
+                          {announcement.expires_at && (
+                            <span>
+                              Expires {new Date(announcement.expires_at).toLocaleDateString()}
+                            </span>
+                          )}
+                          {announcement.author_name && <span>By {announcement.author_name}</span>}
+                        </div>
+                      </div>
+                      {canManage && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleToggleAnnouncementActive(announcement)}
+                            className="btn-secondary btn-sm"
+                          >
+                            {announcement.is_active === 1 ? 'Deactivate' : 'Activate'}
+                          </button>
+                          <button
+                            onClick={() => handleEditAnnouncement(announcement)}
+                            className="btn-secondary btn-sm"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAnnouncement(announcement.id, announcement.title)}
+                            className="btn-danger btn-sm"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Payments Section - only show when viewing the active season */}
@@ -2965,147 +3134,6 @@ export default function LeagueDetails() {
       )}
 
       {/* Announcements Tab */}
-      {mainTab === 'overview' && overviewSubTab === 'announcements' && (
-        <div>
-          <div className="mb-6 flex justify-between items-center">
-            <div>
-              <h2 className="section-header">League Announcements</h2>
-              <p className="text-sm text-gray-500 mt-1">{announcementsList.length} total</p>
-            </div>
-            {canManage && (
-              <button
-                onClick={() => {
-                  setShowAnnouncementForm(!showAnnouncementForm)
-                  setEditingAnnouncementId(null)
-                  setAnnouncementFormData({ title: '', message: '', expires_at: '' })
-                }}
-                className="btn-primary"
-              >
-                {showAnnouncementForm ? 'Cancel' : 'New Announcement'}
-              </button>
-            )}
-          </div>
-
-          {showAnnouncementForm && canManage && (
-            <div className="card mb-6">
-              <h3 className="text-lg font-semibold mb-4">
-                {editingAnnouncementId ? 'Edit Announcement' : 'Create New Announcement'}
-              </h3>
-              <form onSubmit={handleAnnouncementSubmit} className="space-y-4">
-                <div>
-                  <label className="label">Title *</label>
-                  <input
-                    type="text"
-                    value={announcementFormData.title}
-                    onChange={(e) => setAnnouncementFormData({ ...announcementFormData, title: e.target.value })}
-                    className="input"
-                    placeholder="Important Update"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="label">Message *</label>
-                  <textarea
-                    value={announcementFormData.message}
-                    onChange={(e) => setAnnouncementFormData({ ...announcementFormData, message: e.target.value })}
-                    className="input"
-                    rows="4"
-                    placeholder="Enter your announcement message..."
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="label">Expiration Date (optional)</label>
-                  <input
-                    type="date"
-                    value={announcementFormData.expires_at}
-                    onChange={(e) => setAnnouncementFormData({ ...announcementFormData, expires_at: e.target.value })}
-                    className="input"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Leave blank for no expiration
-                  </p>
-                </div>
-
-                <button type="submit" className="btn-primary">
-                  {editingAnnouncementId ? 'Update Announcement' : 'Create Announcement'}
-                </button>
-              </form>
-            </div>
-          )}
-
-          {announcementsList.length === 0 ? (
-            <div className="card text-center py-12">
-              <p className="text-gray-500 mb-4">No announcements yet</p>
-              {canManage && (
-                <button onClick={() => setShowAnnouncementForm(true)} className="btn-primary">
-                  Create Your First Announcement
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {announcementsList.map((announcement) => (
-                <div
-                  key={announcement.id}
-                  className={`card ${announcement.is_active === 1 ? 'bg-white' : 'bg-gray-50'}`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold text-lg">{announcement.title}</h3>
-                        <span
-                          className={`badge ${
-                            announcement.is_active === 1 ? 'badge-success' : 'badge-neutral'
-                          }`}
-                        >
-                          {announcement.is_active === 1 ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                      <p className="text-gray-700 mb-3">{announcement.message}</p>
-                      <div className="flex items-center gap-4 text-sm text-gray-500">
-                        <span>Posted {new Date(announcement.created_at).toLocaleDateString()}</span>
-                        {announcement.expires_at && (
-                          <span>
-                            Expires {new Date(announcement.expires_at).toLocaleDateString()}
-                          </span>
-                        )}
-                        {announcement.author_name && <span>By {announcement.author_name}</span>}
-                      </div>
-                    </div>
-                    {canManage && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleToggleAnnouncementActive(announcement)}
-                          className="btn-secondary btn-sm"
-                        >
-                          {announcement.is_active === 1 ? 'Deactivate' : 'Activate'}
-                        </button>
-                        <button
-                          onClick={() => handleEditAnnouncement(announcement)}
-                          className="btn-secondary btn-sm"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteAnnouncement(announcement.id, announcement.title)}
-                          className="btn-danger btn-sm"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-
       {/* Mass Contact Modal */}
       {showContactModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
