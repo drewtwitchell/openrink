@@ -847,38 +847,38 @@ export default function Dashboard() {
                   </div>
                 ))}
                     </div>
+
+                    {/* League Announcements */}
+                    {leagueAnnouncements[league.id] && leagueAnnouncements[league.id].length > 0 && (
+                      <div className="mt-6 pt-6 border-t border-gray-200">
+                        <h4 className="font-semibold text-gray-900 mb-3">League Announcements</h4>
+                        <div className="space-y-3">
+                          {leagueAnnouncements[league.id].map((announcement) => (
+                            <div
+                              key={announcement.id}
+                              className="p-4 bg-blue-50 border border-blue-200 rounded-lg"
+                            >
+                              <div className="flex items-start justify-between mb-2">
+                                <h5 className="font-semibold text-gray-900">{announcement.title}</h5>
+                                <span className="text-xs text-gray-500">
+                                  {new Date(announcement.created_at).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <p className="text-gray-700 text-sm">{announcement.message}</p>
+                              {announcement.expires_at && (
+                                <p className="text-xs text-gray-500 mt-2">
+                                  Expires: {new Date(announcement.expires_at).toLocaleDateString()}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               })}
             </div>
-
-            {/* League Announcements */}
-            {leagueAnnouncements[league.id] && leagueAnnouncements[league.id].length > 0 && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h4 className="font-semibold text-gray-900 mb-3">League Announcements</h4>
-                <div className="space-y-3">
-                  {leagueAnnouncements[league.id].map((announcement) => (
-                    <div
-                      key={announcement.id}
-                      className="p-4 bg-blue-50 border border-blue-200 rounded-lg"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <h5 className="font-semibold text-gray-900">{announcement.title}</h5>
-                        <span className="text-xs text-gray-500">
-                          {new Date(announcement.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="text-gray-700 text-sm">{announcement.message}</p>
-                      {announcement.expires_at && (
-                        <p className="text-xs text-gray-500 mt-2">
-                          Expires: {new Date(announcement.expires_at).toLocaleDateString()}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
 
