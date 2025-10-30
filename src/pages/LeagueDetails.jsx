@@ -91,6 +91,8 @@ export default function LeagueDetails() {
   const [tempSeasonName, setTempSeasonName] = useState('')
   const [editingLeagueInfo, setEditingLeagueInfo] = useState(false)
   const [tempLeagueInfo, setTempLeagueInfo] = useState('')
+  const [leagueInfoCollapsed, setLeagueInfoCollapsed] = useState(false)
+  const [paymentTrackingCollapsed, setPaymentTrackingCollapsed] = useState(false)
 
   // User search state for adding players
   const [userSearchQuery, setUserSearchQuery] = useState('')
@@ -1495,10 +1497,28 @@ export default function LeagueDetails() {
         <div>
           {/* League Information Section - Consolidated */}
           <div className="card mb-6">
-            <h3 className="section-header mb-6">League Information</h3>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="section-header">League Information</h3>
+              <button
+                onClick={() => setLeagueInfoCollapsed(!leagueInfoCollapsed)}
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                {leagueInfoCollapsed ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                  </svg>
+                )}
+              </button>
+            </div>
 
+            {!leagueInfoCollapsed && (
+            <>
             {/* League Info Text */}
-            <div className="mb-6">
+            <div className="mb-6 pb-6 border-b border-gray-200">
               <div className="flex justify-between items-center mb-4">
                 <h4 className="font-semibold text-gray-900">General Information</h4>
               {canManage && !editingLeagueInfo && (
@@ -1559,11 +1579,11 @@ export default function LeagueDetails() {
             )}
             </div>
 
-            {/* League Managers Subsection */}
+            {/* Managers Subsection */}
             <div className="mb-6 pb-6 border-b border-gray-200">
               <div className="flex justify-between items-center mb-4">
                 <h4 className="font-semibold text-gray-900">
-                  League Manager{managers.length !== 1 ? 's' : ''}
+                  Manager{managers.length !== 1 ? 's' : ''}
                 </h4>
               {canManage && (
                 <button
@@ -1723,10 +1743,7 @@ export default function LeagueDetails() {
             {/* Announcements Subsection */}
             <div>
               <div className="flex justify-between items-center mb-4">
-                <div>
-                  <h4 className="font-semibold text-gray-900">League Announcements</h4>
-                  <p className="text-sm text-gray-500 mt-1">{announcementsList.length} total</p>
-                </div>
+                <h4 className="font-semibold text-gray-900">Announcements</h4>
               {canManage && (
                 <button
                   onClick={() => {
@@ -1792,7 +1809,7 @@ export default function LeagueDetails() {
             )}
 
             {announcementsList.length === 0 ? (
-              <div className="card text-center py-12">
+              <div className="text-center py-8">
                 <p className="text-gray-500">No announcements yet</p>
               </div>
             ) : (
@@ -1853,6 +1870,8 @@ export default function LeagueDetails() {
               </div>
             )}
             </div>
+            </>
+            )}
           </div>
 
           {/* Payments Section - only show when viewing the active season */}
@@ -1860,8 +1879,24 @@ export default function LeagueDetails() {
             <div className="card mb-6" key={`payment-${selectedSeasonId}`}>
               <div className="flex justify-between items-center mb-4">
                 <h3 className="section-header">Payment Tracking - {activeSeason.name}</h3>
+                <button
+                  onClick={() => setPaymentTrackingCollapsed(!paymentTrackingCollapsed)}
+                  className="text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  {paymentTrackingCollapsed ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    </svg>
+                  )}
+                </button>
               </div>
 
+              {!paymentTrackingCollapsed && (
+              <>
               {/* Season Dues and Payment Link */}
               {canManage && (
                 <div className="mb-6 grid grid-cols-2 gap-4">
@@ -2214,6 +2249,8 @@ export default function LeagueDetails() {
                     ))
                   })()}
                 </div>
+              )}
+              </>
               )}
             </div>
           )}
