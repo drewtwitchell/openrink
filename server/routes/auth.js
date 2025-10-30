@@ -7,7 +7,7 @@ const router = express.Router()
 
 // Sign up
 router.post('/signup', async (req, res) => {
-  const { email, password, name, phone, position } = req.body
+  const { email, password, name, phone } = req.body
 
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password required' })
@@ -26,8 +26,8 @@ router.post('/signup', async (req, res) => {
       const role = isFirstUser ? 'admin' : 'player'
 
       db.run(
-        'INSERT INTO users (email, password, name, phone, position, role) VALUES (?, ?, ?, ?, ?, ?)',
-        [email, hashedPassword, name, phone, position || 'player', role],
+        'INSERT INTO users (email, password, name, phone, role) VALUES (?, ?, ?, ?, ?)',
+        [email, hashedPassword, name, phone, role],
         function (err) {
           if (err) {
             if (err.message.includes('UNIQUE')) {
@@ -39,7 +39,7 @@ router.post('/signup', async (req, res) => {
           const token = generateToken({ id: this.lastID, email })
           res.json({
             token,
-            user: { id: this.lastID, email, name, phone, position: position || 'player', role }
+            user: { id: this.lastID, email, name, phone, role }
           })
         }
       )
@@ -82,9 +82,6 @@ router.post('/signin', (req, res) => {
           email: user.email,
           name: user.name,
           phone: user.phone,
-          position: user.position,
-          sub_position: user.sub_position,
-          jersey_number: user.jersey_number,
           role: user.role,
           password_reset_required: user.password_reset_required || 0
         }
@@ -97,7 +94,7 @@ router.post('/signin', (req, res) => {
 
 // Get current user
 router.get('/me', authenticateToken, (req, res) => {
-  db.get('SELECT id, username, email, name, phone, position, sub_position, jersey_number, role, password_reset_required FROM users WHERE id = ?', [req.user.id], (err, user) => {
+  db.get('SELECT id, username, email, name, phone, role, password_reset_required FROM users WHERE id = ?', [req.user.id], (err, user) => {
     if (err || !user) {
       return res.status(404).json({ error: 'User not found' })
     }
@@ -109,32 +106,41 @@ router.get('/me', authenticateToken, (req, res) => {
 router.put('/profile', authenticateToken, (req, res) => {
   const { name, phone, position, sub_position, jersey_number } = req.body
 
-  // Update user table with all fields including sub_position and jersey_number
+  // Update user table (position/sub_position/jersey_number are team-specific, not on users table)
   db.run(
-    'UPDATE users SET name = ?, phone = ?, position = ?, sub_position = ?, jersey_number = ? WHERE id = ?',
-    [name, phone, position, sub_position || null, jersey_number || null, req.user.id],
+    'UPDATE users SET name = ?, phone = ? WHERE id = ?',
+    [name, phone, req.user.id],
     function (err) {
       if (err) {
         return res.status(500).json({ error: 'Error updating profile' })
       }
 
-      // Also update all player records for this user
-      db.run(
-        'UPDATE players SET position = ?, sub_position = ?, jersey_number = ? WHERE user_id = ?',
-        [position, sub_position || null, jersey_number || null, req.user.id],
-        function (err) {
-          if (err) {
-            console.error('Error updating player records:', err)
-          }
-
-          db.get('SELECT id, username, email, name, phone, position, sub_position, jersey_number, role, password_reset_required FROM users WHERE id = ?', [req.user.id], (err, user) => {
-            if (err || !user) {
-              return res.status(404).json({ error: 'User not found' })
+      // Update all player records for this user if position/sub_position/jersey_number provided
+      if (position !== undefined || sub_position !== undefined || jersey_number !== undefined) {
+        db.run(
+          'UPDATE players SET position = ?, sub_position = ?, jersey_number = ? WHERE user_id = ?',
+          [position || 'player', sub_position || null, jersey_number || null, req.user.id],
+          function (err) {
+            if (err) {
+              console.error('Error updating player records:', err)
             }
-            res.json({ user })
-          })
-        }
-      )
+
+            db.get('SELECT id, username, email, name, phone, role, password_reset_required FROM users WHERE id = ?', [req.user.id], (err, user) => {
+              if (err || !user) {
+                return res.status(404).json({ error: 'User not found' })
+              }
+              res.json({ user })
+            })
+          }
+        )
+      } else {
+        db.get('SELECT id, username, email, name, phone, role, password_reset_required FROM users WHERE id = ?', [req.user.id], (err, user) => {
+          if (err || !user) {
+            return res.status(404).json({ error: 'User not found' })
+          }
+          res.json({ user })
+        })
+      }
     }
   )
 })

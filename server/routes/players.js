@@ -9,7 +9,7 @@ const router = express.Router()
 router.get('/team/:teamId', authenticateToken, (req, res) => {
   db.all(
     `SELECT players.*,
-       users.email as user_email, users.phone as user_phone, users.position as user_position,
+       users.email as user_email, users.phone as user_phone,
        CASE WHEN team_captains.user_id IS NOT NULL THEN 1 ELSE 0 END as is_captain
      FROM players
      LEFT JOIN users ON players.user_id = users.id
@@ -50,7 +50,7 @@ router.get('/', (req, res) => {
 })
 
 // Helper function to create player history entry
-function createPlayerHistory(playerId, userId, teamId, jerseyNumber, playerPosition, callback) {
+function createPlayerHistory(playerId, userId, teamId, jerseyNumber, playerPosition, playerSubPosition, callback) {
   // Get team's league_id and season_id
   db.get(
     `SELECT teams.league_id, teams.season_id
@@ -79,18 +79,18 @@ function createPlayerHistory(playerId, userId, teamId, jerseyNumber, playerPosit
             const seasonId = season?.id || null
 
             db.run(
-              `INSERT INTO player_history (player_id, user_id, team_id, season_id, league_id, jersey_number, position)
-               VALUES (?, ?, ?, ?, ?, ?, ?)`,
-              [playerId, userId, teamId, seasonId, teamInfo.league_id, jerseyNumber, playerPosition],
+              `INSERT INTO player_history (player_id, user_id, team_id, season_id, league_id, jersey_number, position, sub_position)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+              [playerId, userId, teamId, seasonId, teamInfo.league_id, jerseyNumber, playerPosition, playerSubPosition],
               callback
             )
           }
         )
       } else {
         db.run(
-          `INSERT INTO player_history (player_id, user_id, team_id, season_id, league_id, jersey_number, position)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [playerId, userId, teamId, teamInfo.season_id, teamInfo.league_id, jerseyNumber, playerPosition],
+          `INSERT INTO player_history (player_id, user_id, team_id, season_id, league_id, jersey_number, position, sub_position)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [playerId, userId, teamId, teamInfo.season_id, teamInfo.league_id, jerseyNumber, playerPosition, playerSubPosition],
           callback
         )
       }
@@ -100,56 +100,52 @@ function createPlayerHistory(playerId, userId, teamId, jerseyNumber, playerPosit
 
 // Create player
 router.post('/', authenticateToken, requireTeamLeagueManager, (req, res) => {
-  const { team_id, user_id, name, email, phone, jersey_number, email_notifications, position } = req.body
+  const { team_id, user_id, name, email, phone, jersey_number, email_notifications, position, sub_position } = req.body
 
   if (!team_id || !name) {
     return res.status(400).json({ error: 'Team ID and name required' })
   }
 
-  // If user_id is provided, get position from user, otherwise use provided position
+  // If user_id is provided, create player with provided position/sub_position (team-specific)
   if (user_id) {
-    db.get('SELECT position FROM users WHERE id = ?', [user_id], (err, user) => {
-      if (err) {
-        return res.status(500).json({ error: 'Error fetching user' })
-      }
+    const playerPosition = position || 'player'
+    const playerSubPosition = sub_position || null
 
-      const playerPosition = user?.position || position || 'player'
-
-      db.run(
-        'INSERT INTO players (team_id, user_id, name, email, phone, jersey_number, email_notifications, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [team_id, user_id, name, email, phone, jersey_number, email_notifications !== false ? 1 : 0, playerPosition],
-        function (err) {
-          if (err) {
-            return res.status(500).json({ error: 'Error creating player' })
-          }
-
-          const playerId = this.lastID
-
-          // Create player history entry
-          createPlayerHistory(playerId, user_id, team_id, jersey_number, playerPosition, (histErr) => {
-            if (histErr) {
-              console.error('Error creating player history:', histErr)
-            }
-          })
-
-          res.json({ id: playerId, team_id, user_id, name, email, phone, jersey_number, position: playerPosition })
+    db.run(
+      'INSERT INTO players (team_id, user_id, name, email, phone, jersey_number, email_notifications, position, sub_position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [team_id, user_id, name, email, phone, jersey_number, email_notifications !== false ? 1 : 0, playerPosition, playerSubPosition],
+      function (err) {
+        if (err) {
+          return res.status(500).json({ error: 'Error creating player' })
         }
-      )
-    })
+
+        const playerId = this.lastID
+
+        // Create player history entry
+        createPlayerHistory(playerId, user_id, team_id, jersey_number, playerPosition, playerSubPosition, (histErr) => {
+          if (histErr) {
+            console.error('Error creating player history:', histErr)
+          }
+        })
+
+        res.json({ id: playerId, team_id, user_id, name, email, phone, jersey_number, position: playerPosition, sub_position: playerSubPosition })
+      }
+    )
   } else {
     // If no user_id provided but email is provided, check if a user exists with that email
     if (email) {
-      db.get('SELECT id, position FROM users WHERE email = ?', [email], (err, existingUser) => {
+      db.get('SELECT id FROM users WHERE email = ?', [email], (err, existingUser) => {
         if (err) {
           return res.status(500).json({ error: 'Error checking for existing user' })
         }
 
         const linkedUserId = existingUser ? existingUser.id : null
-        const playerPosition = existingUser ? existingUser.position : (position || 'player')
+        const playerPosition = position || 'player'
+        const playerSubPosition = sub_position || null
 
         db.run(
-          'INSERT INTO players (team_id, user_id, name, email, phone, jersey_number, email_notifications, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          [team_id, linkedUserId, name, email, phone, jersey_number, email_notifications !== false ? 1 : 0, playerPosition],
+          'INSERT INTO players (team_id, user_id, name, email, phone, jersey_number, email_notifications, position, sub_position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [team_id, linkedUserId, name, email, phone, jersey_number, email_notifications !== false ? 1 : 0, playerPosition, playerSubPosition],
           function (err) {
             if (err) {
               return res.status(500).json({ error: 'Error creating player' })
@@ -158,7 +154,7 @@ router.post('/', authenticateToken, requireTeamLeagueManager, (req, res) => {
             const playerId = this.lastID
 
             // Create player history entry
-            createPlayerHistory(playerId, linkedUserId, team_id, jersey_number, playerPosition, (histErr) => {
+            createPlayerHistory(playerId, linkedUserId, team_id, jersey_number, playerPosition, playerSubPosition, (histErr) => {
               if (histErr) {
                 console.error('Error creating player history:', histErr)
               }
@@ -173,6 +169,7 @@ router.post('/', authenticateToken, requireTeamLeagueManager, (req, res) => {
               phone,
               jersey_number,
               position: playerPosition,
+              sub_position: playerSubPosition,
               auto_linked: !!existingUser
             })
           }
@@ -180,9 +177,12 @@ router.post('/', authenticateToken, requireTeamLeagueManager, (req, res) => {
       })
     } else {
       // No email provided, create player without user link
+      const playerPosition = position || 'player'
+      const playerSubPosition = sub_position || null
+
       db.run(
-        'INSERT INTO players (team_id, user_id, name, email, phone, jersey_number, email_notifications, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [team_id, null, name, email, phone, jersey_number, email_notifications !== false ? 1 : 0, position || 'player'],
+        'INSERT INTO players (team_id, user_id, name, email, phone, jersey_number, email_notifications, position, sub_position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [team_id, null, name, email, phone, jersey_number, email_notifications !== false ? 1 : 0, playerPosition, playerSubPosition],
         function (err) {
           if (err) {
             return res.status(500).json({ error: 'Error creating player' })
@@ -191,13 +191,13 @@ router.post('/', authenticateToken, requireTeamLeagueManager, (req, res) => {
           const playerId = this.lastID
 
           // Create player history entry
-          createPlayerHistory(playerId, null, team_id, jersey_number, position || 'player', (histErr) => {
+          createPlayerHistory(playerId, null, team_id, jersey_number, playerPosition, playerSubPosition, (histErr) => {
             if (histErr) {
               console.error('Error creating player history:', histErr)
             }
           })
 
-          res.json({ id: playerId, team_id, user_id: null, name, email, phone, jersey_number, position: position || 'player' })
+          res.json({ id: playerId, team_id, user_id: null, name, email, phone, jersey_number, position: playerPosition, sub_position: playerSubPosition })
         }
       )
     }
@@ -208,9 +208,9 @@ router.post('/', authenticateToken, requireTeamLeagueManager, (req, res) => {
 router.put('/:id', authenticateToken, requirePlayerLeagueManager, (req, res) => {
   const { user_id, name, email, phone, jersey_number, email_notifications, position, sub_position } = req.body
 
-  // Helper function to update player and optionally sync to user
-  const updatePlayerAndSyncToUser = (linkedUserId, playerPosition, playerSubPosition) => {
-    // Update the player record
+  // Helper function to update player (position/sub_position are team-specific, not synced to users)
+  const updatePlayer = (linkedUserId, playerPosition, playerSubPosition) => {
+    // Update the player record (position/sub_position are team/league-specific)
     db.run(
       'UPDATE players SET user_id = ?, name = ?, email = ?, phone = ?, jersey_number = ?, email_notifications = ?, position = ?, sub_position = ? WHERE id = ?',
       [linkedUserId, name, email, phone, jersey_number, email_notifications ? 1 : 0, playerPosition, playerSubPosition || null, req.params.id],
@@ -218,30 +218,14 @@ router.put('/:id', authenticateToken, requirePlayerLeagueManager, (req, res) => 
         if (err) {
           return res.status(500).json({ error: 'Error updating player' })
         }
-
-        // If player is linked to a user, also update the user's profile to keep them in sync
-        if (linkedUserId) {
-          db.run(
-            'UPDATE users SET position = ?, sub_position = ? WHERE id = ?',
-            [playerPosition, playerSubPosition || null, linkedUserId],
-            function (userErr) {
-              if (userErr) {
-                console.error('Error syncing player changes to user profile:', userErr)
-                // Don't fail the request, just log the error
-              }
-              res.json({ message: 'Player updated successfully', synced_to_user: !userErr })
-            }
-          )
-        } else {
-          res.json({ message: 'Player updated successfully' })
-        }
+        res.json({ message: 'Player updated successfully' })
       }
     )
   }
 
   // If user_id is provided, use the provided position/sub_position
   if (user_id) {
-    updatePlayerAndSyncToUser(user_id, position || 'player', sub_position)
+    updatePlayer(user_id, position || 'player', sub_position)
   } else {
     // If no user_id provided but email is provided, check if a user exists with that email
     if (email) {
@@ -251,11 +235,11 @@ router.put('/:id', authenticateToken, requirePlayerLeagueManager, (req, res) => 
         }
 
         const linkedUserId = existingUser ? existingUser.id : null
-        updatePlayerAndSyncToUser(linkedUserId, position || 'player', sub_position)
+        updatePlayer(linkedUserId, position || 'player', sub_position)
       })
     } else {
       // No email provided, update without user link
-      updatePlayerAndSyncToUser(null, position || 'player', sub_position)
+      updatePlayer(null, position || 'player', sub_position)
     }
   }
 })
@@ -371,6 +355,7 @@ router.patch('/:id/transfer', authenticateToken, (req, res) => {
                       team_id,
                       player.jersey_number,
                       player.position,
+                      player.sub_position,
                       (newHistErr) => {
                         if (newHistErr) {
                           console.error('Error creating new player history:', newHistErr)

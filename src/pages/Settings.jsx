@@ -8,10 +8,7 @@ export default function Settings() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    phone: '',
-    position: 'player',
-    sub_position: '',
-    jersey_number: '',
+    phone: ''
   })
   const [message, setMessage] = useState('')
   const [passwordData, setPasswordData] = useState({
@@ -20,68 +17,110 @@ export default function Settings() {
     confirm_password: ''
   })
   const [passwordMessage, setPasswordMessage] = useState('')
+  const [playerRecords, setPlayerRecords] = useState([])
+  const [playerHistory, setPlayerHistory] = useState([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
 
   useEffect(() => {
-    // Fetch fresh user data from API instead of using stale localStorage
-    const fetchUserData = async () => {
-      try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/me`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
+    fetchUserData()
+    fetchPlayerHistory()
+  }, [])
+
+  const fetchUserData = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const freshUser = data.user
+
+        localStorage.setItem('user', JSON.stringify(freshUser))
+        setUser(freshUser)
+        setFormData({
+          name: freshUser.name || '',
+          email: freshUser.email || '',
+          phone: freshUser.phone || ''
         })
 
-        if (response.ok) {
-          const data = await response.json()
-          const freshUser = data.user
-
-          // Update localStorage with fresh data
-          localStorage.setItem('user', JSON.stringify(freshUser))
-
-          setUser(freshUser)
-          setFormData({
-            name: freshUser.name || '',
-            email: freshUser.email || '',
-            phone: freshUser.phone || '',
-            position: freshUser.position || 'player',
-            sub_position: freshUser.sub_position || '',
-            jersey_number: freshUser.jersey_number || '',
-          })
-        } else {
-          // Fallback to localStorage if API fails
-          const currentUser = auth.getUser()
-          setUser(currentUser)
-          if (currentUser) {
-            setFormData({
-              name: currentUser.name || '',
-              email: currentUser.email || '',
-              phone: currentUser.phone || '',
-              position: currentUser.position || 'player',
-              sub_position: currentUser.sub_position || '',
-              jersey_number: currentUser.jersey_number || '',
-            })
-          }
+        // Fetch player records for this user
+        if (freshUser.id) {
+          fetchPlayerRecords(freshUser.id)
         }
-      } catch (error) {
-        console.error('Error fetching user data:', error)
-        // Fallback to localStorage if API fails
+      } else {
         const currentUser = auth.getUser()
         setUser(currentUser)
         if (currentUser) {
           setFormData({
             name: currentUser.name || '',
             email: currentUser.email || '',
-            phone: currentUser.phone || '',
-            position: currentUser.position || 'player',
-            sub_position: currentUser.sub_position || '',
-            jersey_number: currentUser.jersey_number || '',
+            phone: currentUser.phone || ''
           })
+          fetchPlayerRecords(currentUser.id)
         }
       }
+    } catch (error) {
+      console.error('Error fetching user data:', error)
+      const currentUser = auth.getUser()
+      setUser(currentUser)
+      if (currentUser) {
+        setFormData({
+          name: currentUser.name || '',
+          email: currentUser.email || '',
+          phone: currentUser.phone || ''
+        })
+        fetchPlayerRecords(currentUser.id)
+      }
     }
+  }
 
-    fetchUserData()
-  }, [])
+  const fetchPlayerRecords = async (userId) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/players`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        // Filter to only this user's player records
+        const userRecords = data.filter(p => p.user_id === userId)
+        setPlayerRecords(userRecords)
+      }
+    } catch (error) {
+      console.error('Error fetching player records:', error)
+    }
+  }
+
+  const fetchPlayerHistory = async () => {
+    setLoadingHistory(true)
+    try {
+      const currentUser = auth.getUser()
+      if (!currentUser?.id) return
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/players/user/${currentUser.id}/history`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      )
+
+      if (response.ok) {
+        const data = await response.json()
+        setPlayerHistory(data)
+      }
+    } catch (error) {
+      console.error('Error fetching player history:', error)
+    } finally {
+      setLoadingHistory(false)
+    }
+  }
 
   const getRoleBadge = (role) => {
     const roles = {
@@ -99,12 +138,11 @@ export default function Settings() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      await auth.updateProfile(formData.name, formData.phone, formData.position, formData.sub_position, formData.jersey_number)
+      await auth.updateProfile(formData.name, formData.phone)
       const updatedUser = auth.getUser()
       setUser(updatedUser)
       setMessage('Profile updated successfully!')
 
-      // Notify App.jsx to refresh user display
       window.dispatchEvent(new Event('profileUpdated'))
 
       setTimeout(() => setMessage(''), 3000)
@@ -132,7 +170,6 @@ export default function Settings() {
       setPasswordMessage('Password changed successfully!')
       setPasswordData({ current_password: '', new_password: '', confirm_password: '' })
 
-      // Update user in localStorage to clear password_reset_required flag
       const currentUser = auth.getUser()
       if (currentUser) {
         currentUser.password_reset_required = 0
@@ -144,6 +181,11 @@ export default function Settings() {
     } catch (error) {
       setPasswordMessage('Error: ' + error.message)
     }
+  }
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Present'
+    return new Date(dateString).toLocaleDateString()
   }
 
   return (
@@ -203,53 +245,87 @@ export default function Settings() {
             <p className="text-xs text-gray-500 mt-1">Used for team notifications and roster display</p>
           </div>
 
-          <div>
-            <label className="label">Position</label>
-            <select
-              value={formData.position}
-              onChange={(e) => setFormData({ ...formData, position: e.target.value, sub_position: '' })}
-              className="input"
-            >
-              <option value="player">Player</option>
-              <option value="goalie">Goalie</option>
-            </select>
-            <p className="text-xs text-gray-500 mt-1">Your preferred position on the team</p>
-          </div>
-
-          {formData.position === 'player' && (
-            <div>
-              <label className="label">Player Position</label>
-              <select
-                value={formData.sub_position}
-                onChange={(e) => setFormData({ ...formData, sub_position: e.target.value })}
-                className="input"
-              >
-                <option value="">Select position...</option>
-                <option value="forward">Forward</option>
-                <option value="defense">Defense</option>
-              </select>
-              <p className="text-xs text-gray-500 mt-1">Forward or Defense</p>
-            </div>
-          )}
-
-          <div>
-            <label className="label">Jersey Number</label>
-            <input
-              type="number"
-              value={formData.jersey_number}
-              onChange={(e) => setFormData({ ...formData, jersey_number: e.target.value })}
-              className="input"
-              placeholder="Your jersey number"
-              min="0"
-              max="99"
-            />
-            <p className="text-xs text-gray-500 mt-1">Will be displayed on team rosters</p>
-          </div>
-
           <button type="submit" className="btn-primary">
             Save Changes
           </button>
         </form>
+      </div>
+
+      {/* Current Teams Section */}
+      {playerRecords.length > 0 && (
+        <div className="card mb-6">
+          <h2 className="section-header">Current Teams</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Your position and jersey number are specific to each team. League managers can update these from the team roster page.
+          </p>
+          <div className="space-y-3">
+            {playerRecords.map((record) => (
+              <div key={record.id} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="font-semibold text-gray-900">{record.team_name}</div>
+                    <div className="text-sm text-gray-600">
+                      {record.position === 'goalie' ? 'Goalie' :
+                       record.sub_position ? `${record.sub_position.charAt(0).toUpperCase() + record.sub_position.slice(1)}` : 'Player'}
+                      {record.jersey_number && ` • #${record.jersey_number}`}
+                    </div>
+                  </div>
+                  <div className="text-sm">
+                    {record.is_captain === 1 && (
+                      <span className="badge badge-primary">Captain</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Player History Section */}
+      <div className="card mb-6">
+        <h2 className="section-header">Player History</h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Your complete history across all leagues, seasons, and teams.
+        </p>
+
+        {loadingHistory ? (
+          <div className="text-center py-8 text-gray-500">Loading history...</div>
+        ) : playerHistory.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">No player history yet</div>
+        ) : (
+          <div className="space-y-3">
+            {playerHistory.map((record) => (
+              <div key={record.id} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <div className="font-semibold text-gray-900">{record.league_name}</div>
+                    <div className="text-sm text-gray-600">{record.season_name}</div>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {formatDate(record.joined_date)}
+                    {record.left_date && ` - ${formatDate(record.left_date)}`}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span
+                    className="px-2 py-1 rounded"
+                    style={{ backgroundColor: record.team_color || '#6B7280', color: '#fff' }}
+                  >
+                    {record.team_name}
+                  </span>
+                  <span className="text-gray-600">
+                    {record.position === 'goalie' ? 'Goalie' :
+                     record.sub_position ? `${record.sub_position.charAt(0).toUpperCase() + record.sub_position.slice(1)}` : 'Player'}
+                  </span>
+                  {record.jersey_number && (
+                    <span className="text-gray-600">#{record.jersey_number}</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="card mb-6">

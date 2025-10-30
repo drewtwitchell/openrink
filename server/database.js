@@ -234,26 +234,9 @@ function initDatabase() {
       }
     })
 
-    // Add position column to users if it doesn't exist (migration)
-    db.run(`ALTER TABLE users ADD COLUMN position TEXT DEFAULT 'player'`, (err) => {
-      if (err && !err.message.includes('duplicate column')) {
-        console.error('Error adding position column to users:', err)
-      }
-    })
-
-    // Add sub_position column to users if it doesn't exist (migration)
-    db.run(`ALTER TABLE users ADD COLUMN sub_position TEXT`, (err) => {
-      if (err && !err.message.includes('duplicate column')) {
-        console.error('Error adding sub_position column to users:', err)
-      }
-    })
-
-    // Add jersey_number column to users if it doesn't exist (migration)
-    db.run(`ALTER TABLE users ADD COLUMN jersey_number INTEGER`, (err) => {
-      if (err && !err.message.includes('duplicate column')) {
-        console.error('Error adding jersey_number column to users:', err)
-      }
-    })
+    // NOTE: Removed position/sub_position/jersey_number from users table
+    // These fields should be team/league-specific in the players table, not global to users
+    // Migration handled in users table migration below
 
     // Add position column to players if it doesn't exist (migration)
     db.run(`ALTER TABLE players ADD COLUMN position TEXT DEFAULT 'player'`, (err) => {
@@ -469,6 +452,7 @@ function initDatabase() {
         league_id INTEGER NOT NULL,
         jersey_number INTEGER,
         position TEXT DEFAULT 'player',
+        sub_position TEXT,
         joined_date DATETIME DEFAULT CURRENT_TIMESTAMP,
         left_date DATETIME,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -479,6 +463,13 @@ function initDatabase() {
         FOREIGN KEY (league_id) REFERENCES leagues(id)
       )
     `)
+
+    // Add sub_position column to player_history if it doesn't exist (migration)
+    db.run(`ALTER TABLE player_history ADD COLUMN sub_position TEXT`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding sub_position column to player_history:', err)
+      }
+    })
 
     // Add password_reset_required column to users if it doesn't exist (migration)
     db.run(`ALTER TABLE users ADD COLUMN password_reset_required INTEGER DEFAULT 0`, (err) => {
@@ -511,16 +502,16 @@ function initDatabase() {
       }
     })
 
-    // Migration: Make email column nullable
+    // Migration: Remove position/sub_position/jersey_number from users table (should be team-specific)
     db.get("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'", (err, row) => {
       if (err) {
         console.error('Error checking users table schema:', err)
         return
       }
 
-      // Check if email is still NOT NULL
-      if (row && row.sql && row.sql.includes('email TEXT UNIQUE NOT NULL')) {
-        console.log('Migrating users table to make email nullable...')
+      // Check if users table still has position column (which should be removed)
+      if (row && row.sql && row.sql.includes('position TEXT')) {
+        console.log('Migrating users table to remove team-specific fields (position/sub_position/jersey_number)...')
 
         db.run(`
           CREATE TABLE users_new (
@@ -531,7 +522,6 @@ function initDatabase() {
             name TEXT,
             phone TEXT,
             role TEXT DEFAULT 'player',
-            position TEXT DEFAULT 'player',
             password_reset_required INTEGER DEFAULT 0,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
           )
@@ -541,10 +531,10 @@ function initDatabase() {
             return
           }
 
-          // Copy all data
+          // Copy all data (excluding position/sub_position/jersey_number which should be team-specific)
           db.run(`
-            INSERT INTO users_new (id, username, email, password, name, phone, role, position, password_reset_required, created_at)
-            SELECT id, username, email, password, name, phone, role, position, password_reset_required, created_at FROM users
+            INSERT INTO users_new (id, username, email, password, name, phone, role, password_reset_required, created_at)
+            SELECT id, username, email, password, name, phone, role, password_reset_required, created_at FROM users
           `, (copyErr) => {
             if (copyErr) {
               console.error('Error copying data to users_new:', copyErr)
@@ -570,7 +560,7 @@ function initDatabase() {
                   if (updateErr) {
                     console.error('Error removing admin email:', updateErr)
                   } else {
-                    console.log('✅ Email column migrated to nullable and admin email removed')
+                    console.log('✅ Users table migrated: removed position/sub_position/jersey_number (now team-specific)')
                   }
                 })
               })

@@ -1938,20 +1938,6 @@ export default function LeagueDetails() {
                   })()}
                 </div>
               )}
-
-              {activeSeason.venmo_link && (
-                <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <h3 className="font-semibold mb-2">Payment Link</h3>
-                  <a
-                    href={activeSeason.venmo_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-ice-600 hover:text-ice-700 hover:underline"
-                  >
-                    {activeSeason.venmo_link}
-                  </a>
-                </div>
-              )}
             </div>
           )}
 

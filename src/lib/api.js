@@ -32,10 +32,10 @@ async function apiRequest(endpoint, options = {}) {
 
 // Auth API
 export const auth = {
-  signUp: async (email, password, name, phone, position) => {
+  signUp: async (email, password, name, phone) => {
     const data = await apiRequest('/api/auth/signup', {
       method: 'POST',
-      body: JSON.stringify({ email, password, name, phone, position }),
+      body: JSON.stringify({ email, password, name, phone }),
     })
     if (data.token) {
       localStorage.setItem('token', data.token)
@@ -66,10 +66,10 @@ export const auth = {
     return userStr ? JSON.parse(userStr) : null
   },
 
-  updateProfile: async (name, phone, position, sub_position, jersey_number) => {
+  updateProfile: async (name, phone) => {
     const data = await apiRequest('/api/auth/profile', {
       method: 'PUT',
-      body: JSON.stringify({ name, phone, position, sub_position, jersey_number }),
+      body: JSON.stringify({ name, phone }),
     })
     if (data.user) {
       localStorage.setItem('user', JSON.stringify(data.user))
