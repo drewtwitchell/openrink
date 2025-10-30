@@ -126,7 +126,7 @@ router.delete('/:id', authenticateToken, requireGameLeagueManager, (req, res) =>
 // Get attendance for a game
 router.get('/:id/attendance', authenticateToken, (req, res) => {
   db.all(
-    `SELECT ga.*, p.name as player_name, p.jersey_number, p.team_id
+    `SELECT ga.*, p.name as player_name, p.jersey_number, p.team_id, p.position, p.sub_position
      FROM game_attendance ga
      JOIN players p ON ga.player_id = p.id
      WHERE ga.game_id = ?`,

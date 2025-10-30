@@ -99,6 +99,20 @@ export default function Dashboard() {
           const playerLeagues = leaguesData.filter(l => playerLeagueIds.includes(l.id))
           setUserLeagues(playerLeagues)
 
+          // Fetch seasons for all player leagues
+          const playerSeasonsData = {}
+          for (const league of playerLeagues) {
+            try {
+              const leagueSeasons = await seasons.getByLeague(league.id)
+              playerSeasonsData[league.id] = leagueSeasons
+            } catch (error) {
+              console.error(`Error fetching seasons for league ${league.id}:`, error)
+              playerSeasonsData[league.id] = []
+            }
+          }
+          // Store seasons data for player leagues
+          setLeagueSeasons(prev => ({ ...prev, ...playerSeasonsData }))
+
           // Fetch active announcements for each player league
           const announcementsData = {}
           for (const league of playerLeagues) {
@@ -511,15 +525,21 @@ export default function Dashboard() {
                   return team && team.league_id === league.id
                 })
 
+                const seasons = leagueSeasons[league.id] || []
+                const activeSeason = seasons.find(s => s.is_active === 1 && s.archived === 0)
+
                 return (
                   <div key={league.id} className={`border-2 rounded-lg p-5 ${userLeagues.length > 1 ? 'border-ice-200 bg-gradient-to-r from-ice-50/30 to-white' : 'border-transparent'}`}>
+                    <div className="mb-4 pb-4 border-b border-gray-200">
+                      <h3 className="text-xl font-bold text-gray-900">{league.name}</h3>
+                      <p className="text-sm text-gray-600">Active Season: {activeSeason?.name || 'No active season'}</p>
+                      {league.description && (
+                        <p className="text-sm text-gray-500 mt-1">{league.description}</p>
+                      )}
+                    </div>
+
                     <div className="flex items-center justify-between mb-4 pb-3 border-b">
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900">{league.name}</h3>
-                        {league.description && (
-                          <p className="text-sm text-gray-600 mt-1">{league.description}</p>
-                        )}
-                      </div>
+                      <div></div>
                       <button
                         onClick={() => navigate('/')}
                         className="btn-primary text-sm whitespace-nowrap"
@@ -890,12 +910,19 @@ export default function Dashboard() {
               {userPlayerProfiles.filter(profile => profile.is_captain === 1).map((captainProfile) => {
                 const teamGames = upcomingGames[captainProfile.team_id] || []
                 const team = allTeams.find(t => t.id === captainProfile.team_id)
+                const league = userLeagues.find(l => l.id === team?.league_id)
+                const seasons = leagueSeasons[league?.id] || []
+                const activeSeason = seasons.find(s => s.is_active === 1 && s.archived === 0)
 
                 return (
                   <div key={captainProfile.team_id} className="border border-gray-200 rounded-lg p-4 bg-white">
-                    <h3 className="font-semibold text-gray-900 mb-3">
-                      {captainProfile.team_name} - Upcoming Games
+                    <h3 className="font-semibold text-gray-900 mb-1">
+                      {captainProfile.team_name}
                     </h3>
+                    <p className="text-sm text-gray-600 mb-3">
+                      {league?.name || 'Unknown League'} - {activeSeason?.name || 'No active season'}
+                    </p>
+                    <h4 className="font-medium text-gray-700 mb-3 text-sm">Upcoming Games</h4>
 
                     {teamGames.length === 0 ? (
                       <p className="text-gray-500 text-sm">No upcoming games scheduled</p>
@@ -903,9 +930,9 @@ export default function Dashboard() {
                       <div className="space-y-4">
                         {teamGames.map((game) => {
                           const attendance = gameAttendance[game.id] || []
-                          const attendingCount = attendance.filter(a => a.status === 'yes').length
+                          const attendingCount = attendance.filter(a => a.status === 'attending').length
                           const maybeCount = attendance.filter(a => a.status === 'maybe').length
-                          const noCount = attendance.filter(a => a.status === 'no').length
+                          const noCount = attendance.filter(a => a.status === 'not_attending').length
 
                           return (
                             <div key={game.id} className="border border-gray-200 rounded-lg p-4 bg-white">
@@ -921,13 +948,97 @@ export default function Dashboard() {
                                 </div>
                               </div>
 
-                              <div className="flex gap-4 text-xs mt-2">
-                                <span className="text-green-600">✓ {attendingCount} Attending</span>
-                                <span className="text-yellow-600">? {maybeCount} Maybe</span>
-                                <span className="text-red-600">✗ {noCount} Not Attending</span>
-                                <span className="text-gray-500">
-                                  {attendance.length > 0 ? `${attendance.length} total responses` : 'No responses yet'}
-                                </span>
+                              {/* Show detailed attendance breakdown */}
+                              <div className="mt-3 space-y-3">
+                                {/* Attending Players */}
+                                {attendance.filter(a => a.status === 'attending').length > 0 && (
+                                  <div>
+                                    <h5 className="text-xs font-semibold text-green-700 mb-1">
+                                      ✓ Attending ({attendingCount})
+                                    </h5>
+                                    <div className="space-y-1">
+                                      {attendance
+                                        .filter(a => a.status === 'attending')
+                                        .map((a) => (
+                                          <div key={a.player_id} className="text-xs text-gray-700 pl-4">
+                                            • {a.player_name}
+                                            {a.position && (
+                                              <span className="text-gray-500 ml-1">
+                                                ({a.position === 'goalie' ? 'G' : a.sub_position ? (a.sub_position === 'forward' ? 'F' : 'D') : 'P'})
+                                              </span>
+                                            )}
+                                          </div>
+                                        ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Maybe Players */}
+                                {maybeCount > 0 && (
+                                  <div>
+                                    <h5 className="text-xs font-semibold text-yellow-700 mb-1">
+                                      ? Maybe ({maybeCount})
+                                    </h5>
+                                    <div className="space-y-1">
+                                      {attendance
+                                        .filter(a => a.status === 'maybe')
+                                        .map((a) => (
+                                          <div key={a.player_id} className="text-xs text-gray-700 pl-4">
+                                            • {a.player_name}
+                                            {a.position && (
+                                              <span className="text-gray-500 ml-1">
+                                                ({a.position === 'goalie' ? 'G' : a.sub_position ? (a.sub_position === 'forward' ? 'F' : 'D') : 'P'})
+                                              </span>
+                                            )}
+                                          </div>
+                                        ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Not Attending Players */}
+                                {noCount > 0 && (
+                                  <div>
+                                    <h5 className="text-xs font-semibold text-red-700 mb-1">
+                                      ✗ Not Attending ({noCount})
+                                    </h5>
+                                    <div className="space-y-1">
+                                      {attendance
+                                        .filter(a => a.status === 'not_attending')
+                                        .map((a) => (
+                                          <div key={a.player_id} className="text-xs text-gray-700 pl-4">
+                                            • {a.player_name}
+                                            {a.position && (
+                                              <span className="text-gray-500 ml-1">
+                                                ({a.position === 'goalie' ? 'G' : a.sub_position ? (a.sub_position === 'forward' ? 'F' : 'D') : 'P'})
+                                              </span>
+                                            )}
+                                          </div>
+                                        ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Position Summary */}
+                                {attendance.filter(a => a.status === 'attending').length > 0 && (
+                                  <div className="pt-2 border-t border-gray-200">
+                                    <div className="text-xs text-gray-600">
+                                      <span className="font-semibold">Roster: </span>
+                                      {(() => {
+                                        const attending = attendance.filter(a => a.status === 'attending')
+                                        const forwards = attending.filter(a => a.sub_position === 'forward').length
+                                        const defense = attending.filter(a => a.sub_position === 'defense').length
+                                        const goalies = attending.filter(a => a.position === 'goalie').length
+                                        return `${forwards}F / ${defense}D / ${goalies}G`
+                                      })()}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* No responses message */}
+                                {attendance.length === 0 && (
+                                  <p className="text-xs text-gray-500">No responses yet</p>
+                                )}
                               </div>
                             </div>
                           )
