@@ -815,6 +815,9 @@ export default function Home() {
                         <th className="text-center py-3 px-4">W</th>
                         <th className="text-center py-3 px-4">L</th>
                         <th className="text-center py-3 px-4">T</th>
+                        <th className="text-center py-3 px-4">GF</th>
+                        <th className="text-center py-3 px-4">GA</th>
+                        <th className="text-center py-3 px-4">DIFF</th>
                         <th className="text-center py-3 px-4 font-bold">PTS</th>
                       </tr>
                     </thead>
@@ -834,6 +837,9 @@ export default function Home() {
                           <td className="text-center py-3 px-4">{standing.wins}</td>
                           <td className="text-center py-3 px-4">{standing.losses}</td>
                           <td className="text-center py-3 px-4">{standing.ties}</td>
+                          <td className="text-center py-3 px-4">{standing.gf}</td>
+                          <td className="text-center py-3 px-4">{standing.ga}</td>
+                          <td className="text-center py-3 px-4">{standing.gf - standing.ga}</td>
                           <td className="text-center py-3 px-4 font-bold">{standing.points}</td>
                         </tr>
                       ))}
