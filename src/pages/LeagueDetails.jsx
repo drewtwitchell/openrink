@@ -882,73 +882,73 @@ export default function LeagueDetails() {
               {league.archived === 1 && <span className="badge badge-warning">Archived</span>}
             </div>
 
-            {/* Season Management - always show for managers */}
-            <div className="flex items-center gap-3 mt-3 flex-wrap">
-              <div className="flex items-center gap-2 bg-ice-50 rounded-lg px-4 py-2 border-2 border-ice-200">
-                <label className="text-sm font-semibold text-ice-800">Season:</label>
-                <select
-                  value={selectedSeasonId || ''}
-                  onChange={(e) => {
-                    const seasonId = e.target.value ? parseInt(e.target.value) : null
-                    setSelectedSeasonId(seasonId)
-                    if (seasonId && !seasonSubTab) {
+            {/* Season Management - only show when seasons exist */}
+            {leagueSeasons.length > 0 && (
+              <div className="flex items-center gap-3 mt-3 flex-wrap">
+                <div className="flex items-center gap-2 bg-ice-50 rounded-lg px-4 py-2 border-2 border-ice-200">
+                  <label className="text-sm font-semibold text-ice-800">Season:</label>
+                  <select
+                    value={selectedSeasonId || ''}
+                    onChange={(e) => {
+                      const seasonId = e.target.value ? parseInt(e.target.value) : null
+                      setSelectedSeasonId(seasonId)
+                      if (seasonId && !seasonSubTab) {
+                        setMainTab('season')
+                        setSeasonSubTab('teams')
+                      }
+                    }}
+                    className="bg-white border border-ice-300 rounded px-3 py-1 text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-ice-500 focus:border-ice-500 min-w-[200px]"
+                  >
+                    <option value="">Select a season...</option>
+                    {leagueSeasons
+                      .filter(season => showArchivedSeasons || season.archived !== 1)
+                      .map((season) => (
+                        <option key={season.id} value={season.id}>
+                          {season.name}
+                          {season.archived === 1 ? ' (Archived)' : (season.is_active === 1 ? ' ★ Active' : '')}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                {canManage && (
+                  <button
+                    onClick={() => {
                       setMainTab('season')
-                      setSeasonSubTab('teams')
-                    }
-                  }}
-                  className="bg-white border border-ice-300 rounded px-3 py-1 text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-ice-500 focus:border-ice-500 min-w-[200px]"
-                >
-                  <option value="">
-                    {leagueSeasons.length === 0 ? 'No seasons yet...' : 'Select a season...'}
-                  </option>
-                  {leagueSeasons
-                    .filter(season => showArchivedSeasons || season.archived !== 1)
-                    .map((season) => (
-                      <option key={season.id} value={season.id}>
-                        {season.name}
-                        {season.archived === 1 ? ' (Archived)' : (season.is_active === 1 ? ' ★ Active' : '')}
-                      </option>
-                    ))}
-                </select>
+                      setSeasonSubTab(null)
+                      setSelectedSeasonId(null)
+                      setShowSeasonForm(true)
+                      setEditingSeasonId(null)
+                      setSeasonFormData({
+                        name: '',
+                        description: '',
+                        season_dues: '',
+                        venmo_link: '',
+                        start_date: '',
+                        end_date: '',
+                        is_active: false,
+                      })
+                    }}
+                    className="btn-secondary btn-sm"
+                    title="Create a new season"
+                  >
+                    + New Season
+                  </button>
+                )}
+
+                {leagueSeasons.some(s => s.archived === 1) && (
+                  <label className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showArchivedSeasons}
+                      onChange={(e) => setShowArchivedSeasons(e.target.checked)}
+                      className="rounded"
+                    />
+                    Show archived
+                  </label>
+                )}
               </div>
-
-              {canManage && (
-                <button
-                  onClick={() => {
-                    setMainTab('season')
-                    setSeasonSubTab(null)
-                    setSelectedSeasonId(null)
-                    setShowSeasonForm(true)
-                    setEditingSeasonId(null)
-                    setSeasonFormData({
-                      name: '',
-                      description: '',
-                      season_dues: '',
-                      venmo_link: '',
-                      start_date: '',
-                      end_date: '',
-                      is_active: false,
-                    })
-                  }}
-                  className="btn-secondary btn-sm"
-                  title="Create a new season"
-                >
-                  + New Season
-                </button>
-              )}
-
-              {leagueSeasons.some(s => s.archived === 1) && (
-                <label className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showArchivedSeasons}
-                    onChange={(e) => setShowArchivedSeasons(e.target.checked)}
-                    className="rounded"
-                  />
-                  Show archived
-                </label>
-              )}
-            </div>
+            )}
 
             {/* Season quick info inline */}
             {selectedSeasonId && (() => {
@@ -964,31 +964,6 @@ export default function LeagueDetails() {
 
           {/* Right: League settings + actions */}
           <div className="flex items-center gap-2">
-            {canManage && (
-              <>
-                <button
-                  onClick={() => {
-                    setMainTab('overview')
-                    setOverviewSubTab('announcements')
-                  }}
-                  className="btn-secondary btn-sm flex items-center gap-1"
-                  title="Announcements"
-                >
-                  📢 Announcements
-                </button>
-                <button
-                  onClick={() => {
-                    setMainTab('overview')
-                    setOverviewSubTab('managers')
-                  }}
-                  className="btn-secondary btn-sm flex items-center gap-1"
-                  title="League Managers"
-                >
-                  ⚙️ Managers
-                </button>
-              </>
-            )}
-
             {/* League actions dropdown */}
             <div className="relative" ref={leagueMenuRef}>
               <button
@@ -1027,10 +1002,88 @@ export default function LeagueDetails() {
         </div>
       </div>
 
-      {/* Main Navigation Tabs */}
-      <div className="border-b-2 border-gray-200 mb-6">
-        <nav className="flex gap-1">
-          <button
+      {/* Show setup screen when no seasons exist */}
+      {leagueSeasons.length === 0 && canManage ? (
+        <div className="card text-center py-16 bg-gradient-to-br from-ice-50 to-blue-50">
+          <div className="max-w-2xl mx-auto">
+            <div className="text-6xl mb-6">🏒</div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Welcome to {league.name}!</h2>
+            <p className="text-lg text-gray-700 mb-3">
+              Let's get your league set up. Everything starts with creating your first season.
+            </p>
+            <p className="text-gray-600 mb-8">
+              A season contains your teams, games, schedule, and standings. You can create multiple seasons to organize different periods of play.
+            </p>
+            <button
+              onClick={() => {
+                setMainTab('season')
+                setSeasonSubTab(null)
+                setSelectedSeasonId(null)
+                setShowSeasonForm(true)
+                setEditingSeasonId(null)
+                setSeasonFormData({
+                  name: '',
+                  description: '',
+                  season_dues: '',
+                  venmo_link: '',
+                  start_date: '',
+                  end_date: '',
+                  is_active: false,
+                })
+              }}
+              className="btn-primary btn-lg text-lg px-8 py-3"
+            >
+              Create Your First Season
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Main Navigation Tabs */}
+          <div className="border-b-2 border-gray-200 mb-6">
+            <nav className="flex gap-1">
+              {/* Managers Tab - always visible for managers */}
+              {canManage && (
+                <button
+                  onClick={() => {
+                    setMainTab('overview')
+                    setOverviewSubTab('managers')
+                  }}
+                  className={`px-6 py-3 font-semibold transition-colors relative ${
+                    mainTab === 'overview' && overviewSubTab === 'managers'
+                      ? 'text-ice-700 bg-white'
+                      : 'text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100'
+                  }`}
+                >
+                  Managers
+                  {mainTab === 'overview' && overviewSubTab === 'managers' && (
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-ice-600"></div>
+                  )}
+                </button>
+              )}
+
+              {/* Announcements Tab - always visible for managers */}
+              {canManage && (
+                <button
+                  onClick={() => {
+                    setMainTab('overview')
+                    setOverviewSubTab('announcements')
+                  }}
+                  className={`px-6 py-3 font-semibold transition-colors relative ${
+                    mainTab === 'overview' && overviewSubTab === 'announcements'
+                      ? 'text-ice-700 bg-white'
+                      : 'text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100'
+                  }`}
+                >
+                  Announcements
+                  {mainTab === 'overview' && overviewSubTab === 'announcements' && (
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-ice-600"></div>
+                  )}
+                </button>
+              )}
+
+              {/* Season Tabs - only show when viewing season content */}
+              <button
             onClick={() => {
               if (selectedSeasonId) {
                 setMainTab('season')
@@ -1141,10 +1194,10 @@ export default function LeagueDetails() {
               <div className="absolute bottom-0 left-0 right-0 h-1 bg-ice-600"></div>
             )}
           </button>
-        </nav>
-      </div>
+            </nav>
+          </div>
 
-      {/* No season selected state */}
+          {/* No season selected state */}
       {!selectedSeasonId && mainTab === 'season' && seasonSubTab !== null && (
         <div className="card text-center py-16 bg-gradient-to-br from-gray-50 to-white">
           <div className="max-w-md mx-auto">
@@ -3229,6 +3282,8 @@ export default function LeagueDetails() {
         confirmText="Remove Manager"
         variant="danger"
       />
+        </>
+      )}
     </div>
   )
 }
