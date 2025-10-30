@@ -1046,24 +1046,102 @@ export default function Dashboard() {
 
             <form onSubmit={handleSelfReportPayment} className="space-y-4">
               <div>
-                <label className="label">Payment Method *</label>
-                <select
-                  value={paymentFormData.payment_method}
-                  onChange={(e) => setPaymentFormData({ ...paymentFormData, payment_method: e.target.value })}
-                  className="input w-full"
-                  required
-                >
-                  <option value="">Select payment method...</option>
-                  <option value="venmo">Venmo</option>
-                  <option value="cash">Cash</option>
-                  <option value="check">Check</option>
-                  <option value="zelle">Zelle</option>
-                  <option value="paypal">PayPal</option>
-                  <option value="credit_card">Credit Card</option>
-                  <option value="debit_card">Debit Card</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="other">Other</option>
-                </select>
+                <label className="label mb-3">Payment Method *</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentFormData({ ...paymentFormData, payment_method: 'venmo' })}
+                    className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg transition-all ${
+                      paymentFormData.payment_method === 'venmo'
+                        ? 'border-[#008CFF] bg-gradient-to-br from-[#008CFF]/20 to-[#3D95CE]/20'
+                        : 'border-gray-200 hover:border-[#008CFF] hover:bg-[#008CFF]/5'
+                    }`}
+                  >
+                    <div className="w-10 h-10 bg-[#008CFF] rounded-lg flex items-center justify-center mb-1">
+                      <span className="text-white text-lg font-bold">V</span>
+                    </div>
+                    <span className="font-semibold text-xs text-[#008CFF]">Venmo</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaymentFormData({ ...paymentFormData, payment_method: 'zelle' })}
+                    className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg transition-all ${
+                      paymentFormData.payment_method === 'zelle'
+                        ? 'border-[#6D1ED4] bg-gradient-to-br from-[#6D1ED4]/20 to-[#A24DFF]/20'
+                        : 'border-gray-200 hover:border-[#6D1ED4] hover:bg-[#6D1ED4]/5'
+                    }`}
+                  >
+                    <div className="w-10 h-10 bg-[#6D1ED4] rounded-lg flex items-center justify-center mb-1">
+                      <span className="text-white text-lg font-bold">Z</span>
+                    </div>
+                    <span className="font-semibold text-xs text-[#6D1ED4]">Zelle</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaymentFormData({ ...paymentFormData, payment_method: 'cash' })}
+                    className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg transition-all ${
+                      paymentFormData.payment_method === 'cash'
+                        ? 'border-green-600 bg-gradient-to-br from-green-100 to-green-200'
+                        : 'border-gray-200 hover:border-green-600 hover:bg-green-50'
+                    }`}
+                  >
+                    <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center mb-1">
+                      <span className="text-white text-xl font-bold">$</span>
+                    </div>
+                    <span className="font-semibold text-xs text-green-700">Cash</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaymentFormData({ ...paymentFormData, payment_method: 'check' })}
+                    className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg transition-all ${
+                      paymentFormData.payment_method === 'check'
+                        ? 'border-blue-600 bg-gradient-to-br from-blue-100 to-blue-200'
+                        : 'border-gray-200 hover:border-blue-600 hover:bg-blue-50'
+                    }`}
+                  >
+                    <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mb-1">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <span className="font-semibold text-xs text-blue-700">Check</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaymentFormData({ ...paymentFormData, payment_method: 'paypal' })}
+                    className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg transition-all ${
+                      paymentFormData.payment_method === 'paypal'
+                        ? 'border-[#0070BA] bg-gradient-to-br from-[#0070BA]/20 to-[#003087]/20'
+                        : 'border-gray-200 hover:border-[#0070BA] hover:bg-[#0070BA]/5'
+                    }`}
+                  >
+                    <div className="w-10 h-10 bg-[#0070BA] rounded-lg flex items-center justify-center mb-1">
+                      <span className="text-white text-lg font-bold">P</span>
+                    </div>
+                    <span className="font-semibold text-xs text-[#0070BA]">PayPal</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaymentFormData({ ...paymentFormData, payment_method: 'other' })}
+                    className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg transition-all ${
+                      paymentFormData.payment_method === 'other'
+                        ? 'border-gray-500 bg-gradient-to-br from-gray-100 to-gray-200'
+                        : 'border-gray-200 hover:border-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="w-10 h-10 bg-gray-500 rounded-lg flex items-center justify-center mb-1">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <span className="font-semibold text-xs text-gray-700">Other</span>
+                  </button>
+                </div>
               </div>
 
               <div>

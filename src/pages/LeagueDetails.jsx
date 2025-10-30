@@ -76,6 +76,9 @@ export default function LeagueDetails() {
   const [managerEmail, setManagerEmail] = useState('')
   const [showPaymentMethodModal, setShowPaymentMethodModal] = useState(false)
   const [playerToMarkPaid, setPlayerToMarkPaid] = useState(null)
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('')
+  const [paymentConfirmation, setPaymentConfirmation] = useState('')
+  const [paymentNotes, setPaymentNotes] = useState('')
   const [gameScores, setGameScores] = useState({}) // Track scores for each game: { gameId: { home_score: '', away_score: '', saving: false, saved: false } }
   const [editingPaymentId, setEditingPaymentId] = useState(null)
   const [editingPaymentAmount, setEditingPaymentAmount] = useState('')
@@ -726,11 +729,15 @@ export default function LeagueDetails() {
 
   const handleMarkPaid = (player) => {
     setPlayerToMarkPaid(player)
+    setSelectedPaymentMethod('')
+    setPaymentConfirmation('')
+    setPaymentNotes('')
     setShowPaymentMethodModal(true)
   }
 
-  const handlePaymentMethodSelect = async (paymentMethod) => {
-    if (!playerToMarkPaid) return
+  const handlePaymentFormSubmit = async (e) => {
+    e.preventDefault()
+    if (!playerToMarkPaid || !selectedPaymentMethod) return
 
     try {
       // If no payment record exists, create one first
@@ -740,19 +747,24 @@ export default function LeagueDetails() {
           team_id: playerToMarkPaid.team_id,
           amount: activeSeason.season_dues || 0,
           season_id: activeSeason.id,
-          payment_method: paymentMethod
+          payment_method: selectedPaymentMethod,
+          confirmation_number: paymentConfirmation || null,
+          payment_notes: paymentNotes || null
         })
         // Mark the newly created payment as paid
-        await payments.markPaid(paymentRecord.id, null, null, paymentMethod)
+        await payments.markPaid(paymentRecord.id, paymentConfirmation || null, paymentNotes || null, selectedPaymentMethod)
       } else {
         // Mark existing payment as paid
-        await payments.markPaid(playerToMarkPaid.payment_id, null, null, paymentMethod)
+        await payments.markPaid(playerToMarkPaid.payment_id, paymentConfirmation || null, paymentNotes || null, selectedPaymentMethod)
       }
       // Refresh payment data
       await fetchPaymentData(activeSeason.id)
       // Close modal
       setShowPaymentMethodModal(false)
       setPlayerToMarkPaid(null)
+      setSelectedPaymentMethod('')
+      setPaymentConfirmation('')
+      setPaymentNotes('')
     } catch (error) {
       alert('Error marking payment as paid: ' + error.message)
     }
@@ -3092,10 +3104,11 @@ export default function LeagueDetails() {
       {showPaymentMethodModal && playerToMarkPaid && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full shadow-2xl">
-            <div className="p-6">
+            <form onSubmit={handlePaymentFormSubmit} className="p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-gray-900">Payment Method</h2>
+                <h2 className="text-2xl font-bold text-gray-900">Mark Payment</h2>
                 <button
+                  type="button"
                   onClick={() => {
                     setShowPaymentMethodModal(false)
                     setPlayerToMarkPaid(null)
@@ -3107,85 +3120,152 @@ export default function LeagueDetails() {
               </div>
 
               <p className="text-gray-600 mb-6">
-                How did <span className="font-semibold">{playerToMarkPaid.name}</span> pay for their season dues?
+                Recording payment for <span className="font-semibold">{playerToMarkPaid.name}</span>
               </p>
 
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => handlePaymentMethodSelect('venmo')}
-                  className="flex flex-col items-center justify-center p-4 border-2 border-[#008CFF] bg-gradient-to-br from-[#008CFF]/10 to-[#3D95CE]/10 rounded-lg hover:border-[#008CFF] hover:shadow-lg transition-all"
-                >
-                  <div className="w-12 h-12 bg-[#008CFF] rounded-xl flex items-center justify-center mb-2">
-                    <span className="text-white text-xl font-bold">V</span>
-                  </div>
-                  <span className="font-semibold text-[#008CFF]">Venmo</span>
-                </button>
+              <div className="space-y-4">
+                <div>
+                  <label className="label mb-3">Payment Method *</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPaymentMethod('venmo')}
+                      className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg transition-all ${
+                        selectedPaymentMethod === 'venmo'
+                          ? 'border-[#008CFF] bg-gradient-to-br from-[#008CFF]/20 to-[#3D95CE]/20'
+                          : 'border-gray-200 hover:border-[#008CFF] hover:bg-[#008CFF]/5'
+                      }`}
+                    >
+                      <div className="w-10 h-10 bg-[#008CFF] rounded-lg flex items-center justify-center mb-1">
+                        <span className="text-white text-lg font-bold">V</span>
+                      </div>
+                      <span className="font-semibold text-xs text-[#008CFF]">Venmo</span>
+                    </button>
 
-                <button
-                  onClick={() => handlePaymentMethodSelect('zelle')}
-                  className="flex flex-col items-center justify-center p-4 border-2 border-[#6D1ED4] bg-gradient-to-br from-[#6D1ED4]/10 to-[#A24DFF]/10 rounded-lg hover:border-[#6D1ED4] hover:shadow-lg transition-all"
-                >
-                  <div className="w-12 h-12 bg-[#6D1ED4] rounded-xl flex items-center justify-center mb-2">
-                    <span className="text-white text-xl font-bold">Z</span>
-                  </div>
-                  <span className="font-semibold text-[#6D1ED4]">Zelle</span>
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPaymentMethod('zelle')}
+                      className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg transition-all ${
+                        selectedPaymentMethod === 'zelle'
+                          ? 'border-[#6D1ED4] bg-gradient-to-br from-[#6D1ED4]/20 to-[#A24DFF]/20'
+                          : 'border-gray-200 hover:border-[#6D1ED4] hover:bg-[#6D1ED4]/5'
+                      }`}
+                    >
+                      <div className="w-10 h-10 bg-[#6D1ED4] rounded-lg flex items-center justify-center mb-1">
+                        <span className="text-white text-lg font-bold">Z</span>
+                      </div>
+                      <span className="font-semibold text-xs text-[#6D1ED4]">Zelle</span>
+                    </button>
 
-                <button
-                  onClick={() => handlePaymentMethodSelect('cash')}
-                  className="flex flex-col items-center justify-center p-4 border-2 border-green-600 bg-gradient-to-br from-green-50 to-green-100 rounded-lg hover:border-green-600 hover:shadow-lg transition-all"
-                >
-                  <div className="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center mb-2">
-                    <span className="text-white text-2xl font-bold">$</span>
-                  </div>
-                  <span className="font-semibold text-green-700">Cash</span>
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPaymentMethod('cash')}
+                      className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg transition-all ${
+                        selectedPaymentMethod === 'cash'
+                          ? 'border-green-600 bg-gradient-to-br from-green-100 to-green-200'
+                          : 'border-gray-200 hover:border-green-600 hover:bg-green-50'
+                      }`}
+                    >
+                      <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center mb-1">
+                        <span className="text-white text-xl font-bold">$</span>
+                      </div>
+                      <span className="font-semibold text-xs text-green-700">Cash</span>
+                    </button>
 
-                <button
-                  onClick={() => handlePaymentMethodSelect('check')}
-                  className="flex flex-col items-center justify-center p-4 border-2 border-blue-600 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg hover:border-blue-600 hover:shadow-lg transition-all"
-                >
-                  <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mb-2">
-                    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <span className="font-semibold text-blue-700">Check</span>
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPaymentMethod('check')}
+                      className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg transition-all ${
+                        selectedPaymentMethod === 'check'
+                          ? 'border-blue-600 bg-gradient-to-br from-blue-100 to-blue-200'
+                          : 'border-gray-200 hover:border-blue-600 hover:bg-blue-50'
+                      }`}
+                    >
+                      <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mb-1">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <span className="font-semibold text-xs text-blue-700">Check</span>
+                    </button>
 
-                <button
-                  onClick={() => handlePaymentMethodSelect('paypal')}
-                  className="flex flex-col items-center justify-center p-4 border-2 border-[#0070BA] bg-gradient-to-br from-[#0070BA]/10 to-[#003087]/10 rounded-lg hover:border-[#0070BA] hover:shadow-lg transition-all"
-                >
-                  <div className="w-12 h-12 bg-[#0070BA] rounded-xl flex items-center justify-center mb-2">
-                    <span className="text-white text-xl font-bold">P</span>
-                  </div>
-                  <span className="font-semibold text-[#0070BA]">PayPal</span>
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPaymentMethod('paypal')}
+                      className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg transition-all ${
+                        selectedPaymentMethod === 'paypal'
+                          ? 'border-[#0070BA] bg-gradient-to-br from-[#0070BA]/20 to-[#003087]/20'
+                          : 'border-gray-200 hover:border-[#0070BA] hover:bg-[#0070BA]/5'
+                      }`}
+                    >
+                      <div className="w-10 h-10 bg-[#0070BA] rounded-lg flex items-center justify-center mb-1">
+                        <span className="text-white text-lg font-bold">P</span>
+                      </div>
+                      <span className="font-semibold text-xs text-[#0070BA]">PayPal</span>
+                    </button>
 
-                <button
-                  onClick={() => handlePaymentMethodSelect('other')}
-                  className="flex flex-col items-center justify-center p-4 border-2 border-gray-400 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg hover:border-gray-500 hover:shadow-lg transition-all"
-                >
-                  <div className="w-12 h-12 bg-gray-500 rounded-xl flex items-center justify-center mb-2">
-                    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPaymentMethod('other')}
+                      className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg transition-all ${
+                        selectedPaymentMethod === 'other'
+                          ? 'border-gray-500 bg-gradient-to-br from-gray-100 to-gray-200'
+                          : 'border-gray-200 hover:border-gray-500 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="w-10 h-10 bg-gray-500 rounded-lg flex items-center justify-center mb-1">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <span className="font-semibold text-xs text-gray-700">Other</span>
+                    </button>
                   </div>
-                  <span className="font-semibold text-gray-700">Other</span>
-                </button>
+                </div>
+
+                <div>
+                  <label className="label">Confirmation Number (Optional)</label>
+                  <input
+                    type="text"
+                    value={paymentConfirmation}
+                    onChange={(e) => setPaymentConfirmation(e.target.value)}
+                    className="input w-full"
+                    placeholder="Transaction ID or confirmation number"
+                  />
+                </div>
+
+                <div>
+                  <label className="label">Notes (Optional)</label>
+                  <textarea
+                    value={paymentNotes}
+                    onChange={(e) => setPaymentNotes(e.target.value)}
+                    className="input w-full"
+                    rows="3"
+                    placeholder="Additional notes about the payment..."
+                  />
+                </div>
               </div>
 
-              <button
-                onClick={() => {
-                  setShowPaymentMethodModal(false)
-                  setPlayerToMarkPaid(null)
-                }}
-                className="w-full mt-4 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
+              <div className="flex gap-2 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPaymentMethodModal(false)
+                    setPlayerToMarkPaid(null)
+                  }}
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary flex-1"
+                  disabled={!selectedPaymentMethod}
+                >
+                  Mark as Paid
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
