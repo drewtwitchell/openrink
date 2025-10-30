@@ -329,8 +329,17 @@ export default function Dashboard() {
     }
   }
 
-  const openPaymentModal = (profile, leagueId) => {
-    setSelectedPaymentProfile({ ...profile, leagueId })
+  const openPaymentModal = async (profile, league) => {
+    // Fetch active season for this league
+    const seasonsForLeague = await seasons.getByLeague(league.id)
+    const activeSeason = seasonsForLeague.find(s => s.is_active === 1 && s.archived === 0)
+
+    setSelectedPaymentProfile({
+      ...profile,
+      leagueId: league.id,
+      leagueName: league.name,
+      seasonName: activeSeason?.name || 'No Active Season'
+    })
     setPaymentFormData({
       payment_method: '',
       confirmation_number: '',
@@ -516,7 +525,7 @@ export default function Dashboard() {
                               </span>
                             ) : (
                               <button
-                                onClick={() => openPaymentModal(profile, league.id)}
+                                onClick={() => openPaymentModal(profile, league)}
                                 className="badge badge-error hover:bg-red-200 transition-colors cursor-pointer"
                               >
                                 ✗ Unpaid - Click to Report Payment
@@ -1030,7 +1039,11 @@ export default function Dashboard() {
             <div className="mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Report Payment</h3>
               <p className="text-sm text-gray-600 mt-1">
-                Report that you've paid for {selectedPaymentProfile?.team_name}
+                Report payment for <span className="font-semibold">{selectedPaymentProfile?.name}</span>
+                <br />
+                <span className="text-xs">League: <span className="font-semibold">{selectedPaymentProfile?.leagueName}</span></span>
+                {' • '}
+                <span className="text-xs">Season: <span className="font-semibold">{selectedPaymentProfile?.seasonName}</span></span>
               </p>
             </div>
 

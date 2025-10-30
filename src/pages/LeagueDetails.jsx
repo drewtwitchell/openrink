@@ -3121,6 +3121,14 @@ export default function LeagueDetails() {
 
               <p className="text-gray-600 mb-6">
                 Recording payment for <span className="font-semibold">{playerToMarkPaid.name}</span>
+                <br />
+                <span className="text-sm">League: <span className="font-semibold">{league?.name}</span></span>
+                {activeSeason && (
+                  <>
+                    {' • '}
+                    <span className="text-sm">Season: <span className="font-semibold">{activeSeason.name}</span></span>
+                  </>
+                )}
               </p>
 
               <div className="space-y-4">
