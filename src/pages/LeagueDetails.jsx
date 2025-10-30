@@ -1589,6 +1589,7 @@ export default function LeagueDetails() {
                         onChange={(e) => handleUserSearch(e.target.value)}
                         className="input"
                         placeholder="Type name or email (min 2 characters)..."
+                        disabled={selectedUser !== null}
                       />
                       {isSearching && (
                         <div className="absolute right-3 top-3 text-gray-400">
@@ -1618,7 +1619,7 @@ export default function LeagueDetails() {
                       </div>
                     )}
 
-                    {userSearchQuery.length >= 2 && userSearchResults.length === 0 && !isSearching && (
+                    {!selectedUser && userSearchQuery.length >= 2 && userSearchResults.length === 0 && !isSearching && (
                       <div className="mt-2 text-sm text-gray-500">
                         No users found. User must have an account to be added as a manager.
                       </div>
@@ -1626,8 +1627,22 @@ export default function LeagueDetails() {
 
                     {selectedUser && (
                       <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <div className="text-sm font-medium text-green-900">Selected User:</div>
-                        <div className="text-sm text-green-700">{selectedUser.name || 'No name'} ({selectedUser.email})</div>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="text-sm font-medium text-green-900">Selected User:</div>
+                            <div className="text-sm text-green-700">{selectedUser.name || 'No name'} ({selectedUser.email})</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedUser(null)
+                              setUserSearchQuery('')
+                            }}
+                            className="text-green-700 hover:text-green-900 font-semibold"
+                          >
+                            Change
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
