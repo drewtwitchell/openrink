@@ -882,48 +882,73 @@ export default function LeagueDetails() {
               {league.archived === 1 && <span className="badge badge-warning">Archived</span>}
             </div>
 
-            {/* Season Context Selector - only show when seasons exist */}
-            {leagueSeasons.some(s => s.archived !== 1) && (
-              <div className="flex items-center gap-3 mt-3 flex-wrap">
-                <div className="flex items-center gap-2 bg-ice-50 rounded-lg px-4 py-2 border-2 border-ice-200">
-                  <label className="text-sm font-semibold text-ice-800">Season:</label>
-                  <select
-                    value={selectedSeasonId || ''}
-                    onChange={(e) => {
-                      const seasonId = e.target.value ? parseInt(e.target.value) : null
-                      setSelectedSeasonId(seasonId)
-                      if (seasonId && !seasonSubTab) {
-                        setMainTab('season')
-                        setSeasonSubTab('teams')
-                      }
-                    }}
-                    className="bg-white border border-ice-300 rounded px-3 py-1 text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-ice-500 focus:border-ice-500 min-w-[200px]"
-                  >
-                    <option value="">Select a season...</option>
-                    {leagueSeasons
-                      .filter(season => showArchivedSeasons || season.archived !== 1)
-                      .map((season) => (
-                        <option key={season.id} value={season.id}>
-                          {season.name}
-                          {season.archived === 1 ? ' (Archived)' : (season.is_active === 1 ? ' ★ Active' : '')}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-
-                {leagueSeasons.some(s => s.archived === 1) && (
-                  <label className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={showArchivedSeasons}
-                      onChange={(e) => setShowArchivedSeasons(e.target.checked)}
-                      className="rounded"
-                    />
-                    Show archived
-                  </label>
-                )}
+            {/* Season Management - always show for managers */}
+            <div className="flex items-center gap-3 mt-3 flex-wrap">
+              <div className="flex items-center gap-2 bg-ice-50 rounded-lg px-4 py-2 border-2 border-ice-200">
+                <label className="text-sm font-semibold text-ice-800">Season:</label>
+                <select
+                  value={selectedSeasonId || ''}
+                  onChange={(e) => {
+                    const seasonId = e.target.value ? parseInt(e.target.value) : null
+                    setSelectedSeasonId(seasonId)
+                    if (seasonId && !seasonSubTab) {
+                      setMainTab('season')
+                      setSeasonSubTab('teams')
+                    }
+                  }}
+                  className="bg-white border border-ice-300 rounded px-3 py-1 text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-ice-500 focus:border-ice-500 min-w-[200px]"
+                >
+                  <option value="">
+                    {leagueSeasons.length === 0 ? 'No seasons yet...' : 'Select a season...'}
+                  </option>
+                  {leagueSeasons
+                    .filter(season => showArchivedSeasons || season.archived !== 1)
+                    .map((season) => (
+                      <option key={season.id} value={season.id}>
+                        {season.name}
+                        {season.archived === 1 ? ' (Archived)' : (season.is_active === 1 ? ' ★ Active' : '')}
+                      </option>
+                    ))}
+                </select>
               </div>
-            )}
+
+              {canManage && (
+                <button
+                  onClick={() => {
+                    setMainTab('season')
+                    setSeasonSubTab(null)
+                    setSelectedSeasonId(null)
+                    setShowSeasonForm(true)
+                    setEditingSeasonId(null)
+                    setSeasonFormData({
+                      name: '',
+                      description: '',
+                      season_dues: '',
+                      venmo_link: '',
+                      start_date: '',
+                      end_date: '',
+                      is_active: false,
+                    })
+                  }}
+                  className="btn-secondary btn-sm"
+                  title="Create a new season"
+                >
+                  + New Season
+                </button>
+              )}
+
+              {leagueSeasons.some(s => s.archived === 1) && (
+                <label className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showArchivedSeasons}
+                    onChange={(e) => setShowArchivedSeasons(e.target.checked)}
+                    className="rounded"
+                  />
+                  Show archived
+                </label>
+              )}
+            </div>
 
             {/* Season quick info inline */}
             {selectedSeasonId && (() => {
@@ -961,31 +986,6 @@ export default function LeagueDetails() {
                 >
                   ⚙️ Managers
                 </button>
-                {/* Only show + New Season button when non-archived seasons exist */}
-                {leagueSeasons.some(s => s.archived !== 1) && (
-                  <button
-                    onClick={() => {
-                      setMainTab('season')
-                      setSeasonSubTab(null)
-                      setSelectedSeasonId(null) // Clear selected season when creating new
-                      setShowSeasonForm(true)
-                      setEditingSeasonId(null)
-                      setSeasonFormData({
-                        name: '',
-                        description: '',
-                        season_dues: '',
-                        venmo_link: '',
-                        start_date: '',
-                        end_date: '',
-                        is_active: false,
-                      })
-                    }}
-                    className="btn-primary btn-sm"
-                    title="Create a new season"
-                  >
-                    + New Season
-                  </button>
-                )}
               </>
             )}
 
