@@ -915,7 +915,7 @@ export default function Dashboard() {
                 const activeSeason = seasons.find(s => s.is_active === 1 && s.archived === 0)
 
                 return (
-                  <div key={captainProfile.team_id} className="border border-gray-200 rounded-lg p-4 bg-white">
+                  <div key={captainProfile.team_id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                     <h3 className="font-semibold text-gray-900 mb-1">
                       {captainProfile.team_name}
                     </h3>

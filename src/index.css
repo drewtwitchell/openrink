@@ -13,7 +13,7 @@
 @layer components {
   /* Primary Button - Clean and Professional */
   .btn-primary {
-    @apply bg-ice-600 text-white px-5 py-2.5 rounded-lg hover:bg-ice-700 transition-all duration-200 font-medium shadow-sm hover:shadow-md;
+    @apply bg-gray-700 text-white px-5 py-2.5 rounded-lg hover:bg-gray-800 transition-all duration-200 font-medium shadow-sm hover:shadow-md;
   }
 
   /* Secondary Button - Subtle and Modern */
@@ -48,7 +48,7 @@
 
   /* Input - Clean and Focused */
   .input {
-    @apply w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ice-500 focus:border-transparent transition-all duration-200 bg-white;
+    @apply w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent transition-all duration-200 bg-white;
   }
 
   /* Label - Professional */
