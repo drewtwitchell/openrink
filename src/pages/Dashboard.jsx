@@ -529,30 +529,30 @@ export default function Dashboard() {
                 const activeSeason = seasons.find(s => s.is_active === 1 && s.archived === 0)
 
                 return (
-                  <div key={league.id} className={`border-2 rounded-lg p-5 ${userLeagues.length > 1 ? 'border-ice-200 bg-gradient-to-r from-ice-50/30 to-white' : 'border-transparent'}`}>
+                  <div key={league.id} className="border border-gray-200 rounded-lg p-5 bg-white">
                     <div className="mb-4 pb-4 border-b border-gray-200">
-                      <h3 className="text-xl font-bold text-gray-900">{league.name}</h3>
-                      <p className="text-sm text-gray-600">Active Season: {activeSeason?.name || 'No active season'}</p>
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h3 className="text-xl font-bold text-gray-900">{league.name}</h3>
+                          <p className="text-sm text-gray-600">Active Season: {activeSeason?.name || 'No active season'}</p>
+                        </div>
+                        <button
+                          onClick={() => navigate('/')}
+                          className="btn-primary text-sm whitespace-nowrap"
+                        >
+                          View Schedule & Standings
+                        </button>
+                      </div>
                       {league.description && (
-                        <p className="text-sm text-gray-500 mt-1">{league.description}</p>
+                        <p className="text-sm text-gray-500">{league.description}</p>
                       )}
-                    </div>
-
-                    <div className="flex items-center justify-between mb-4 pb-3 border-b">
-                      <div></div>
-                      <button
-                        onClick={() => navigate('/')}
-                        className="btn-primary text-sm whitespace-nowrap"
-                      >
-                        View Schedule & Standings
-                      </button>
                     </div>
 
                     <div className="space-y-4">
                       {leagueProfiles.map((profile) => (
                   <div
                     key={profile.id}
-                    className="p-5 bg-gradient-to-r from-ice-50 to-white border border-ice-200 rounded-lg"
+                    className="p-5 bg-white border border-gray-200 rounded-lg"
                   >
                     {editingPlayer === profile.id ? (
                       // Edit mode
@@ -632,7 +632,7 @@ export default function Dashboard() {
                             <div className="text-sm text-gray-600 flex items-center gap-2 mb-3">
                               <span>{profile.name}</span>
                               {profile.is_captain === 1 && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-ice-100 text-ice-800">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                                   ⭐ Captain
                                 </span>
                               )}
@@ -657,7 +657,7 @@ export default function Dashboard() {
                                   <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                   </svg>
-                                  <a href={`mailto:${profile.email}`} className="hover:text-ice-600">
+                                  <a href={`mailto:${profile.email}`} className="hover:text-gray-700">
                                     {profile.email}
                                   </a>
                                 </div>
@@ -667,7 +667,7 @@ export default function Dashboard() {
                                   <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                                   </svg>
-                                  <a href={`tel:${profile.phone}`} className="hover:text-ice-600">
+                                  <a href={`tel:${profile.phone}`} className="hover:text-gray-700">
                                     {profile.phone}
                                   </a>
                                 </div>
@@ -675,7 +675,7 @@ export default function Dashboard() {
                             </div>
 
                             {/* Payment Status */}
-                            <div className="mt-3 pt-3 border-t border-ice-200">
+                            <div className="mt-3 pt-3 border-t border-gray-200">
                               <div className="flex items-center gap-2">
                                 <span className="text-xs text-gray-600">Payment Status:</span>
                                 {profile.payment_status === 'paid' ? (
@@ -713,7 +713,7 @@ export default function Dashboard() {
 
                     {/* Upcoming Game Display */}
                     {upcomingGames[profile.team_id] && upcomingGames[profile.team_id].length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-ice-200">
+                      <div className="mt-4 pt-4 border-t border-gray-200">
                         <h4 className="font-semibold text-gray-900 mb-3">Upcoming Game</h4>
                         <div className="space-y-3">
                           {upcomingGames[profile.team_id].map((game) => {
@@ -782,7 +782,7 @@ export default function Dashboard() {
 
                     {/* Inline Roster Display */}
                     {expandedTeams[profile.team_id] && (
-                      <div className="mt-4 pt-4 border-t border-ice-200">
+                      <div className="mt-4 pt-4 border-t border-gray-200">
                         <div className="flex items-center justify-between mb-3">
                           <h4 className="font-semibold text-gray-900">Team Roster</h4>
                           {(user?.role === 'admin' || managedLeagues.some(ml => ml.id === league.id) || profile.is_captain === 1) && (
@@ -825,7 +825,7 @@ export default function Dashboard() {
                                       <div className="flex items-center gap-2">
                                         {player.name}
                                         {player.is_captain === 1 && (
-                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-ice-100 text-ice-800">
+                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                                             ⭐ C
                                           </span>
                                         )}
@@ -838,7 +838,7 @@ export default function Dashboard() {
                                     </td>
                                     <td className="py-2 px-2">
                                       {player.email ? (
-                                        <a href={`mailto:${player.email}`} className="text-ice-600 hover:underline">
+                                        <a href={`mailto:${player.email}`} className="text-gray-700 hover:underline">
                                           {player.email}
                                         </a>
                                       ) : (
@@ -847,7 +847,7 @@ export default function Dashboard() {
                                     </td>
                                     <td className="py-2 px-2">
                                       {player.phone ? (
-                                        <a href={`tel:${player.phone}`} className="text-ice-600 hover:underline">
+                                        <a href={`tel:${player.phone}`} className="text-gray-700 hover:underline">
                                           {player.phone}
                                         </a>
                                       ) : (
