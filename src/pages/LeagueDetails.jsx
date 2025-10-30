@@ -1495,24 +1495,14 @@ export default function LeagueDetails() {
               <h3 className="section-header">
                 League Manager{managers.length !== 1 ? 's' : ''}
               </h3>
-              <div className="flex gap-2">
-                {canManage && (
-                  <>
-                    <button
-                      onClick={() => setShowManagerForm(!showManagerForm)}
-                      className="btn-primary"
-                    >
-                      {showManagerForm ? 'Cancel' : '+ Add Manager'}
-                    </button>
-                    <button
-                      onClick={() => setShowContactModal(true)}
-                      className="btn-secondary"
-                    >
-                      Contact All Players
-                    </button>
-                  </>
-                )}
-              </div>
+              {canManage && (
+                <button
+                  onClick={() => setShowManagerForm(!showManagerForm)}
+                  className="btn-primary"
+                >
+                  {showManagerForm ? 'Cancel' : '+ Add Manager'}
+                </button>
+              )}
             </div>
 
             {showManagerForm && (
@@ -1584,45 +1574,114 @@ export default function LeagueDetails() {
             )}
           </div>
 
-          {/* League Settings Section */}
+          {/* Consolidated Settings Section */}
           {canManage && (
-            <div className="card mb-6 border-2 border-gray-200">
-              <h3 className="section-header mb-4">League Settings</h3>
-              <div className="space-y-3">
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-start justify-between">
+            <div className="card mb-6">
+              <h3 className="section-header mb-4">Settings</h3>
+
+              {/* Active Season Selector */}
+              {leagueSeasons.some(s => s.archived !== 1) && (
+                <div className="mb-6">
+                  <h4 className="font-semibold text-gray-900 mb-2">Active Season</h4>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Choose which season is currently active for payment tracking and other features.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <select
+                      value={activeSeason?.id || ''}
+                      onChange={async (e) => {
+                        const seasonId = parseInt(e.target.value)
+                        try {
+                          await seasons.setActive(seasonId)
+                          fetchLeagueData()
+                        } catch (err) {
+                          console.error('Error setting active season:', err)
+                        }
+                      }}
+                      className="bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-ice-500 focus:border-ice-500 min-w-[250px]"
+                    >
+                      <option value="">No active season</option>
+                      {leagueSeasons
+                        .filter(s => s.archived !== 1)
+                        .map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                    </select>
+                    {activeSeason && (
+                      <span className="text-ice-600 font-medium">★ Active</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Season-Specific Settings - only show when viewing a season */}
+              {selectedSeasonId && (() => {
+                const season = leagueSeasons.find(s => s.id === selectedSeasonId)
+                if (!season) return null
+
+                return (
+                  <div className="mb-6 pb-6 border-b border-gray-200">
+                    <h4 className="font-semibold text-gray-900 mb-3">Season: {season.name}</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex-1">
+                          <span className="text-sm font-medium text-gray-700">
+                            {season.archived === 1 ? 'Unarchive Season' : 'Archive Season'}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleArchiveSeason(season.id, season.archived !== 1)}
+                          className="btn-secondary btn-sm"
+                        >
+                          {season.archived === 1 ? '📦 Unarchive' : '📁 Archive'}
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">
+                        <div className="flex-1">
+                          <span className="text-sm font-medium text-red-700">Delete Season</span>
+                        </div>
+                        <button
+                          onClick={() => setDeleteSeasonModal({ show: true, seasonId: season.id })}
+                          className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* League Settings */}
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-3">League</h4>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 mb-1">
+                      <span className="text-sm font-medium text-gray-700">
                         {league.archived === 1 ? 'Unarchive League' : 'Archive League'}
-                      </h4>
-                      <p className="text-sm text-gray-600">
-                        {league.archived === 1
-                          ? 'Restore this league and make it active again'
-                          : 'Hide this league from the main list without deleting it'}
-                      </p>
+                      </span>
                     </div>
                     <button
                       onClick={handleArchive}
-                      className="btn-secondary ml-4 whitespace-nowrap"
+                      className="btn-secondary btn-sm"
                     >
                       {league.archived === 1 ? '📦 Unarchive' : '📁 Archive'}
                     </button>
                   </div>
-                </div>
 
-                <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">
                     <div className="flex-1">
-                      <h4 className="font-semibold text-red-900 mb-1">Delete League</h4>
-                      <p className="text-sm text-red-700">
-                        Permanently delete this league and all associated data. This action cannot be undone.
-                      </p>
+                      <span className="text-sm font-medium text-red-700">Delete League</span>
                     </div>
                     <button
                       onClick={handleDeleteLeague}
-                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium ml-4 whitespace-nowrap transition-colors"
+                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
                     >
-                      🗑️ Delete League
+                      🗑️ Delete
                     </button>
                   </div>
                 </div>
@@ -1630,237 +1689,112 @@ export default function LeagueDetails() {
             </div>
           )}
 
-          {/* Active Season Selector */}
-          {canManage && leagueSeasons.some(s => s.archived !== 1) && (
-            <div className="card mb-6 border-2 border-ice-200">
-              <h3 className="section-header mb-4">Active Season</h3>
-              <div className="p-4 bg-ice-50 rounded-lg border border-ice-200">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-ice-900 mb-1">Set Active Season</h4>
-                    <p className="text-sm text-ice-700 mb-3">
-                      Choose which season is currently active for your league. This affects payment tracking and other features.
-                    </p>
-                    <div className="flex items-center gap-3">
-                      <select
-                        value={activeSeason?.id || ''}
-                        onChange={async (e) => {
-                          const seasonId = parseInt(e.target.value)
-                          try {
-                            await seasons.setActive(seasonId)
-                            fetchLeagueData()
-                          } catch (err) {
-                            console.error('Error setting active season:', err)
-                          }
-                        }}
-                        className="bg-white border border-ice-300 rounded-lg px-4 py-2 text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-ice-500 focus:border-ice-500 min-w-[250px]"
-                      >
-                        <option value="">No active season</option>
-                        {leagueSeasons
-                          .filter(s => s.archived !== 1)
-                          .map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.name}
-                            </option>
-                          ))}
-                      </select>
-                      {activeSeason && (
-                        <span className="text-ice-600 font-medium">★ Active</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
+          {/* Contact Players */}
+          <div className="card mb-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="section-header mb-1">Communication</h3>
+                <p className="text-sm text-gray-600">Send messages to all players in the league</p>
               </div>
+              <button
+                onClick={() => setShowContactModal(true)}
+                className="btn-primary"
+              >
+                Contact All Players
+              </button>
             </div>
-          )}
-
-          {/* Season Settings Section */}
-          {canManage && selectedSeasonId && (() => {
-            const season = leagueSeasons.find(s => s.id === selectedSeasonId)
-            if (!season) return null
-
-            return (
-              <div className="card mb-6 border-2 border-ice-200">
-                <h3 className="section-header mb-4">Season Settings: {season.name}</h3>
-                <div className="space-y-3">
-
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900 mb-1">
-                          {season.archived === 1 ? 'Unarchive Season' : 'Archive Season'}
-                        </h4>
-                        <p className="text-sm text-gray-600">
-                          {season.archived === 1
-                            ? 'Restore this season and make it available again'
-                            : 'Hide this season from the main list without deleting it'}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => handleArchiveSeason(season.id, season.archived !== 1)}
-                        className="btn-secondary ml-4 whitespace-nowrap"
-                      >
-                        {season.archived === 1 ? '📦 Unarchive' : '📁 Archive'}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-red-900 mb-1">Delete Season</h4>
-                        <p className="text-sm text-red-700">
-                          Permanently delete this season and all associated teams, games, and data. This cannot be undone.
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setDeleteSeasonModal({ show: true, seasonId: season.id })}
-                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium ml-4 whitespace-nowrap transition-colors"
-                      >
-                        🗑️ Delete Season
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )
-          })()}
+          </div>
 
           {/* Payments Section - tied to active season */}
           {activeSeason && (
             <div className="card mb-6">
               <div className="flex justify-between items-center mb-4">
-                <div>
-                  <h2 className="section-header">Payment Tracking</h2>
-                  <p className="text-sm text-gray-600">Active Season: {activeSeason.name}</p>
-                </div>
-                {canManage && (
-                  <button
-                    onClick={() => setShowContactModal(true)}
-                    className="btn-primary"
-                  >
-                    Send Payment Reminder
-                  </button>
-                )}
+                <h3 className="section-header">Payment Tracking - {activeSeason.name}</h3>
               </div>
 
-              {/* Season Dues and Payment Link Editor */}
-              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="grid grid-cols-2 gap-6">
-                  {/* Season Dues */}
-                  <div>
-                    <div className="text-sm text-gray-600 mb-1">Season Dues</div>
-                    {editingSeasonDues ? (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl font-bold">$</span>
-                        <input
-                          type="number"
-                          value={tempSeasonDues}
-                          onChange={(e) => setTempSeasonDues(e.target.value)}
-                          className="w-24 px-2 py-1 border border-gray-300 rounded"
-                          step="0.01"
-                          min="0"
-                          autoFocus
-                        />
-                        <button
-                          onClick={handleSaveSeasonDues}
-                          className="text-sm px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setEditingSeasonDues(false)}
-                          className="text-sm px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <div className="text-2xl font-bold text-ice-600">
-                          ${parseFloat(activeSeason.season_dues || 0).toFixed(2)}
-                        </div>
-                        {canManage && (
-                          <button
-                            onClick={handleEditSeasonDues}
-                            className="text-sm text-ice-600 hover:text-ice-700 underline"
-                          >
-                            Edit
-                          </button>
-                        )}
-                      </div>
-                    )}
-                    <div className="text-xs text-gray-500 mt-1">
-                      Default amount for all players
+              {/* Season Dues and Payment Link */}
+              <div className="mb-6 grid grid-cols-2 gap-4">
+                {/* Season Dues */}
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Season Dues</div>
+                  {editingSeasonDues ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl font-bold">$</span>
+                      <input
+                        type="number"
+                        value={tempSeasonDues}
+                        onChange={(e) => setTempSeasonDues(e.target.value)}
+                        className="w-24 px-2 py-1 border border-gray-300 rounded"
+                        step="0.01"
+                        min="0"
+                        autoFocus
+                      />
+                      <button onClick={handleSaveSeasonDues} className="text-sm px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700">
+                        ✓
+                      </button>
+                      <button onClick={() => setEditingSeasonDues(false)} className="text-sm px-2 py-1 bg-gray-400 text-white rounded hover:bg-gray-500">
+                        ✕
+                      </button>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <div className="text-2xl font-bold text-ice-600">
+                        ${parseFloat(activeSeason.season_dues || 0).toFixed(2)}
+                      </div>
+                      {canManage && (
+                        <button onClick={handleEditSeasonDues} className="text-sm text-ice-600 hover:text-ice-700">
+                          ✎
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
 
-                  {/* Payment Link */}
-                  <div>
-                    <div className="text-sm text-gray-600 mb-1">Payment Link (Venmo, etc.)</div>
-                    {editingPaymentLink ? (
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={tempPaymentLink}
-                          onChange={(e) => setTempPaymentLink(e.target.value)}
-                          className="flex-1 px-2 py-1 border border-gray-300 rounded"
-                          placeholder="https://venmo.com/..."
-                          autoFocus
-                        />
-                        <button
-                          onClick={handleSavePaymentLink}
-                          className="text-sm px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setEditingPaymentLink(false)}
-                          className="text-sm px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        {activeSeason.venmo_link ? (
-                          <>
-                            <a
-                              href={activeSeason.venmo_link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-ice-600 hover:text-ice-700 underline text-sm truncate max-w-xs"
-                            >
-                              {activeSeason.venmo_link}
-                            </a>
-                            {canManage && (
-                              <button
-                                onClick={handleEditPaymentLink}
-                                className="text-sm text-ice-600 hover:text-ice-700 underline"
-                              >
-                                Edit
-                              </button>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            <span className="text-gray-400 text-sm">No payment link set</span>
-                            {canManage && (
-                              <button
-                                onClick={handleEditPaymentLink}
-                                className="text-sm text-ice-600 hover:text-ice-700 underline"
-                              >
-                                Add
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    )}
-                    <div className="text-xs text-gray-500 mt-1">
-                      Link for players to make payments
+                {/* Payment Link */}
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Payment Link</div>
+                  {editingPaymentLink ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={tempPaymentLink}
+                        onChange={(e) => setTempPaymentLink(e.target.value)}
+                        className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                        placeholder="https://venmo.com/..."
+                        autoFocus
+                      />
+                      <button onClick={handleSavePaymentLink} className="text-sm px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700">
+                        ✓
+                      </button>
+                      <button onClick={() => setEditingPaymentLink(false)} className="text-sm px-2 py-1 bg-gray-400 text-white rounded hover:bg-gray-500">
+                        ✕
+                      </button>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      {activeSeason.venmo_link ? (
+                        <>
+                          <a href={activeSeason.venmo_link} target="_blank" rel="noopener noreferrer" className="text-ice-600 hover:text-ice-700 underline text-sm truncate flex-1">
+                            {activeSeason.venmo_link}
+                          </a>
+                          {canManage && (
+                            <button onClick={handleEditPaymentLink} className="text-sm text-ice-600 hover:text-ice-700">
+                              ✎
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-gray-400 text-sm">Not set</span>
+                          {canManage && (
+                            <button onClick={handleEditPaymentLink} className="text-sm text-ice-600 hover:text-ice-700 underline">
+                              Add
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
