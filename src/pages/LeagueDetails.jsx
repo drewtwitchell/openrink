@@ -910,6 +910,31 @@ export default function LeagueDetails() {
                 </select>
               </div>
 
+              {/* Show Create Season button when no non-archived seasons exist */}
+              {canManage && !leagueSeasons.some(s => s.archived !== 1) && (
+                <button
+                  onClick={() => {
+                    setMainTab('season')
+                    setSeasonSubTab(null)
+                    setSelectedSeasonId(null)
+                    setShowSeasonForm(true)
+                    setEditingSeasonId(null)
+                    setSeasonFormData({
+                      name: '',
+                      description: '',
+                      season_dues: '',
+                      venmo_link: '',
+                      start_date: '',
+                      end_date: '',
+                      is_active: false,
+                    })
+                  }}
+                  className="btn-primary flex items-center gap-1"
+                >
+                  + Create Season
+                </button>
+              )}
+
               {leagueSeasons.some(s => s.archived === 1) && (
                 <label className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer">
                   <input
