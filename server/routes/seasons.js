@@ -63,18 +63,29 @@ router.post('/', authenticateToken, requireLeagueManager, (req, res) => {
     is_active
   } = req.body
 
-  db.run(
-    `INSERT INTO seasons (league_id, name, description, season_dues, venmo_link, start_date, end_date, is_active)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [league_id, name, description, season_dues, venmo_link, start_date, end_date, is_active ? 1 : 0],
-    function (err) {
-      if (err) {
-        console.error('Error creating season:', err)
-        return res.status(500).json({ error: 'Error creating season' })
-      }
-      res.json({ id: this.lastID, message: 'Season created successfully' })
+  // Check if this is the first season for the league
+  db.get('SELECT COUNT(*) as count FROM seasons WHERE league_id = ?', [league_id], (err, result) => {
+    if (err) {
+      console.error('Error checking season count:', err)
+      return res.status(500).json({ error: 'Error creating season' })
     }
-  )
+
+    const isFirstSeason = result.count === 0
+    const shouldBeActive = isFirstSeason ? 1 : (is_active ? 1 : 0)
+
+    db.run(
+      `INSERT INTO seasons (league_id, name, description, season_dues, venmo_link, start_date, end_date, is_active)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [league_id, name, description, season_dues, venmo_link, start_date, end_date, shouldBeActive],
+      function (err) {
+        if (err) {
+          console.error('Error creating season:', err)
+          return res.status(500).json({ error: 'Error creating season' })
+        }
+        res.json({ id: this.lastID, message: 'Season created successfully' })
+      }
+    )
+  })
 })
 
 // Update season

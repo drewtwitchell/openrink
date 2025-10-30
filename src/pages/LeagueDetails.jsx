@@ -37,6 +37,7 @@ export default function LeagueDetails() {
     end_date: '',
     is_active: false,
   })
+  const [copyFromPreviousSeason, setCopyFromPreviousSeason] = useState(false)
   const [paymentData, setPaymentData] = useState([])
   const [paymentStats, setPaymentStats] = useState(null)
   const [showContactModal, setShowContactModal] = useState(false)
@@ -188,7 +189,7 @@ export default function LeagueDetails() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const fetchLeagueData = async () => {
+  const fetchLeagueData = async (preserveSelectedSeason = false) => {
     try {
       const [leaguesData, teamsData, gamesData, managersData, seasonsData] = await Promise.all([
         leagues.getAll(true), // Include archived leagues
@@ -216,13 +217,18 @@ export default function LeagueDetails() {
       const active = seasonsData.find(s => s.is_active === 1 && s.archived === 0)
       setActiveSeason(active)
 
-      // Set selected season to active season by default
-      if (active) {
-        setSelectedSeasonId(active.id)
+      // Set selected season to active season by default (unless preserving current selection)
+      if (!preserveSelectedSeason) {
+        if (active) {
+          setSelectedSeasonId(active.id)
+          fetchPaymentData(active.id)
+        } else if (seasonsData.length > 0) {
+          // If no active season, select the most recent one
+          setSelectedSeasonId(seasonsData[0].id)
+        }
+      } else if (active) {
+        // Still fetch payment data for the active season even when preserving selection
         fetchPaymentData(active.id)
-      } else if (seasonsData.length > 0) {
-        // If no active season, select the most recent one
-        setSelectedSeasonId(seasonsData[0].id)
       }
     } catch (error) {
       console.error('Error fetching league data:', error)
@@ -452,7 +458,48 @@ export default function LeagueDetails() {
       if (editingSeasonId) {
         await seasons.update(editingSeasonId, data)
       } else {
-        await seasons.create(data)
+        // Create the new season
+        const result = await seasons.create(data)
+        const newSeasonId = result.id
+
+        // If copying from previous season, copy teams and players
+        if (copyFromPreviousSeason && leagueSeasons.length > 0) {
+          // Find the most recent season (first in the list after sorting by created_at DESC)
+          const previousSeason = leagueSeasons[0]
+
+          // Get all teams from the previous season
+          const previousTeams = teams.filter(t =>
+            t.season_id === previousSeason.id ||
+            (t.league_id === parseInt(id) && !t.season_id)
+          )
+
+          // Copy each team and its players
+          for (const team of previousTeams) {
+            // Create new team for the new season
+            const newTeam = await teamsApi.create({
+              name: team.name,
+              color: team.color,
+              league_id: parseInt(id),
+              season_id: newSeasonId
+            })
+
+            // Get players from the old team
+            const oldTeamPlayers = await teamsApi.getRoster(team.id)
+
+            // Copy each player to the new team
+            for (const player of oldTeamPlayers) {
+              await players.create({
+                team_id: newTeam.id,
+                name: player.name,
+                email: player.email,
+                jersey_number: player.jersey_number,
+                position: player.position,
+                sub_position: player.sub_position,
+                user_id: player.user_id
+              })
+            }
+          }
+        }
       }
 
       setSeasonFormData({
@@ -464,6 +511,7 @@ export default function LeagueDetails() {
         end_date: '',
         is_active: false,
       })
+      setCopyFromPreviousSeason(false)
       setEditingSeasonId(null)
       setShowSeasonForm(false)
       fetchLeagueData()
@@ -731,7 +779,7 @@ export default function LeagueDetails() {
 
       setEditingSeasonDues(false)
       setTempSeasonDues('')
-      await fetchLeagueData()
+      await fetchLeagueData(true) // Preserve selected season
       await fetchPaymentData(activeSeason.id)
     } catch (error) {
       alert('Error updating season dues: ' + error.message)
@@ -752,7 +800,7 @@ export default function LeagueDetails() {
 
       setEditingPaymentLink(false)
       setTempPaymentLink('')
-      await fetchLeagueData()
+      await fetchLeagueData(true) // Preserve selected season
     } catch (error) {
       alert('Error updating payment link: ' + error.message)
     }
@@ -880,36 +928,50 @@ export default function LeagueDetails() {
             <div className="flex items-center gap-3 mb-2">
               <h1 className="page-title mb-0">{league.name}</h1>
               {league.archived === 1 && <span className="badge badge-warning">Archived</span>}
+              {canManage && (
+                <div className="flex items-center gap-2 ml-auto">
+                  <button
+                    onClick={handleArchive}
+                    className="text-xs text-gray-500 hover:text-gray-700 underline"
+                  >
+                    {league.archived === 1 ? 'Unarchive' : 'Archive'} League
+                  </button>
+                  <span className="text-gray-300">|</span>
+                  <button
+                    onClick={handleDeleteLeague}
+                    className="text-xs text-red-500 hover:text-red-700 underline"
+                  >
+                    Delete League
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Season Management - only show when seasons exist */}
             {leagueSeasons.length > 0 && (
-              <div className="flex items-center gap-3 mt-3 flex-wrap">
-                <div className="flex items-center gap-2 bg-ice-50 rounded-lg px-4 py-2 border-2 border-ice-200">
-                  <label className="text-sm font-semibold text-ice-800">Season:</label>
-                  <select
-                    value={selectedSeasonId || ''}
-                    onChange={(e) => {
-                      const seasonId = e.target.value ? parseInt(e.target.value) : null
-                      setSelectedSeasonId(seasonId)
-                      if (seasonId && !seasonSubTab) {
-                        setMainTab('season')
-                        setSeasonSubTab('teams')
-                      }
-                    }}
-                    className="bg-white border border-ice-300 rounded px-3 py-1 text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-ice-500 focus:border-ice-500 min-w-[200px]"
-                  >
-                    <option value="">Select a season...</option>
-                    {leagueSeasons
-                      .filter(season => showArchivedSeasons || season.archived !== 1)
-                      .map((season) => (
-                        <option key={season.id} value={season.id}>
-                          {season.name}
-                          {season.archived === 1 ? ' (Archived)' : (season.is_active === 1 ? ' ★ Active' : '')}
-                        </option>
-                      ))}
-                  </select>
-                </div>
+              <div className="flex items-center gap-3 mt-2 flex-wrap">
+                <select
+                  value={selectedSeasonId || ''}
+                  onChange={(e) => {
+                    const seasonId = e.target.value ? parseInt(e.target.value) : null
+                    setSelectedSeasonId(seasonId)
+                    if (seasonId && !seasonSubTab) {
+                      setMainTab('season')
+                      setSeasonSubTab('teams')
+                    }
+                  }}
+                  className="text-lg font-medium text-gray-700 border-0 bg-transparent focus:outline-none focus:ring-0 pr-8 -ml-1 cursor-pointer hover:text-gray-900"
+                >
+                  <option value="">None</option>
+                  {leagueSeasons
+                    .filter(season => showArchivedSeasons || season.archived !== 1)
+                    .map((season) => (
+                      <option key={season.id} value={season.id}>
+                        {season.name}
+                        {season.is_active === 1 ? ' ★' : ''}
+                      </option>
+                    ))}
+                </select>
 
                 {canManage && (
                   <button
@@ -919,6 +981,7 @@ export default function LeagueDetails() {
                       setSelectedSeasonId(null)
                       setShowSeasonForm(true)
                       setEditingSeasonId(null)
+                      setCopyFromPreviousSeason(false)
                       setSeasonFormData({
                         name: '',
                         description: '',
@@ -953,10 +1016,22 @@ export default function LeagueDetails() {
             {/* Season quick info inline */}
             {selectedSeasonId && (() => {
               const season = leagueSeasons.find(s => s.id === selectedSeasonId)
-              return season && (
-                <div className="text-xs text-gray-500 mt-2">
-                  {season.start_date && <span>• {new Date(season.start_date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}</span>}
-                  {season.end_date && <span> - {new Date(season.end_date).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}</span>}
+              if (!season || (!season.start_date && !season.end_date)) return null
+
+              const formatDate = (dateStr) => {
+                const date = new Date(dateStr)
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              }
+
+              return (
+                <div className="text-sm text-gray-600 mt-1">
+                  {season.start_date && season.end_date ? (
+                    <span>{formatDate(season.start_date)} - {formatDate(season.end_date)}</span>
+                  ) : season.start_date ? (
+                    <span>Starting {formatDate(season.start_date)}</span>
+                  ) : (
+                    <span>Ending {formatDate(season.end_date)}</span>
+                  )}
                 </div>
               )
             })()}
@@ -1392,6 +1467,25 @@ export default function LeagueDetails() {
                     placeholder="https://venmo.com/u/username"
                   />
                 </div>
+                {!editingSeasonId && leagueSeasons.length > 0 && (
+                  <div className="md:col-span-2 p-3 bg-blue-50 border border-blue-200 rounded">
+                    <div className="flex items-start">
+                      <input
+                        type="checkbox"
+                        id="copy_from_previous"
+                        checked={copyFromPreviousSeason}
+                        onChange={(e) => setCopyFromPreviousSeason(e.target.checked)}
+                        className="mr-2 mt-0.5"
+                      />
+                      <label htmlFor="copy_from_previous" className="text-sm">
+                        <span className="font-medium text-gray-900">Copy teams and players from previous season</span>
+                        <p className="text-xs text-gray-600 mt-1">
+                          This will create the same teams with the same rosters in the new season. Standings, games, and payments will be reset.
+                        </p>
+                      </label>
+                    </div>
+                  </div>
+                )}
                 <div className="md:col-span-2 flex items-center">
                   <input
                     type="checkbox"
@@ -1574,128 +1668,10 @@ export default function LeagueDetails() {
             )}
           </div>
 
-          {/* Consolidated Settings Section */}
-          {canManage && (
-            <div className="card mb-6">
-              <h3 className="section-header mb-4">Settings</h3>
-
-              {/* Active Season Selector */}
-              {leagueSeasons.some(s => s.archived !== 1) && (
-                <div className="mb-6">
-                  <h4 className="font-semibold text-gray-900 mb-2">Active Season</h4>
-                  <p className="text-sm text-gray-600 mb-3">
-                    Choose which season is currently active for payment tracking and other features.
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <select
-                      value={activeSeason?.id || ''}
-                      onChange={async (e) => {
-                        const seasonId = parseInt(e.target.value)
-                        try {
-                          await seasons.setActive(seasonId)
-                          fetchLeagueData()
-                        } catch (err) {
-                          console.error('Error setting active season:', err)
-                        }
-                      }}
-                      className="bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-ice-500 focus:border-ice-500 min-w-[250px]"
-                    >
-                      <option value="">No active season</option>
-                      {leagueSeasons
-                        .filter(s => s.archived !== 1)
-                        .map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name}
-                          </option>
-                        ))}
-                    </select>
-                    {activeSeason && (
-                      <span className="text-ice-600 font-medium">★ Active</span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Season-Specific Settings - only show when viewing a season */}
-              {selectedSeasonId && (() => {
-                const season = leagueSeasons.find(s => s.id === selectedSeasonId)
-                if (!season) return null
-
-                return (
-                  <div className="mb-6 pb-6 border-b border-gray-200">
-                    <h4 className="font-semibold text-gray-900 mb-3">Season: {season.name}</h4>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex-1">
-                          <span className="text-sm font-medium text-gray-700">
-                            {season.archived === 1 ? 'Unarchive Season' : 'Archive Season'}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => handleArchiveSeason(season.id, season.archived !== 1)}
-                          className="btn-secondary btn-sm"
-                        >
-                          {season.archived === 1 ? '📦 Unarchive' : '📁 Archive'}
-                        </button>
-                      </div>
-
-                      <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">
-                        <div className="flex-1">
-                          <span className="text-sm font-medium text-red-700">Delete Season</span>
-                        </div>
-                        <button
-                          onClick={() => setDeleteSeasonModal({ show: true, seasonId: season.id })}
-                          className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                        >
-                          🗑️ Delete
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })()}
-
-              {/* League Settings */}
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-3">League</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex-1">
-                      <span className="text-sm font-medium text-gray-700">
-                        {league.archived === 1 ? 'Unarchive League' : 'Archive League'}
-                      </span>
-                    </div>
-                    <button
-                      onClick={handleArchive}
-                      className="btn-secondary btn-sm"
-                    >
-                      {league.archived === 1 ? '📦 Unarchive' : '📁 Archive'}
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">
-                    <div className="flex-1">
-                      <span className="text-sm font-medium text-red-700">Delete League</span>
-                    </div>
-                    <button
-                      onClick={handleDeleteLeague}
-                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                    >
-                      🗑️ Delete
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Contact Players */}
+          {/* Communication */}
           <div className="card mb-6">
             <div className="flex justify-between items-center">
-              <div>
-                <h3 className="section-header mb-1">Communication</h3>
-                <p className="text-sm text-gray-600">Send messages to all players in the league</p>
-              </div>
+              <h3 className="section-header">Communication</h3>
               <button
                 onClick={() => setShowContactModal(true)}
                 className="btn-primary"
@@ -1705,9 +1681,9 @@ export default function LeagueDetails() {
             </div>
           </div>
 
-          {/* Payments Section - tied to active season */}
-          {activeSeason && (
-            <div className="card mb-6">
+          {/* Payments Section - only show when viewing the active season */}
+          {activeSeason && selectedSeasonId === activeSeason.id && (
+            <div className="card mb-6" key={`payment-${selectedSeasonId}`}>
               <div className="flex justify-between items-center mb-4">
                 <h3 className="section-header">Payment Tracking - {activeSeason.name}</h3>
               </div>
@@ -2082,179 +2058,93 @@ export default function LeagueDetails() {
             </div>
           )}
 
-          {/* Upcoming Games Section */}
-          <div className="card mb-6">
-            <h3 className="section-header mb-4">Upcoming Games This Week</h3>
-            {(() => {
-              const today = new Date()
-              today.setHours(0, 0, 0, 0)
-              const oneWeekFromNow = new Date(today)
-              oneWeekFromNow.setDate(today.getDate() + 7)
+          {/* Settings - ultra minimal */}
+          {canManage && selectedSeasonId && (
+            <div className="border-t border-gray-200 pt-4 pb-2" key={`settings-${selectedSeasonId}`}>
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <div className="flex items-center gap-3">
+                  {(() => {
+                    const currentSeason = leagueSeasons.find(s => s.id === selectedSeasonId)
+                    const isActive = currentSeason?.is_active === 1
+                    return isActive ? (
+                      <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+                        <span className="text-green-600">★</span>
+                        Active Season
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-500">Mark as Active:</span>
+                    )
+                  })()}
+                  {(() => {
+                    const currentSeason = leagueSeasons.find(s => s.id === selectedSeasonId)
+                    const isActive = currentSeason?.is_active === 1
 
-              const upcomingGames = games
-                .filter(g => {
-                  const gameDate = new Date(g.game_date)
-                  return gameDate >= today && gameDate <= oneWeekFromNow && !g.home_score
-                })
-                .sort((a, b) => new Date(a.game_date) - new Date(b.game_date))
-
-              return upcomingGames.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-500 mb-4">No games scheduled this week</p>
-                  <button onClick={() => { setMainTab('season'); setSeasonSubTab('schedule'); }} className="btn-secondary">
-                    View Full Schedule
-                  </button>
+                    if (isActive) {
+                      return (
+                        <button
+                          onClick={async () => {
+                            try {
+                              await seasons.update(selectedSeasonId, {
+                                ...currentSeason,
+                                is_active: 0
+                              })
+                              await fetchLeagueData(true)
+                            } catch (err) {
+                              console.error('Error unsetting active season:', err)
+                              alert('Failed to unset active season. Please try again.')
+                            }
+                          }}
+                          className="text-xs hover:text-gray-700 underline"
+                        >
+                          Unset
+                        </button>
+                      )
+                    } else {
+                      return (
+                        <button
+                          onClick={async () => {
+                            try {
+                              await seasons.setActive(selectedSeasonId)
+                              await fetchLeagueData()
+                            } catch (err) {
+                              console.error('Error setting active season:', err)
+                              alert('Failed to set active season. Please try again.')
+                            }
+                          }}
+                          className="text-xs hover:text-gray-700 underline"
+                        >
+                          Set as Active
+                        </button>
+                      )
+                    }
+                  })()}
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {upcomingGames.map((game) => (
-                    <div key={game.id} className="p-3 bg-gray-50 rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <div
-                              className="w-4 h-4 rounded-full"
-                              style={{ backgroundColor: game.home_team_color || '#0284c7' }}
-                            />
-                            <span className="font-medium text-sm">{game.home_team_name}</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <div
-                              className="w-4 h-4 rounded-full"
-                              style={{ backgroundColor: game.away_team_color || '#0284c7' }}
-                            />
-                            <span className="font-medium text-sm">{game.away_team_name}</span>
-                          </div>
-                        </div>
-                        <div className="text-right ml-4">
-                          <div className="text-xs text-gray-600">
-                            {new Date(game.game_date).toLocaleDateString('en-US', {
-                              weekday: 'short',
-                              month: 'short',
-                              day: 'numeric',
-                            })}
-                          </div>
-                          <div className="text-xs text-gray-600">{game.game_time}</div>
-                          <div className="text-xs text-gray-500">{game.rink_name}</div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex items-center gap-3">
+                  {selectedSeasonId && (() => {
+                    const season = leagueSeasons.find(s => s.id === selectedSeasonId)
+                    if (!season) return null
+                    return (
+                      <>
+                        <button
+                          onClick={() => handleArchiveSeason(season.id, season.archived !== 1)}
+                          className="hover:text-gray-700 underline"
+                        >
+                          {season.archived === 1 ? 'Unarchive' : 'Archive'} Season
+                        </button>
+                        <button
+                          onClick={() => setDeleteSeasonModal({ show: true, seasonId: season.id })}
+                          className="text-red-500 hover:text-red-700 underline"
+                        >
+                          Delete Season
+                        </button>
+                      </>
+                    )
+                  })()}
                 </div>
-              )
-            })()}
-          </div>
+              </div>
+            </div>
+          )}
 
-          {/* Standings Banner */}
-          <div className="card mb-8">
-            <h3 className="section-header mb-4">Standings</h3>
-            {(() => {
-              const completedGames = games.filter(g => g.home_score != null && g.away_score != null)
-
-              if (completedGames.length === 0) {
-                return (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500 mb-4">Standings will appear once games are completed</p>
-                    <button onClick={() => { setMainTab('season'); setSeasonSubTab('schedule'); }} className="btn-secondary">
-                      View Schedule
-                    </button>
-                  </div>
-                )
-              }
-
-              const teamStats = {}
-              teams.forEach(team => {
-                teamStats[team.id] = {
-                  team,
-                  wins: 0,
-                  losses: 0,
-                  ties: 0,
-                  gf: 0,
-                  ga: 0,
-                  points: 0,
-                }
-              })
-
-              completedGames.forEach((game) => {
-                const homeTeam = teamStats[game.home_team_id]
-                const awayTeam = teamStats[game.away_team_id]
-
-                if (!homeTeam || !awayTeam) return
-
-                homeTeam.gf += game.home_score
-                homeTeam.ga += game.away_score
-                awayTeam.gf += game.away_score
-                awayTeam.ga += game.home_score
-
-                if (game.home_score > game.away_score) {
-                  homeTeam.wins++
-                  homeTeam.points += 2
-                  awayTeam.losses++
-                } else if (game.away_score > game.home_score) {
-                  awayTeam.wins++
-                  awayTeam.points += 2
-                  homeTeam.losses++
-                } else {
-                  homeTeam.ties++
-                  awayTeam.ties++
-                  homeTeam.points += 1
-                  awayTeam.points += 1
-                }
-              })
-
-              const sortedStandings = Object.values(teamStats)
-                .sort((a, b) => {
-                  if (b.points !== a.points) return b.points - a.points
-                  return (b.gf - b.ga) - (a.gf - a.ga)
-                })
-
-              return (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2 px-2">#</th>
-                        <th className="text-left py-2 px-2">Team</th>
-                        <th className="text-center py-2 px-2">W</th>
-                        <th className="text-center py-2 px-2">L</th>
-                        <th className="text-center py-2 px-2">T</th>
-                        <th className="text-center py-2 px-2">GF</th>
-                        <th className="text-center py-2 px-2">GA</th>
-                        <th className="text-center py-2 px-2">DIFF</th>
-                        <th className="text-center py-2 px-2 font-bold">PTS</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sortedStandings.map((standing, index) => (
-                        <tr key={standing.team.id} className="border-b hover:bg-gray-50">
-                          <td className="py-2 px-2 font-semibold">{index + 1}</td>
-                          <td className="py-2 px-2">
-                            <div className="flex items-center space-x-2">
-                              <div
-                                className="w-4 h-4 rounded-full"
-                                style={{ backgroundColor: standing.team.color }}
-                              />
-                              <span className="font-medium">{standing.team.name}</span>
-                            </div>
-                          </td>
-                          <td className="text-center py-2 px-2">{standing.wins}</td>
-                          <td className="text-center py-2 px-2">{standing.losses}</td>
-                          <td className="text-center py-2 px-2">{standing.ties}</td>
-                          <td className="text-center py-2 px-2">{standing.gf}</td>
-                          <td className="text-center py-2 px-2">{standing.ga}</td>
-                          <td className="text-center py-2 px-2">
-                            {standing.gf - standing.ga > 0 ? '+' : ''}
-                            {standing.gf - standing.ga}
-                          </td>
-                          <td className="text-center py-2 px-2 font-bold">{standing.points}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )
-            })()}
-          </div>
         </div>
       )}
 
