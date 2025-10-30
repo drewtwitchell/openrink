@@ -882,42 +882,8 @@ export default function LeagueDetails() {
               {league.archived === 1 && <span className="badge badge-warning">Archived</span>}
             </div>
 
-            {/* Season Context Selector */}
-            {!leagueSeasons.some(s => s.archived !== 1) ? (
-              // No active seasons - show create prompt
-              canManage && (
-                <div className="mt-3 bg-gradient-to-r from-ice-50 to-blue-50 border-2 border-ice-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-semibold text-gray-800 mb-1">Get Started</h3>
-                      <p className="text-xs text-gray-600">Create your first season to begin managing teams and games</p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setMainTab('season')
-                        setSeasonSubTab(null)
-                        setSelectedSeasonId(null)
-                        setShowSeasonForm(true)
-                        setEditingSeasonId(null)
-                        setSeasonFormData({
-                          name: '',
-                          description: '',
-                          season_dues: '',
-                          venmo_link: '',
-                          start_date: '',
-                          end_date: '',
-                          is_active: false,
-                        })
-                      }}
-                      className="btn-primary whitespace-nowrap"
-                    >
-                      + Create Season
-                    </button>
-                  </div>
-                </div>
-              )
-            ) : (
-              // Has active seasons - show dropdown
+            {/* Season Context Selector - only show when seasons exist */}
+            {leagueSeasons.some(s => s.archived !== 1) && (
               <div className="flex items-center gap-3 mt-3 flex-wrap">
                 <div className="flex items-center gap-2 bg-ice-50 rounded-lg px-4 py-2 border-2 border-ice-200">
                   <label className="text-sm font-semibold text-ice-800">Season:</label>
