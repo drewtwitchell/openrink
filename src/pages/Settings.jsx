@@ -20,6 +20,7 @@ export default function Settings() {
   const [playerRecords, setPlayerRecords] = useState([])
   const [playerHistory, setPlayerHistory] = useState([])
   const [loadingHistory, setLoadingHistory] = useState(false)
+  const [historyExpanded, setHistoryExpanded] = useState(false)
 
   useEffect(() => {
     fetchUserData()
@@ -293,47 +294,74 @@ export default function Settings() {
 
       {/* Player History Section */}
       <div className="card mb-6">
-        <h2 className="section-header">Player History</h2>
-        <p className="text-sm text-gray-600 mb-4">
-          Your complete history across all leagues, seasons, and teams.
-        </p>
+        <div
+          className="flex items-center justify-between cursor-pointer"
+          onClick={() => setHistoryExpanded(!historyExpanded)}
+        >
+          <h2 className="section-header">Player History</h2>
+          <button
+            type="button"
+            className="text-gray-500 hover:text-gray-700"
+            onClick={(e) => {
+              e.stopPropagation()
+              setHistoryExpanded(!historyExpanded)
+            }}
+          >
+            <svg
+              className={`w-5 h-5 transform transition-transform ${historyExpanded ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
 
-        {loadingHistory ? (
-          <div className="text-center py-8 text-gray-500">Loading history...</div>
-        ) : playerHistory.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">No player history yet</div>
-        ) : (
-          <div className="space-y-3">
-            {playerHistory.map((record) => (
-              <div key={record.id} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <div className="font-semibold text-gray-900">{record.league_name}</div>
-                    <div className="text-sm text-gray-600">{record.season_name}</div>
+        {historyExpanded && (
+          <>
+            <p className="text-sm text-gray-600 mb-4">
+              Your complete history across all leagues, seasons, and teams.
+            </p>
+
+            {loadingHistory ? (
+              <div className="text-center py-8 text-gray-500">Loading history...</div>
+            ) : playerHistory.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">No player history yet</div>
+            ) : (
+              <div className="space-y-3">
+                {playerHistory.map((record) => (
+                  <div key={record.id} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="font-semibold text-gray-900">{record.league_name}</div>
+                        <div className="text-sm text-gray-600">{record.season_name}</div>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {formatDate(record.joined_date)}
+                        {record.left_date && ` - ${formatDate(record.left_date)}`}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span
+                        className="px-2 py-1 rounded"
+                        style={{ backgroundColor: record.team_color || '#6B7280', color: '#fff' }}
+                      >
+                        {record.team_name}
+                      </span>
+                      <span className="text-gray-600">
+                        {record.position === 'goalie' ? 'Goalie' :
+                         record.sub_position ? `${record.sub_position.charAt(0).toUpperCase() + record.sub_position.slice(1)}` : 'Player'}
+                      </span>
+                      {record.jersey_number && (
+                        <span className="text-gray-600">#{record.jersey_number}</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {formatDate(record.joined_date)}
-                    {record.left_date && ` - ${formatDate(record.left_date)}`}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <span
-                    className="px-2 py-1 rounded"
-                    style={{ backgroundColor: record.team_color || '#6B7280', color: '#fff' }}
-                  >
-                    {record.team_name}
-                  </span>
-                  <span className="text-gray-600">
-                    {record.position === 'goalie' ? 'Goalie' :
-                     record.sub_position ? `${record.sub_position.charAt(0).toUpperCase() + record.sub_position.slice(1)}` : 'Player'}
-                  </span>
-                  {record.jersey_number && (
-                    <span className="text-gray-600">#{record.jersey_number}</span>
-                  )}
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
 
