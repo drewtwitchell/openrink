@@ -1652,6 +1652,83 @@ export default function LeagueDetails() {
             </div>
           )}
 
+          {/* Season Settings Section */}
+          {canManage && selectedSeasonId && (() => {
+            const season = leagueSeasons.find(s => s.id === selectedSeasonId)
+            if (!season) return null
+
+            return (
+              <div className="card mb-6 border-2 border-ice-200">
+                <h3 className="section-header mb-4">Season Settings: {season.name}</h3>
+                <div className="space-y-3">
+                  {season.is_active !== 1 && season.archived !== 1 && (
+                    <div className="p-4 bg-ice-50 rounded-lg border border-ice-200">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-ice-900 mb-1">Set as Active Season</h4>
+                          <p className="text-sm text-ice-700">
+                            Make this the active season for your league. This will deactivate all other seasons.
+                          </p>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            try {
+                              await seasons.setActive(season.id)
+                              fetchLeagueData()
+                            } catch (err) {
+                              console.error('Error setting active season:', err)
+                            }
+                          }}
+                          className="bg-ice-600 hover:bg-ice-700 text-white px-4 py-2 rounded-lg font-medium ml-4 whitespace-nowrap transition-colors"
+                        >
+                          ★ Set Active
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900 mb-1">
+                          {season.archived === 1 ? 'Unarchive Season' : 'Archive Season'}
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                          {season.archived === 1
+                            ? 'Restore this season and make it available again'
+                            : 'Hide this season from the main list without deleting it'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleArchiveSeason(season.id, season.archived !== 1)}
+                        className="btn-secondary ml-4 whitespace-nowrap"
+                      >
+                        {season.archived === 1 ? '📦 Unarchive' : '📁 Archive'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-red-900 mb-1">Delete Season</h4>
+                        <p className="text-sm text-red-700">
+                          Permanently delete this season and all associated teams, games, and data. This cannot be undone.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setDeleteSeasonModal({ show: true, seasonId: season.id })}
+                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium ml-4 whitespace-nowrap transition-colors"
+                      >
+                        🗑️ Delete Season
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
+
           {/* Upcoming Games Section */}
           <div className="card mb-6">
             <h3 className="section-header mb-4">Upcoming Games This Week</h3>
