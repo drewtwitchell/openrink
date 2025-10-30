@@ -156,7 +156,7 @@ router.get('/users/search', authenticateToken, (req, res) => {
   const searchPattern = `%${q}%`
 
   db.all(
-    'SELECT id, email, name, phone, position FROM users WHERE name LIKE ? OR email LIKE ? LIMIT 10',
+    'SELECT id, email, name, phone FROM users WHERE name LIKE ? OR email LIKE ? LIMIT 10',
     [searchPattern, searchPattern],
     (err, users) => {
       if (err) {
