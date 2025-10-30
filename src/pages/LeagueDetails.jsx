@@ -962,42 +962,8 @@ export default function LeagueDetails() {
             })()}
           </div>
 
-          {/* Right: League settings + actions */}
+          {/* Right: Empty for now, actions moved to General tab */}
           <div className="flex items-center gap-2">
-            {/* League actions dropdown */}
-            <div className="relative" ref={leagueMenuRef}>
-              <button
-                onClick={() => setShowLeagueMenu(!showLeagueMenu)}
-                className="btn-secondary btn-sm w-8 h-8 p-0 flex items-center justify-center"
-                title="League settings"
-              >
-                ⋯
-              </button>
-              {showLeagueMenu && (
-                <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                  <button
-                    onClick={() => {
-                      handleArchive()
-                      setShowLeagueMenu(false)
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"
-                  >
-                    <span>{league.archived === 1 ? '📦' : '📁'}</span>
-                    {league.archived === 1 ? 'Unarchive League' : 'Archive League'}
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleDeleteLeague()
-                      setShowLeagueMenu(false)
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
-                  >
-                    <span>🗑️</span>
-                    Delete League
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </div>
@@ -1122,7 +1088,7 @@ export default function LeagueDetails() {
           {/* Main Navigation Tabs */}
           <div className="border-b-2 border-gray-200 mb-6">
             <nav className="flex gap-1">
-              {/* Managers Tab - always visible for managers */}
+              {/* General Tab - always visible for managers */}
               {canManage && (
                 <button
                   onClick={() => {
@@ -1135,7 +1101,7 @@ export default function LeagueDetails() {
                       : 'text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100'
                   }`}
                 >
-                  Managers
+                  General
                   {mainTab === 'overview' && overviewSubTab === 'managers' && (
                     <div className="absolute bottom-0 left-0 right-0 h-1 bg-ice-600"></div>
                   )}
@@ -1639,6 +1605,52 @@ export default function LeagueDetails() {
               </div>
             )}
           </div>
+
+          {/* League Settings Section */}
+          {canManage && (
+            <div className="card mb-6 border-2 border-gray-200">
+              <h3 className="section-header mb-4">League Settings</h3>
+              <div className="space-y-3">
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 mb-1">
+                        {league.archived === 1 ? 'Unarchive League' : 'Archive League'}
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        {league.archived === 1
+                          ? 'Restore this league and make it active again'
+                          : 'Hide this league from the main list without deleting it'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleArchive}
+                      className="btn-secondary ml-4 whitespace-nowrap"
+                    >
+                      {league.archived === 1 ? '📦 Unarchive' : '📁 Archive'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-red-900 mb-1">Delete League</h4>
+                      <p className="text-sm text-red-700">
+                        Permanently delete this league and all associated data. This action cannot be undone.
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleDeleteLeague}
+                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium ml-4 whitespace-nowrap transition-colors"
+                    >
+                      🗑️ Delete League
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Upcoming Games Section */}
           <div className="card mb-6">
