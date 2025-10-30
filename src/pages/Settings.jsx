@@ -501,6 +501,9 @@ export default function Settings() {
                       {record.jersey_number && (
                         <span className="text-gray-600">• #{record.jersey_number}</span>
                       )}
+                      {record.is_captain === 1 && (
+                        <span className="badge badge-primary ml-2">Captain</span>
+                      )}
                     </div>
                   </div>
                 ))}

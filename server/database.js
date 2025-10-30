@@ -480,6 +480,15 @@ function initDatabase() {
       }
     })
 
+    // Add is_captain column to player_history if it doesn't exist (migration)
+    db.run(`ALTER TABLE player_history ADD COLUMN is_captain INTEGER DEFAULT 0`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding is_captain column to player_history:', err)
+      } else if (!err) {
+        console.log('✅ Added is_captain column to player_history table')
+      }
+    })
+
     // Add password_reset_required column to users if it doesn't exist (migration)
     db.run(`ALTER TABLE users ADD COLUMN password_reset_required INTEGER DEFAULT 0`, (err) => {
       if (err && !err.message.includes('duplicate column')) {

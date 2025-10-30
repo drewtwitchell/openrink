@@ -67,51 +67,66 @@ router.get('/', (req, res) => {
 
 // Helper function to create player history entry
 function createPlayerHistory(playerId, userId, teamId, jerseyNumber, playerPosition, playerSubPosition, callback) {
-  // Get team's league_id and season_id
-  db.get(
-    `SELECT teams.league_id, teams.season_id
-     FROM teams
-     WHERE teams.id = ?`,
-    [teamId],
-    (err, teamInfo) => {
-      if (err) {
-        return callback(err)
-      }
+  // First check if this player is/was a captain
+  const checkCaptainQuery = userId ?
+    'SELECT COUNT(*) as is_captain FROM team_captains WHERE user_id = ? AND team_id = ?' :
+    'SELECT 0 as is_captain'
 
-      if (!teamInfo) {
-        return callback(new Error('Team not found'))
-      }
+  const captainParams = userId ? [userId, teamId] : []
 
-      // If no season_id on team, try to get active season for the league
-      if (!teamInfo.season_id) {
-        db.get(
-          'SELECT id FROM seasons WHERE league_id = ? AND is_active = 1 ORDER BY created_at DESC LIMIT 1',
-          [teamInfo.league_id],
-          (err, season) => {
-            if (err) {
-              return callback(err)
-            }
-
-            const seasonId = season?.id || null
-
-            db.run(
-              `INSERT INTO player_history (player_id, user_id, team_id, season_id, league_id, jersey_number, position, sub_position)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-              [playerId, userId, teamId, seasonId, teamInfo.league_id, jerseyNumber, playerPosition, playerSubPosition],
-              callback
-            )
-          }
-        )
-      } else {
-        db.run(
-          `INSERT INTO player_history (player_id, user_id, team_id, season_id, league_id, jersey_number, position, sub_position)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [playerId, userId, teamId, teamInfo.season_id, teamInfo.league_id, jerseyNumber, playerPosition, playerSubPosition],
-          callback
-        )
-      }
+  db.get(checkCaptainQuery, captainParams, (err, captainResult) => {
+    if (err) {
+      console.error('Error checking captain status:', err)
     }
-  )
+
+    const isCaptain = captainResult?.is_captain ? 1 : 0
+
+    // Get team's league_id and season_id
+    db.get(
+      `SELECT teams.league_id, teams.season_id
+       FROM teams
+       WHERE teams.id = ?`,
+      [teamId],
+      (err, teamInfo) => {
+        if (err) {
+          return callback(err)
+        }
+
+        if (!teamInfo) {
+          return callback(new Error('Team not found'))
+        }
+
+        // If no season_id on team, try to get active season for the league
+        if (!teamInfo.season_id) {
+          db.get(
+            'SELECT id FROM seasons WHERE league_id = ? AND is_active = 1 ORDER BY created_at DESC LIMIT 1',
+            [teamInfo.league_id],
+            (err, season) => {
+              if (err) {
+                return callback(err)
+              }
+
+              const seasonId = season?.id || null
+
+              db.run(
+                `INSERT INTO player_history (player_id, user_id, team_id, season_id, league_id, jersey_number, position, sub_position, is_captain)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [playerId, userId, teamId, seasonId, teamInfo.league_id, jerseyNumber, playerPosition, playerSubPosition, isCaptain],
+                callback
+              )
+            }
+          )
+        } else {
+          db.run(
+            `INSERT INTO player_history (player_id, user_id, team_id, season_id, league_id, jersey_number, position, sub_position, is_captain)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [playerId, userId, teamId, teamInfo.season_id, teamInfo.league_id, jerseyNumber, playerPosition, playerSubPosition, isCaptain],
+            callback
+          )
+        }
+      }
+    )
+  })
 }
 
 // Create player
