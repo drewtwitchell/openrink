@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { auth, leagues, teams, players, seasons } from '../lib/api'
+import { auth, leagues, teams, players, seasons, announcements } from '../lib/api'
 import { useNavigate } from 'react-router-dom'
 import ConfirmModal from '../components/ConfirmModal'
 
@@ -42,6 +42,7 @@ export default function Dashboard() {
     position: 'player',
     sub_position: ''
   })
+  const [leagueAnnouncements, setLeagueAnnouncements] = useState({})
 
   useEffect(() => {
     const currentUser = auth.getUser()
@@ -97,6 +98,19 @@ export default function Dashboard() {
 
           const playerLeagues = leaguesData.filter(l => playerLeagueIds.includes(l.id))
           setUserLeagues(playerLeagues)
+
+          // Fetch active announcements for each player league
+          const announcementsData = {}
+          for (const league of playerLeagues) {
+            try {
+              const leagueAnnouncements = await announcements.getActive(league.id)
+              announcementsData[league.id] = leagueAnnouncements || []
+            } catch (error) {
+              console.error(`Error fetching announcements for league ${league.id}:`, error)
+              announcementsData[league.id] = []
+            }
+          }
+          setLeagueAnnouncements(announcementsData)
 
           // For backwards compatibility, set first league as leagueData
           if (playerLeagues.length > 0) {
@@ -837,9 +851,95 @@ export default function Dashboard() {
                 )
               })}
             </div>
+
+            {/* League Announcements */}
+            {leagueAnnouncements[league.id] && leagueAnnouncements[league.id].length > 0 && (
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <h4 className="font-semibold text-gray-900 mb-3">League Announcements</h4>
+                <div className="space-y-3">
+                  {leagueAnnouncements[league.id].map((announcement) => (
+                    <div
+                      key={announcement.id}
+                      className="p-4 bg-blue-50 border border-blue-200 rounded-lg"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <h5 className="font-semibold text-gray-900">{announcement.title}</h5>
+                        <span className="text-xs text-gray-500">
+                          {new Date(announcement.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-gray-700 text-sm">{announcement.message}</p>
+                      {announcement.expires_at && (
+                        <p className="text-xs text-gray-500 mt-2">
+                          Expires: {new Date(announcement.expires_at).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
+        {/* Captain Attendance Tracking */}
+        {userPlayerProfiles.some(profile => profile.is_captain === 1) && (
+          <div className="card">
+            <h2 className="section-header mb-6">Team Captain - Attendance Tracking</h2>
+            <div className="space-y-6">
+              {userPlayerProfiles.filter(profile => profile.is_captain === 1).map((captainProfile) => {
+                const teamGames = upcomingGames[captainProfile.team_id] || []
+                const team = allTeams.find(t => t.id === captainProfile.team_id)
+
+                return (
+                  <div key={captainProfile.team_id} className="border border-gray-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900 mb-3">
+                      {captainProfile.team_name} - Upcoming Games
+                    </h3>
+
+                    {teamGames.length === 0 ? (
+                      <p className="text-gray-500 text-sm">No upcoming games scheduled</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {teamGames.map((game) => {
+                          const attendance = gameAttendance[game.id] || []
+                          const attendingCount = attendance.filter(a => a.status === 'yes').length
+                          const maybeCount = attendance.filter(a => a.status === 'maybe').length
+                          const noCount = attendance.filter(a => a.status === 'no').length
+
+                          return (
+                            <div key={game.id} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-start justify-between mb-2">
+                                <div>
+                                  <div className="font-semibold text-sm">
+                                    {game.home_team_name} vs {game.away_team_name}
+                                  </div>
+                                  <div className="text-xs text-gray-600 mt-1">
+                                    {new Date(game.game_date).toLocaleDateString()} at {game.game_time}
+                                    {game.rink_name && ` - ${game.rink_name}`}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex gap-4 text-xs mt-2">
+                                <span className="text-green-600">✓ {attendingCount} Attending</span>
+                                <span className="text-yellow-600">? {maybeCount} Maybe</span>
+                                <span className="text-red-600">✗ {noCount} Not Attending</span>
+                                <span className="text-gray-500">
+                                  {attendance.length > 0 ? `${attendance.length} total responses` : 'No responses yet'}
+                                </span>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* League Management Section */}
         {managedLeagues.length > 0 && (
