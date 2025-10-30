@@ -1668,7 +1668,7 @@ export default function LeagueDetails() {
               </div>
             )}
 
-            {managers.length === 0 ? (
+            {managers.length === 0 && !showManagerForm ? (
               <div className="text-center py-8">
                 <p className="text-gray-500 mb-4">No managers assigned yet</p>
                 {canManage && (
@@ -1680,7 +1680,7 @@ export default function LeagueDetails() {
                   </button>
                 )}
               </div>
-            ) : (
+            ) : managers.length > 0 ? (
               <div className="space-y-2">
                 {managers.map((manager) => (
                   <div key={manager.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
