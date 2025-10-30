@@ -435,6 +435,61 @@ export default function Settings() {
         </div>
       )}
 
+      <div className="card mb-6">
+        <h2 className="section-header">Change Password</h2>
+
+        {passwordMessage && (
+          <div className={`alert ${passwordMessage.includes('Error') || passwordMessage.includes('not match') ? 'alert-error' : 'alert-success'}`}>
+            {passwordMessage}
+          </div>
+        )}
+
+        <form onSubmit={handlePasswordChange} className="space-y-4">
+          <div>
+            <label className="label">Current Password</label>
+            <input
+              type="password"
+              value={passwordData.current_password}
+              onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
+              className="input"
+              required
+              autoComplete="current-password"
+            />
+          </div>
+
+          <div>
+            <label className="label">New Password</label>
+            <input
+              type="password"
+              value={passwordData.new_password}
+              onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
+              className="input"
+              required
+              autoComplete="new-password"
+              minLength="6"
+            />
+            <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
+          </div>
+
+          <div>
+            <label className="label">Confirm New Password</label>
+            <input
+              type="password"
+              value={passwordData.confirm_password}
+              onChange={(e) => setPasswordData({ ...passwordData, confirm_password: e.target.value })}
+              className="input"
+              required
+              autoComplete="new-password"
+              minLength="6"
+            />
+          </div>
+
+          <button type="submit" className="btn-primary">
+            Update Password
+          </button>
+        </form>
+      </div>
+
       {/* Player History Section */}
       <div className="card mb-6">
         <div
@@ -511,61 +566,6 @@ export default function Settings() {
             )}
           </>
         )}
-      </div>
-
-      <div className="card mb-6">
-        <h2 className="section-header">Change Password</h2>
-
-        {passwordMessage && (
-          <div className={`alert ${passwordMessage.includes('Error') || passwordMessage.includes('not match') ? 'alert-error' : 'alert-success'}`}>
-            {passwordMessage}
-          </div>
-        )}
-
-        <form onSubmit={handlePasswordChange} className="space-y-4">
-          <div>
-            <label className="label">Current Password</label>
-            <input
-              type="password"
-              value={passwordData.current_password}
-              onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
-              className="input"
-              required
-              autoComplete="current-password"
-            />
-          </div>
-
-          <div>
-            <label className="label">New Password</label>
-            <input
-              type="password"
-              value={passwordData.new_password}
-              onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
-              className="input"
-              required
-              autoComplete="new-password"
-              minLength="6"
-            />
-            <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
-          </div>
-
-          <div>
-            <label className="label">Confirm New Password</label>
-            <input
-              type="password"
-              value={passwordData.confirm_password}
-              onChange={(e) => setPasswordData({ ...passwordData, confirm_password: e.target.value })}
-              className="input"
-              required
-              autoComplete="new-password"
-              minLength="6"
-            />
-          </div>
-
-          <button type="submit" className="btn-primary">
-            Update Password
-          </button>
-        </form>
       </div>
 
       {user?.role === 'admin' && (
