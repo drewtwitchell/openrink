@@ -34,6 +34,8 @@ router.get('/', (req, res) => {
        teams.color as team_color,
        teams.league_id as team_league_id,
        teams.season_id as team_season_id,
+       leagues.name as league_name,
+       seasons.name as season_name,
        CASE WHEN team_captains.user_id IS NOT NULL THEN 1 ELSE 0 END as is_captain,
        CASE WHEN team_captains.user_id IS NOT NULL THEN 'captain' ELSE players.position END as position,
        payments.id as payment_id,
@@ -43,6 +45,8 @@ router.get('/', (req, res) => {
        payments.payment_method as payment_method
      FROM players
      LEFT JOIN teams ON teams.id = players.team_id
+     LEFT JOIN leagues ON teams.league_id = leagues.id
+     LEFT JOIN seasons ON teams.season_id = seasons.id
      LEFT JOIN team_captains ON team_captains.user_id = players.user_id AND team_captains.team_id = players.team_id
      LEFT JOIN (
        SELECT p.*, s.is_active
