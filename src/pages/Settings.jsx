@@ -21,6 +21,12 @@ export default function Settings() {
   const [playerHistory, setPlayerHistory] = useState([])
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [historyExpanded, setHistoryExpanded] = useState(false)
+  const [editingPlayer, setEditingPlayer] = useState(null)
+  const [editFormData, setEditFormData] = useState({
+    jersey_number: '',
+    position: 'player',
+    sub_position: ''
+  })
 
   useEffect(() => {
     fetchUserData()
@@ -189,6 +195,65 @@ export default function Settings() {
     return new Date(dateString).toLocaleDateString()
   }
 
+  const startEditPlayer = (record) => {
+    setEditingPlayer(record.id)
+    setEditFormData({
+      jersey_number: record.jersey_number || '',
+      position: record.position === 'goalie' ? 'goalie' : 'player',
+      sub_position: record.sub_position || ''
+    })
+  }
+
+  const cancelEditPlayer = () => {
+    setEditingPlayer(null)
+    setEditFormData({
+      jersey_number: '',
+      position: 'player',
+      sub_position: ''
+    })
+  }
+
+  const savePlayerEdit = async (playerId) => {
+    try {
+      const record = playerRecords.find(p => p.id === playerId)
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/players/${playerId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            user_id: record.user_id,
+            name: record.name,
+            email: record.email,
+            phone: record.phone,
+            jersey_number: editFormData.jersey_number,
+            email_notifications: record.email_notifications,
+            position: editFormData.position,
+            sub_position: editFormData.position === 'player' ? editFormData.sub_position : null
+          })
+        }
+      )
+
+      if (response.ok) {
+        // Refresh player records
+        if (user?.id) {
+          await fetchPlayerRecords(user.id)
+        }
+        setMessage('Position and jersey updated successfully!')
+        setTimeout(() => setMessage(''), 3000)
+        cancelEditPlayer()
+      } else {
+        setMessage('Error updating player information')
+      }
+    } catch (error) {
+      console.error('Error updating player:', error)
+      setMessage('Error updating player information')
+    }
+  }
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="page-header">
@@ -257,15 +322,16 @@ export default function Settings() {
         <div className="card mb-6">
           <h2 className="section-header">Current Teams</h2>
           <p className="text-sm text-gray-600 mb-4">
-            Your position and jersey number are specific to each team. League managers can update these from the team roster page.
+            Your position and jersey number are specific to each team. You can update them here.
           </p>
           <div className="space-y-3">
             {playerRecords.map((record) => (
               <div key={record.id} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <div className="flex justify-between items-start">
-                  <div>
+                {editingPlayer === record.id ? (
+                  // Edit mode
+                  <div className="space-y-3">
                     <div className="font-semibold text-gray-900">{record.team_name}</div>
-                    <div className="text-xs text-gray-500 mb-1">
+                    <div className="text-xs text-gray-500 mb-2">
                       {record.league_name && <span>League: <span className="font-medium">{record.league_name}</span></span>}
                       {record.season_name && (
                         <>
@@ -274,18 +340,95 @@ export default function Settings() {
                         </>
                       )}
                     </div>
-                    <div className="text-sm text-gray-600">
-                      {record.position === 'goalie' ? 'Goalie' :
-                       record.sub_position ? `${record.sub_position.charAt(0).toUpperCase() + record.sub_position.slice(1)}` : 'Player'}
-                      {record.jersey_number && ` • #${record.jersey_number}`}
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="label text-xs">Position</label>
+                        <select
+                          value={editFormData.position}
+                          onChange={(e) => setEditFormData({ ...editFormData, position: e.target.value, sub_position: e.target.value === 'goalie' ? '' : editFormData.sub_position })}
+                          className="input input-sm"
+                        >
+                          <option value="player">Player</option>
+                          <option value="goalie">Goalie</option>
+                        </select>
+                      </div>
+
+                      {editFormData.position === 'player' && (
+                        <div>
+                          <label className="label text-xs">Sub-Position</label>
+                          <select
+                            value={editFormData.sub_position}
+                            onChange={(e) => setEditFormData({ ...editFormData, sub_position: e.target.value })}
+                            className="input input-sm"
+                          >
+                            <option value="">None</option>
+                            <option value="forward">Forward</option>
+                            <option value="defense">Defense</option>
+                          </select>
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="label text-xs">Jersey Number</label>
+                        <input
+                          type="text"
+                          value={editFormData.jersey_number}
+                          onChange={(e) => setEditFormData({ ...editFormData, jersey_number: e.target.value })}
+                          className="input input-sm"
+                          placeholder="e.g., 10"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => savePlayerEdit(record.id)}
+                        className="btn-primary btn-sm"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={cancelEditPlayer}
+                        className="btn-secondary btn-sm"
+                      >
+                        Cancel
+                      </button>
                     </div>
                   </div>
-                  <div className="text-sm">
-                    {record.is_captain === 1 && (
-                      <span className="badge badge-primary">Captain</span>
-                    )}
+                ) : (
+                  // View mode
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="font-semibold text-gray-900">{record.team_name}</div>
+                      <div className="text-xs text-gray-500 mb-1">
+                        {record.league_name && <span>League: <span className="font-medium">{record.league_name}</span></span>}
+                        {record.season_name && (
+                          <>
+                            {record.league_name && ' • '}
+                            <span>Season: <span className="font-medium">{record.season_name}</span></span>
+                          </>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {record.position === 'goalie' ? 'Goalie' :
+                         record.sub_position ? `${record.sub_position.charAt(0).toUpperCase() + record.sub_position.slice(1)}` : 'Player'}
+                        {record.jersey_number && ` • #${record.jersey_number}`}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {record.is_captain === 1 && (
+                        <span className="badge badge-primary">Captain</span>
+                      )}
+                      <button
+                        onClick={() => startEditPlayer(record)}
+                        className="text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        Edit
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             ))}
           </div>
