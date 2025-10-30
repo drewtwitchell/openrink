@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { auth } from '../lib/api'
+import { auth, players } from '../lib/api'
 import ConfirmModal from '../components/ConfirmModal'
 
 export default function Users() {
@@ -11,17 +11,15 @@ export default function Users() {
   const [message, setMessage] = useState('')
   const [resetPasswordModal, setResetPasswordModal] = useState({ isOpen: false, user: null })
   const [newPassword, setNewPassword] = useState('')
+  const [expandedUsers, setExpandedUsers] = useState({}) // Track which users are expanded
+  const [userHistories, setUserHistories] = useState({}) // Store histories by user ID
+  const [loadingHistories, setLoadingHistories] = useState({}) // Track loading state per user
 
   useEffect(() => {
     const currentUser = auth.getUser()
     setUser(currentUser)
 
-    // Only admins can access this page
-    if (currentUser?.role !== 'admin') {
-      navigate('/dashboard')
-      return
-    }
-
+    // Try to fetch users (backend will handle access control)
     fetchAllUsers()
   }, [navigate])
 
@@ -77,6 +75,35 @@ export default function Users() {
     )
   }
 
+  const toggleUserHistory = async (userId) => {
+    // If already expanded, collapse it
+    if (expandedUsers[userId]) {
+      setExpandedUsers({ ...expandedUsers, [userId]: false })
+      return
+    }
+
+    // Expand and fetch history if not already loaded
+    setExpandedUsers({ ...expandedUsers, [userId]: true })
+
+    if (!userHistories[userId]) {
+      setLoadingHistories({ ...loadingHistories, [userId]: true })
+      try {
+        const history = await players.getHistoryByUser(userId)
+        setUserHistories({ ...userHistories, [userId]: history })
+      } catch (error) {
+        console.error('Error fetching user history:', error)
+        setUserHistories({ ...userHistories, [userId]: [] })
+      } finally {
+        setLoadingHistories({ ...loadingHistories, [userId]: false })
+      }
+    }
+  }
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Present'
+    return new Date(dateString).toLocaleDateString()
+  }
+
   if (loading) {
     return <div className="loading">Loading users...</div>
   }
@@ -86,7 +113,11 @@ export default function Users() {
       <div className="page-header">
         <div>
           <h1 className="page-title">User Management</h1>
-          <p className="page-subtitle">Manage user roles and permissions</p>
+          <p className="page-subtitle">
+            {user?.role === 'admin'
+              ? 'Manage user roles and permissions'
+              : 'View players from your managed leagues'}
+          </p>
         </div>
       </div>
 
@@ -115,35 +146,97 @@ export default function Users() {
             </thead>
             <tbody>
               {allUsers.map((u) => (
-                <tr key={u.id}>
-                  <td className="font-medium">{u.email}</td>
-                  <td>{u.name || '-'}</td>
-                  <td className="text-gray-600">{u.phone || '-'}</td>
-                  <td>
-                    <select
-                      value={u.role}
-                      onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                      className="input py-1 px-2 text-sm"
-                    >
-                      <option value="player">Player</option>
-                      <option value="admin">Admin</option>
-                    </select>
-                    {u.id === user?.id && (
-                      <p className="text-xs text-amber-600 mt-1">⚠️ You are changing your own role</p>
-                    )}
-                  </td>
-                  <td className="text-gray-600">
-                    {new Date(u.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="text-right">
-                    <button
-                      onClick={() => setResetPasswordModal({ isOpen: true, user: u })}
-                      className="btn-secondary btn-sm"
-                    >
-                      Reset Password
-                    </button>
-                  </td>
-                </tr>
+                <>
+                  <tr key={u.id}>
+                    <td className="font-medium">{u.email}</td>
+                    <td>{u.name || '-'}</td>
+                    <td className="text-gray-600">{u.phone || '-'}</td>
+                    <td>
+                      {user?.role === 'admin' ? (
+                        <>
+                          <select
+                            value={u.role}
+                            onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                            className="input py-1 px-2 text-sm"
+                          >
+                            <option value="player">Player</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                          {u.id === user?.id && (
+                            <p className="text-xs text-amber-600 mt-1">⚠️ You are changing your own role</p>
+                          )}
+                        </>
+                      ) : (
+                        getRoleBadge(u.role)
+                      )}
+                    </td>
+                    <td className="text-gray-600">
+                      {new Date(u.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="text-right space-x-2">
+                      <button
+                        onClick={() => toggleUserHistory(u.id)}
+                        className="btn-secondary btn-sm"
+                      >
+                        {expandedUsers[u.id] ? 'Hide History' : 'View History'}
+                      </button>
+                      {user?.role === 'admin' && (
+                        <button
+                          onClick={() => setResetPasswordModal({ isOpen: true, user: u })}
+                          className="btn-secondary btn-sm"
+                        >
+                          Reset Password
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                  {expandedUsers[u.id] && (
+                    <tr key={`${u.id}-history`}>
+                      <td colSpan="6" className="bg-gray-50 p-4">
+                        <div className="max-w-4xl">
+                          <h3 className="font-semibold text-gray-900 mb-3">Player History for {u.name || u.email}</h3>
+                          {loadingHistories[u.id] ? (
+                            <div className="text-center py-4 text-gray-500">Loading history...</div>
+                          ) : !userHistories[u.id] || userHistories[u.id].length === 0 ? (
+                            <div className="text-center py-4 text-gray-500">No player history yet</div>
+                          ) : (
+                            <div className="space-y-2">
+                              {userHistories[u.id].map((record) => (
+                                <div key={record.id} className="p-3 bg-white rounded-lg border border-gray-200">
+                                  <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                      <div className="font-semibold text-gray-900">{record.league_name}</div>
+                                      <div className="text-sm text-gray-600">{record.season_name}</div>
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                      {formatDate(record.joined_date)}
+                                      {record.left_date && ` - ${formatDate(record.left_date)}`}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <span
+                                      className="px-2 py-1 rounded text-white"
+                                      style={{ backgroundColor: record.team_color || '#6B7280' }}
+                                    >
+                                      {record.team_name}
+                                    </span>
+                                    <span className="text-gray-600">
+                                      {record.position === 'goalie' ? 'Goalie' :
+                                       record.sub_position ? `${record.sub_position.charAt(0).toUpperCase() + record.sub_position.slice(1)}` : 'Player'}
+                                    </span>
+                                    {record.jersey_number && (
+                                      <span className="text-gray-600">#{record.jersey_number}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
               ))}
             </tbody>
           </table>

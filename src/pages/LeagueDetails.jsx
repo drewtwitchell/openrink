@@ -1234,13 +1234,13 @@ export default function LeagueDetails() {
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="label">Venmo Link (for payments)</label>
+                    <label className="label">Payments Link</label>
                     <input
                       type="url"
                       value={seasonFormData.venmo_link}
                       onChange={(e) => setSeasonFormData({ ...seasonFormData, venmo_link: e.target.value })}
                       className="input"
-                      placeholder="https://venmo.com/..."
+                      placeholder="venmo.com, paypal.com, cashapp, etc."
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -2008,7 +2008,7 @@ export default function LeagueDetails() {
                     if (!season) return null
                     return (
                       <button
-                        onClick={() => setDeleteSeasonModal({ show: true, seasonId: season.id })}
+                        onClick={() => setDeleteSeasonModal({ isOpen: true, seasonId: season.id })}
                         className="text-red-500 hover:text-red-700 underline"
                       >
                         Delete Season
@@ -3289,7 +3289,9 @@ export default function LeagueDetails() {
         onClose={() => setDeleteSeasonModal({ isOpen: false, seasonId: null })}
         onConfirm={confirmDeleteSeason}
         title="Delete Season"
-        message="Are you sure you want to delete this season?\n\nThis will also delete all associated teams, games, and payment records."
+        message={`Are you sure you want to delete this season?
+
+This will also delete all associated teams, games, and payment records.`}
         confirmText="Delete Season"
         variant="danger"
       />
@@ -3326,6 +3328,103 @@ export default function LeagueDetails() {
         confirmText="Remove Manager"
         variant="danger"
       />
+
+      {/* New Season Form Modal (when seasons already exist) */}
+      {showSeasonForm && leagueSeasons.length > 0 && !editingSeasonId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <form onSubmit={handleSeasonSubmit} className="p-8">
+              <h3 className="text-2xl font-bold mb-6 text-ice-700">Create New Season</h3>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <label className="label">Season Name *</label>
+                  <input
+                    type="text"
+                    value={seasonFormData.name}
+                    onChange={(e) => setSeasonFormData({ ...seasonFormData, name: e.target.value })}
+                    className="input"
+                    placeholder="e.g., Winter 2024"
+                    required
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="label">Season Dues (per player)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={seasonFormData.season_dues}
+                    onChange={(e) => setSeasonFormData({ ...seasonFormData, season_dues: e.target.value })}
+                    className="input"
+                    placeholder="150.00"
+                  />
+                </div>
+                <div>
+                  <label className="label">Start Date</label>
+                  <input
+                    type="date"
+                    value={seasonFormData.start_date}
+                    onChange={(e) => setSeasonFormData({ ...seasonFormData, start_date: e.target.value })}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="label">End Date</label>
+                  <input
+                    type="date"
+                    value={seasonFormData.end_date}
+                    onChange={(e) => setSeasonFormData({ ...seasonFormData, end_date: e.target.value })}
+                    className="input"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="label">Payments Link</label>
+                  <input
+                    type="url"
+                    value={seasonFormData.venmo_link}
+                    onChange={(e) => setSeasonFormData({ ...seasonFormData, venmo_link: e.target.value })}
+                    className="input"
+                    placeholder="venmo.com, paypal.com, cashapp, etc."
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="label">Description</label>
+                  <textarea
+                    value={seasonFormData.description}
+                    onChange={(e) => setSeasonFormData({ ...seasonFormData, description: e.target.value })}
+                    className="input"
+                    rows="3"
+                    placeholder="Optional details about this season..."
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={seasonFormData.is_active}
+                      onChange={(e) => setSeasonFormData({ ...seasonFormData, is_active: e.target.checked })}
+                      className="checkbox"
+                    />
+                    <span className="label mb-0">Set as active season</span>
+                  </label>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button type="submit" className="btn-primary flex-1">
+                  Create Season
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowSeasonForm(false)}
+                  className="btn-secondary"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
         </>
       )}
     </div>

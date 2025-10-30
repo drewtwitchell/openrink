@@ -411,31 +411,78 @@ router.get('/:id/history', authenticateToken, (req, res) => {
 })
 
 // Get player history by user ID (across all player records)
+// Supports filtering for league managers - they can only see history from their managed leagues
 router.get('/user/:userId/history', authenticateToken, (req, res) => {
-  db.all(
-    `SELECT
-       player_history.*,
-       teams.name as team_name,
-       teams.color as team_color,
-       leagues.name as league_name,
-       seasons.name as season_name,
-       players.name as player_name,
-       players.jersey_number as current_jersey_number
-     FROM player_history
-     LEFT JOIN teams ON player_history.team_id = teams.id
-     LEFT JOIN leagues ON player_history.league_id = leagues.id
-     LEFT JOIN seasons ON player_history.season_id = seasons.id
-     LEFT JOIN players ON player_history.player_id = players.id
-     WHERE player_history.user_id = ?
-     ORDER BY player_history.joined_date DESC`,
-    [req.params.userId],
-    (err, rows) => {
-      if (err) {
-        return res.status(500).json({ error: 'Error fetching user player history' })
-      }
-      res.json(rows)
+  const targetUserId = parseInt(req.params.userId)
+  const requestingUserId = req.user.id
+
+  // Check if the requesting user is viewing their own history (always allowed)
+  const isOwnHistory = targetUserId === requestingUserId
+
+  // Get requesting user's role
+  db.get('SELECT role FROM users WHERE id = ?', [requestingUserId], (err, user) => {
+    if (err || !user) {
+      return res.status(403).json({ error: 'Unauthorized' })
     }
-  )
+
+    // If viewing own history, or if admin, show all history
+    if (isOwnHistory || user.role === 'admin') {
+      db.all(
+        `SELECT
+           player_history.*,
+           teams.name as team_name,
+           teams.color as team_color,
+           leagues.name as league_name,
+           seasons.name as season_name,
+           players.name as player_name,
+           players.jersey_number as current_jersey_number
+         FROM player_history
+         LEFT JOIN teams ON player_history.team_id = teams.id
+         LEFT JOIN leagues ON player_history.league_id = leagues.id
+         LEFT JOIN seasons ON player_history.season_id = seasons.id
+         LEFT JOIN players ON player_history.player_id = players.id
+         WHERE player_history.user_id = ?
+         ORDER BY player_history.joined_date DESC`,
+        [targetUserId],
+        (err, rows) => {
+          if (err) {
+            return res.status(500).json({ error: 'Error fetching user player history' })
+          }
+          res.json(rows)
+        }
+      )
+      return
+    }
+
+    // For league managers viewing other users, filter to only show history from their managed leagues
+    db.all(
+      `SELECT
+         player_history.*,
+         teams.name as team_name,
+         teams.color as team_color,
+         leagues.name as league_name,
+         seasons.name as season_name,
+         players.name as player_name,
+         players.jersey_number as current_jersey_number
+       FROM player_history
+       LEFT JOIN teams ON player_history.team_id = teams.id
+       LEFT JOIN leagues ON player_history.league_id = leagues.id
+       LEFT JOIN seasons ON player_history.season_id = seasons.id
+       LEFT JOIN players ON player_history.player_id = players.id
+       WHERE player_history.user_id = ?
+       AND player_history.league_id IN (
+         SELECT league_id FROM league_managers WHERE user_id = ?
+       )
+       ORDER BY player_history.joined_date DESC`,
+      [targetUserId, requestingUserId],
+      (err, rows) => {
+        if (err) {
+          return res.status(500).json({ error: 'Error fetching user player history' })
+        }
+        res.json(rows)
+      }
+    )
+  })
 })
 
 // Player self-reports payment (marks own payment as paid)

@@ -3,86 +3,6 @@ import { auth, leagues, teams, players, seasons } from '../lib/api'
 import { useNavigate } from 'react-router-dom'
 import ConfirmModal from '../components/ConfirmModal'
 
-// Admin-only: User Management Card
-function UsersManagementCard() {
-  const [allUsers, setAllUsers] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [message, setMessage] = useState('')
-
-  useEffect(() => {
-    fetchUsers()
-  }, [])
-
-  const fetchUsers = async () => {
-    try {
-      const users = await auth.getAllUsers()
-      setAllUsers(users)
-    } catch (error) {
-      console.error('Error fetching users:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleRoleChange = async (userId, newRole) => {
-    try {
-      await auth.updateUserRole(userId, newRole)
-      setMessage('Role updated successfully')
-      fetchUsers()
-      setTimeout(() => setMessage(''), 3000)
-    } catch (error) {
-      setMessage('Error updating role: ' + error.message)
-    }
-  }
-
-  if (loading) {
-    return <p className="text-gray-500 text-center py-8">Loading users...</p>
-  }
-
-  return (
-    <div>
-      <h2 className="section-header mb-6">User Management</h2>
-      {message && (
-        <div className={`alert ${message.includes('Error') ? 'alert-error' : 'alert-success'}`}>
-          {message}
-        </div>
-      )}
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b">
-              <th className="text-left py-3 px-4">Name</th>
-              <th className="text-left py-3 px-4">Email</th>
-              <th className="text-left py-3 px-4">Phone</th>
-              <th className="text-left py-3 px-4">Role</th>
-            </tr>
-          </thead>
-          <tbody>
-            {allUsers.map((user) => (
-              <tr key={user.id} className="border-b hover:bg-gray-50">
-                <td className="py-3 px-4">{user.name || '-'}</td>
-                <td className="py-3 px-4">{user.email}</td>
-                <td className="py-3 px-4">{user.phone || '-'}</td>
-                <td className="py-3 px-4">
-                  <select
-                    value={user.role || 'player'}
-                    onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                    className="input text-sm py-1"
-                  >
-                    <option value="player">Player</option>
-                    <option value="league_manager">League Manager</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
-}
-
 export default function Dashboard() {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
@@ -1058,10 +978,23 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Admin Section: User Management */}
+        {/* Admin Section: User Management Link */}
         {isAdmin && (
           <div className="card">
-            <UsersManagementCard />
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="section-header mb-2">User Management</h2>
+                <p className="text-sm text-gray-600">
+                  Manage user accounts, roles, and view player history
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/users')}
+                className="btn-primary"
+              >
+                Manage Users
+              </button>
+            </div>
           </div>
         )}
 

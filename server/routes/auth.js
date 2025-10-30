@@ -167,20 +167,55 @@ router.get('/users/search', authenticateToken, (req, res) => {
   )
 })
 
-// Get all users (admin only)
+// Get all users (admin and league managers)
 router.get('/users', authenticateToken, (req, res) => {
-  // Check if user is admin
+  // Check if user is admin or league manager
   db.get('SELECT role FROM users WHERE id = ?', [req.user.id], (err, user) => {
-    if (err || !user || user.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' })
+    if (err || !user) {
+      return res.status(403).json({ error: 'Unauthorized' })
     }
 
-    db.all('SELECT id, username, email, name, phone, position, role, created_at FROM users ORDER BY created_at DESC', [], (err, users) => {
-      if (err) {
-        return res.status(500).json({ error: 'Error fetching users' })
+    // Admins can see all users
+    if (user.role === 'admin') {
+      db.all('SELECT id, username, email, name, phone, role, created_at FROM users ORDER BY created_at DESC', [], (err, users) => {
+        if (err) {
+          return res.status(500).json({ error: 'Error fetching users' })
+        }
+        res.json(users)
+      })
+      return
+    }
+
+    // League managers can only see users who are players in their managed leagues
+    db.all(
+      `SELECT DISTINCT id FROM league_managers WHERE user_id = ?`,
+      [req.user.id],
+      (err, managed) => {
+        if (err || !managed || managed.length === 0) {
+          return res.status(403).json({ error: 'Not authorized - you are not managing any leagues' })
+        }
+
+        // Get all unique user IDs who have played in any of the manager's leagues
+        const leagueIds = managed.map(m => m.id).join(',')
+        db.all(
+          `SELECT DISTINCT users.id, users.username, users.email, users.name, users.phone, users.role, users.created_at
+           FROM users
+           INNER JOIN players ON users.id = players.user_id
+           INNER JOIN teams ON players.team_id = teams.id
+           WHERE teams.league_id IN (
+             SELECT league_id FROM league_managers WHERE user_id = ?
+           )
+           ORDER BY users.created_at DESC`,
+          [req.user.id],
+          (err, users) => {
+            if (err) {
+              return res.status(500).json({ error: 'Error fetching users' })
+            }
+            res.json(users)
+          }
+        )
       }
-      res.json(users)
-    })
+    )
   })
 })
 
