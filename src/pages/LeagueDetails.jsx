@@ -251,9 +251,9 @@ export default function LeagueDetails() {
     }
   }, [mainTab, overviewSubTab, id])
 
-  // Fetch payment data when payments tab is selected
+  // Fetch payment data when on managers tab with active season
   useEffect(() => {
-    if (mainTab === 'overview' && overviewSubTab === 'payments' && activeSeason) {
+    if (mainTab === 'overview' && overviewSubTab === 'managers' && activeSeason) {
       fetchPaymentData(activeSeason.id)
     }
   }, [mainTab, overviewSubTab, activeSeason])
@@ -1128,7 +1128,7 @@ export default function LeagueDetails() {
                 </button>
               )}
 
-              {/* Season Tabs - only show when viewing season content */}
+              {/* Season Tabs - only show when a season is selected */}
               <button
             onClick={() => {
               if (selectedSeasonId) {
@@ -1218,28 +1218,6 @@ export default function LeagueDetails() {
               )}
             </button>
           )}
-
-          <button
-            onClick={() => {
-              if (selectedSeasonId) {
-                setMainTab('overview')
-                setOverviewSubTab('payments')
-              }
-            }}
-            disabled={!selectedSeasonId}
-            className={`px-6 py-3 font-semibold transition-colors relative ${
-              mainTab === 'overview' && overviewSubTab === 'payments'
-                ? 'text-ice-700 bg-white'
-                : selectedSeasonId
-                ? 'text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100'
-                : 'text-gray-400 bg-gray-50 cursor-not-allowed opacity-60'
-            }`}
-          >
-            Payments
-            {mainTab === 'overview' && overviewSubTab === 'payments' && (
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-ice-600"></div>
-            )}
-          </button>
             </nav>
           </div>
 
@@ -1652,6 +1630,50 @@ export default function LeagueDetails() {
             </div>
           )}
 
+          {/* Active Season Selector */}
+          {canManage && leagueSeasons.some(s => s.archived !== 1) && (
+            <div className="card mb-6 border-2 border-ice-200">
+              <h3 className="section-header mb-4">Active Season</h3>
+              <div className="p-4 bg-ice-50 rounded-lg border border-ice-200">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-ice-900 mb-1">Set Active Season</h4>
+                    <p className="text-sm text-ice-700 mb-3">
+                      Choose which season is currently active for your league. This affects payment tracking and other features.
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <select
+                        value={activeSeason?.id || ''}
+                        onChange={async (e) => {
+                          const seasonId = parseInt(e.target.value)
+                          try {
+                            await seasons.setActive(seasonId)
+                            fetchLeagueData()
+                          } catch (err) {
+                            console.error('Error setting active season:', err)
+                          }
+                        }}
+                        className="bg-white border border-ice-300 rounded-lg px-4 py-2 text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-ice-500 focus:border-ice-500 min-w-[250px]"
+                      >
+                        <option value="">No active season</option>
+                        {leagueSeasons
+                          .filter(s => s.archived !== 1)
+                          .map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name}
+                            </option>
+                          ))}
+                      </select>
+                      {activeSeason && (
+                        <span className="text-ice-600 font-medium">★ Active</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Season Settings Section */}
           {canManage && selectedSeasonId && (() => {
             const season = leagueSeasons.find(s => s.id === selectedSeasonId)
@@ -1661,31 +1683,6 @@ export default function LeagueDetails() {
               <div className="card mb-6 border-2 border-ice-200">
                 <h3 className="section-header mb-4">Season Settings: {season.name}</h3>
                 <div className="space-y-3">
-                  {season.is_active !== 1 && season.archived !== 1 && (
-                    <div className="p-4 bg-ice-50 rounded-lg border border-ice-200">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-ice-900 mb-1">Set as Active Season</h4>
-                          <p className="text-sm text-ice-700">
-                            Make this the active season for your league. This will deactivate all other seasons.
-                          </p>
-                        </div>
-                        <button
-                          onClick={async () => {
-                            try {
-                              await seasons.setActive(season.id)
-                              fetchLeagueData()
-                            } catch (err) {
-                              console.error('Error setting active season:', err)
-                            }
-                          }}
-                          className="bg-ice-600 hover:bg-ice-700 text-white px-4 py-2 rounded-lg font-medium ml-4 whitespace-nowrap transition-colors"
-                        >
-                          ★ Set Active
-                        </button>
-                      </div>
-                    </div>
-                  )}
 
                   <div className="p-4 bg-gray-50 rounded-lg">
                     <div className="flex items-start justify-between">
@@ -1728,6 +1725,422 @@ export default function LeagueDetails() {
               </div>
             )
           })()}
+
+          {/* Payments Section - tied to active season */}
+          {activeSeason && (
+            <div className="card mb-6">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h2 className="section-header">Payment Tracking</h2>
+                  <p className="text-sm text-gray-600">Active Season: {activeSeason.name}</p>
+                </div>
+                {canManage && (
+                  <button
+                    onClick={() => setShowContactModal(true)}
+                    className="btn-primary"
+                  >
+                    Send Payment Reminder
+                  </button>
+                )}
+              </div>
+
+              {/* Season Dues and Payment Link Editor */}
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="grid grid-cols-2 gap-6">
+                  {/* Season Dues */}
+                  <div>
+                    <div className="text-sm text-gray-600 mb-1">Season Dues</div>
+                    {editingSeasonDues ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl font-bold">$</span>
+                        <input
+                          type="number"
+                          value={tempSeasonDues}
+                          onChange={(e) => setTempSeasonDues(e.target.value)}
+                          className="w-24 px-2 py-1 border border-gray-300 rounded"
+                          step="0.01"
+                          min="0"
+                          autoFocus
+                        />
+                        <button
+                          onClick={handleSaveSeasonDues}
+                          className="text-sm px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => setEditingSeasonDues(false)}
+                          className="text-sm px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <div className="text-2xl font-bold text-ice-600">
+                          ${parseFloat(activeSeason.season_dues || 0).toFixed(2)}
+                        </div>
+                        {canManage && (
+                          <button
+                            onClick={handleEditSeasonDues}
+                            className="text-sm text-ice-600 hover:text-ice-700 underline"
+                          >
+                            Edit
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    <div className="text-xs text-gray-500 mt-1">
+                      Default amount for all players
+                    </div>
+                  </div>
+
+                  {/* Payment Link */}
+                  <div>
+                    <div className="text-sm text-gray-600 mb-1">Payment Link (Venmo, etc.)</div>
+                    {editingPaymentLink ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={tempPaymentLink}
+                          onChange={(e) => setTempPaymentLink(e.target.value)}
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded"
+                          placeholder="https://venmo.com/..."
+                          autoFocus
+                        />
+                        <button
+                          onClick={handleSavePaymentLink}
+                          className="text-sm px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => setEditingPaymentLink(false)}
+                          className="text-sm px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        {activeSeason.venmo_link ? (
+                          <>
+                            <a
+                              href={activeSeason.venmo_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-ice-600 hover:text-ice-700 underline text-sm truncate max-w-xs"
+                            >
+                              {activeSeason.venmo_link}
+                            </a>
+                            {canManage && (
+                              <button
+                                onClick={handleEditPaymentLink}
+                                className="text-sm text-ice-600 hover:text-ice-700 underline"
+                              >
+                                Edit
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-gray-400 text-sm">No payment link set</span>
+                            {canManage && (
+                              <button
+                                onClick={handleEditPaymentLink}
+                                className="text-sm text-ice-600 hover:text-ice-700 underline"
+                              >
+                                Add
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
+                    <div className="text-xs text-gray-500 mt-1">
+                      Link for players to make payments
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Stats */}
+              {paymentStats && (
+                <div className="grid grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <div className="text-sm text-gray-600">Total Players</div>
+                    <div className="text-2xl font-bold">{paymentStats.total_players}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-600">Paid</div>
+                    <div className="text-2xl font-bold text-green-600">{paymentStats.players_paid}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-600">Unpaid</div>
+                    <div className="text-2xl font-bold text-red-600">{paymentStats.players_unpaid}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-600">Total Collected</div>
+                    <div className="text-2xl font-bold text-green-600">
+                      ${parseFloat(paymentStats.total_collected || 0).toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Overall Progress Bar */}
+              {paymentStats && paymentStats.total_players > 0 && (
+                <div className="mb-6 p-4 bg-white border border-gray-200 rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="font-semibold">Overall Payment Progress</h3>
+                    <span className="text-sm text-gray-600">
+                      {paymentStats.players_paid} of {paymentStats.total_players} players paid ({Math.round((paymentStats.players_paid / paymentStats.total_players) * 100)}%)
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-6">
+                    <div
+                      className="bg-green-600 h-6 rounded-full flex items-center justify-center text-white text-xs font-medium transition-all duration-300"
+                      style={{ width: `${(paymentStats.players_paid / paymentStats.total_players) * 100}%` }}
+                    >
+                      {Math.round((paymentStats.players_paid / paymentStats.total_players) * 100)}%
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Progress by Team */}
+              {paymentData.length > 0 && (
+                <div className="mb-6 p-4 bg-white border border-gray-200 rounded-lg">
+                  <h3 className="font-semibold mb-4">Payment Progress by Team</h3>
+                  <div className="space-y-4">
+                    {(() => {
+                      // Group players by team
+                      const teamPayments = {}
+                      paymentData.forEach(row => {
+                        if (!teamPayments[row.team_id]) {
+                          teamPayments[row.team_id] = {
+                            name: row.team_name,
+                            color: row.team_color,
+                            paid: 0,
+                            total: 0
+                          }
+                        }
+                        // Only count player if row has player data (id is not null)
+                        if (row.id !== null) {
+                          teamPayments[row.team_id].total++
+                          if (row.payment_status === 'paid') {
+                            teamPayments[row.team_id].paid++
+                          }
+                        }
+                      })
+
+                      return Object.values(teamPayments).map((team, idx) => {
+                        const percentage = team.total > 0 ? (team.paid / team.total) * 100 : 0
+                        return (
+                          <div key={idx}>
+                            <div className="flex justify-between items-center mb-2">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-4 h-4 rounded-full"
+                                  style={{ backgroundColor: team.color }}
+                                />
+                                <span className="font-medium">{team.name}</span>
+                              </div>
+                              <span className="text-sm text-gray-600">
+                                {team.paid} of {team.total} paid{team.total > 0 ? ` (${Math.round(percentage)}%)` : ''}
+                              </span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-4">
+                              <div
+                                className="h-4 rounded-full flex items-center justify-end pr-2 text-white text-xs font-medium transition-all duration-300"
+                                style={{
+                                  width: `${percentage}%`,
+                                  backgroundColor: team.color
+                                }}
+                              >
+                                {percentage >= 20 && `${Math.round(percentage)}%`}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {/* Payment List - Grouped by Team */}
+              {paymentData.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">No players in this season yet</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {(() => {
+                    // Group players by team
+                    const teamGroups = {}
+                    paymentData.forEach(row => {
+                      if (!teamGroups[row.team_id]) {
+                        teamGroups[row.team_id] = {
+                          name: row.team_name,
+                          color: row.team_color,
+                          players: []
+                        }
+                      }
+                      // Only add player if row has player data (id is not null)
+                      if (row.id !== null) {
+                        teamGroups[row.team_id].players.push(row)
+                      }
+                    })
+
+                    return Object.entries(teamGroups).map(([teamId, team]) => (
+                      <div key={teamId} className="card">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div
+                            className="w-6 h-6 rounded-full"
+                            style={{ backgroundColor: team.color }}
+                          />
+                          <h3 className="text-lg font-semibold">{team.name}</h3>
+                          <span className="text-sm text-gray-600">
+                            ({team.players.filter(p => p.payment_status === 'paid').length} of {team.players.length} paid)
+                          </span>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead>
+                              <tr className="border-b">
+                                <th className="text-left py-2 px-3">Player</th>
+                                <th className="text-left py-2 px-3">Email</th>
+                                <th className="text-center py-2 px-3">Amount</th>
+                                <th className="text-center py-2 px-3">Status</th>
+                                <th className="text-center py-2 px-3">Method</th>
+                                <th className="text-center py-2 px-3">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {team.players.length === 0 ? (
+                                <tr>
+                                  <td colSpan="6" className="py-4 px-3 text-center text-gray-500 text-sm">
+                                    No players on this team yet
+                                  </td>
+                                </tr>
+                              ) : (
+                                team.players.map((player) => (
+                                  <tr key={player.id} className="border-b hover:bg-gray-50">
+                                    <td className="py-2 px-3 font-medium">{player.name}</td>
+                                    <td className="py-2 px-3 text-sm text-gray-600">{player.email || '-'}</td>
+                                    <td className="py-2 px-3 text-center">
+                                      {editingPaymentId === (player.payment_id || `new-${player.id}`) ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <span className="text-sm">$</span>
+                                          <input
+                                            type="number"
+                                            value={editingPaymentAmount}
+                                            onChange={(e) => setEditingPaymentAmount(e.target.value)}
+                                            className="w-20 px-1 py-0.5 text-sm border border-gray-300 rounded"
+                                            step="0.01"
+                                            min="0"
+                                            autoFocus
+                                          />
+                                          <button
+                                            onClick={() => handleSavePaymentAmount(player)}
+                                            className="text-xs px-2 py-0.5 bg-green-600 text-white rounded hover:bg-green-700"
+                                          >
+                                            ✓
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              setEditingPaymentId(null)
+                                              setEditingPaymentAmount('')
+                                            }}
+                                            className="text-xs px-2 py-0.5 bg-gray-400 text-white rounded hover:bg-gray-500"
+                                          >
+                                            ✕
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <span>${parseFloat(player.payment_amount || activeSeason.season_dues || 0).toFixed(2)}</span>
+                                          {canManage && (
+                                            <button
+                                              onClick={() => handleEditPaymentAmount(player)}
+                                              className="text-xs text-ice-600 hover:text-ice-700"
+                                            >
+                                              ✎
+                                            </button>
+                                          )}
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td className="py-2 px-3 text-center">
+                                      {player.payment_status === 'paid' ? (
+                                        <span className="badge badge-success">Paid</span>
+                                      ) : (
+                                        <span className="badge badge-error">Unpaid</span>
+                                      )}
+                                    </td>
+                                    <td className="py-2 px-3 text-center">
+                                      {player.payment_status === 'paid' && player.payment_method ? (
+                                        <span className="text-xs text-gray-600 capitalize">
+                                          {player.payment_method}
+                                        </span>
+                                      ) : (
+                                        <span className="text-xs text-gray-400">-</span>
+                                      )}
+                                    </td>
+                                    <td className="py-2 px-3 text-center">
+                                      {player.payment_status === 'paid' ? (
+                                        <div className="flex flex-col items-center gap-1">
+                                          <span className="text-xs text-gray-500">
+                                            {new Date(player.paid_date).toLocaleDateString()}
+                                          </span>
+                                          {canManage && (
+                                            <button
+                                              onClick={() => handleMarkUnpaid(player)}
+                                              className="text-xs text-red-600 hover:text-red-700 hover:underline"
+                                            >
+                                              Mark Unpaid
+                                            </button>
+                                          )}
+                                        </div>
+                                      ) : canManage ? (
+                                        <button
+                                          onClick={() => handleMarkPaid(player)}
+                                          className="btn-primary btn-sm text-xs px-3 py-1"
+                                        >
+                                          Mark Paid
+                                        </button>
+                                      ) : (
+                                        <span className="text-xs text-gray-400">-</span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))
+                  })()}
+                </div>
+              )}
+
+              {activeSeason.venmo_link && (
+                <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <h3 className="font-semibold mb-2">Payment Link</h3>
+                  <a
+                    href={activeSeason.venmo_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-ice-600 hover:text-ice-700 hover:underline"
+                  >
+                    {activeSeason.venmo_link}
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Upcoming Games Section */}
           <div className="card mb-6">
@@ -2698,433 +3111,6 @@ export default function LeagueDetails() {
         </div>
       )}
 
-      {/* Payments Tab */}
-      {mainTab === 'overview' && overviewSubTab === 'payments' && (
-        <div>
-          {!activeSeason ? (
-            <div className="card text-center py-12">
-              <p className="text-gray-500 mb-4">No active season</p>
-              <p className="text-sm text-gray-400 mb-4">Create a season first to track payments</p>
-              <button onClick={() => { setMainTab('season'); setSeasonSubTab(null); }} className="btn-primary">
-                Go to Seasons
-              </button>
-            </div>
-          ) : (
-            <div className="card">
-              <div className="flex justify-between items-center mb-4">
-                <div>
-                  <h2 className="section-header">Payment Tracking</h2>
-                  <p className="text-sm text-gray-600">Active Season: {activeSeason.name}</p>
-                </div>
-                <button
-                  onClick={() => setShowContactModal(true)}
-                  className="btn-primary"
-                >
-                  Send Payment Reminder
-                </button>
-              </div>
-
-              {/* Season Dues and Payment Link Editor */}
-              {activeSeason && (
-                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="grid grid-cols-2 gap-6">
-                    {/* Season Dues */}
-                    <div>
-                      <div className="text-sm text-gray-600 mb-1">Season Dues</div>
-                      {editingSeasonDues ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl font-bold">$</span>
-                          <input
-                            type="number"
-                            value={tempSeasonDues}
-                            onChange={(e) => setTempSeasonDues(e.target.value)}
-                            className="w-24 px-2 py-1 border border-gray-300 rounded"
-                            step="0.01"
-                            min="0"
-                            autoFocus
-                          />
-                          <button
-                            onClick={handleSaveSeasonDues}
-                            className="text-sm px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={() => setEditingSeasonDues(false)}
-                            className="text-sm px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <div className="text-2xl font-bold text-ice-600">
-                            ${parseFloat(activeSeason.season_dues || 0).toFixed(2)}
-                          </div>
-                          {canManage && (
-                            <button
-                              onClick={handleEditSeasonDues}
-                              className="text-sm text-ice-600 hover:text-ice-700 underline"
-                            >
-                              Edit
-                            </button>
-                          )}
-                        </div>
-                      )}
-                      <div className="text-xs text-gray-500 mt-1">
-                        Default amount for all players
-                      </div>
-                    </div>
-
-                    {/* Payment Link */}
-                    <div>
-                      <div className="text-sm text-gray-600 mb-1">Payment Link (Venmo, etc.)</div>
-                      {editingPaymentLink ? (
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={tempPaymentLink}
-                            onChange={(e) => setTempPaymentLink(e.target.value)}
-                            className="flex-1 px-2 py-1 border border-gray-300 rounded"
-                            placeholder="https://venmo.com/..."
-                            autoFocus
-                          />
-                          <button
-                            onClick={handleSavePaymentLink}
-                            className="text-sm px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={() => setEditingPaymentLink(false)}
-                            className="text-sm px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          {activeSeason.venmo_link ? (
-                            <>
-                              <a
-                                href={activeSeason.venmo_link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-ice-600 hover:text-ice-700 underline text-sm truncate max-w-xs"
-                              >
-                                {activeSeason.venmo_link}
-                              </a>
-                              {canManage && (
-                                <button
-                                  onClick={handleEditPaymentLink}
-                                  className="text-sm text-ice-600 hover:text-ice-700 underline"
-                                >
-                                  Edit
-                                </button>
-                              )}
-                            </>
-                          ) : (
-                            <>
-                              <span className="text-gray-400 text-sm">No payment link set</span>
-                              {canManage && (
-                                <button
-                                  onClick={handleEditPaymentLink}
-                                  className="text-sm text-ice-600 hover:text-ice-700 underline"
-                                >
-                                  Add
-                                </button>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      )}
-                      <div className="text-xs text-gray-500 mt-1">
-                        Link for players to make payments
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Payment Stats */}
-              {paymentStats && (
-                <div className="grid grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <div className="text-sm text-gray-600">Total Players</div>
-                    <div className="text-2xl font-bold">{paymentStats.total_players}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-600">Paid</div>
-                    <div className="text-2xl font-bold text-green-600">{paymentStats.players_paid}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-600">Unpaid</div>
-                    <div className="text-2xl font-bold text-red-600">{paymentStats.players_unpaid}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-600">Total Collected</div>
-                    <div className="text-2xl font-bold text-green-600">
-                      ${parseFloat(paymentStats.total_collected || 0).toFixed(2)}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Overall Progress Bar */}
-              {paymentStats && paymentStats.total_players > 0 && (
-                <div className="mb-6 p-4 bg-white border border-gray-200 rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-semibold">Overall Payment Progress</h3>
-                    <span className="text-sm text-gray-600">
-                      {paymentStats.players_paid} of {paymentStats.total_players} players paid ({Math.round((paymentStats.players_paid / paymentStats.total_players) * 100)}%)
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-6">
-                    <div
-                      className="bg-green-600 h-6 rounded-full flex items-center justify-center text-white text-xs font-medium transition-all duration-300"
-                      style={{ width: `${(paymentStats.players_paid / paymentStats.total_players) * 100}%` }}
-                    >
-                      {Math.round((paymentStats.players_paid / paymentStats.total_players) * 100)}%
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Payment Progress by Team */}
-              {paymentData.length > 0 && (
-                <div className="mb-6 p-4 bg-white border border-gray-200 rounded-lg">
-                  <h3 className="font-semibold mb-4">Payment Progress by Team</h3>
-                  <div className="space-y-4">
-                    {(() => {
-                      // Group players by team
-                      const teamPayments = {}
-                      paymentData.forEach(row => {
-                        if (!teamPayments[row.team_id]) {
-                          teamPayments[row.team_id] = {
-                            name: row.team_name,
-                            color: row.team_color,
-                            paid: 0,
-                            total: 0
-                          }
-                        }
-                        // Only count player if row has player data (id is not null)
-                        if (row.id !== null) {
-                          teamPayments[row.team_id].total++
-                          if (row.payment_status === 'paid') {
-                            teamPayments[row.team_id].paid++
-                          }
-                        }
-                      })
-
-                      return Object.values(teamPayments).map((team, idx) => {
-                        const percentage = team.total > 0 ? (team.paid / team.total) * 100 : 0
-                        return (
-                          <div key={idx}>
-                            <div className="flex justify-between items-center mb-2">
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="w-4 h-4 rounded-full"
-                                  style={{ backgroundColor: team.color }}
-                                />
-                                <span className="font-medium">{team.name}</span>
-                              </div>
-                              <span className="text-sm text-gray-600">
-                                {team.paid} of {team.total} paid{team.total > 0 ? ` (${Math.round(percentage)}%)` : ''}
-                              </span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-4">
-                              <div
-                                className="h-4 rounded-full flex items-center justify-end pr-2 text-white text-xs font-medium transition-all duration-300"
-                                style={{
-                                  width: `${percentage}%`,
-                                  backgroundColor: team.color
-                                }}
-                              >
-                                {percentage >= 20 && `${Math.round(percentage)}%`}
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })
-                    })()}
-                  </div>
-                </div>
-              )}
-
-              {/* Payment List - Grouped by Team */}
-              {paymentData.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-gray-500">No players in this season yet</p>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {(() => {
-                    // Group players by team
-                    const teamGroups = {}
-                    paymentData.forEach(row => {
-                      if (!teamGroups[row.team_id]) {
-                        teamGroups[row.team_id] = {
-                          name: row.team_name,
-                          color: row.team_color,
-                          players: []
-                        }
-                      }
-                      // Only add player if row has player data (id is not null)
-                      if (row.id !== null) {
-                        teamGroups[row.team_id].players.push(row)
-                      }
-                    })
-
-                    return Object.entries(teamGroups).map(([teamId, team]) => (
-                      <div key={teamId} className="card">
-                        <div className="flex items-center gap-3 mb-4">
-                          <div
-                            className="w-6 h-6 rounded-full"
-                            style={{ backgroundColor: team.color }}
-                          />
-                          <h3 className="text-lg font-semibold">{team.name}</h3>
-                          <span className="text-sm text-gray-600">
-                            ({team.players.filter(p => p.payment_status === 'paid').length} of {team.players.length} paid)
-                          </span>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full">
-                            <thead>
-                              <tr className="border-b">
-                                <th className="text-left py-2 px-3">Player</th>
-                                <th className="text-left py-2 px-3">Email</th>
-                                <th className="text-center py-2 px-3">Amount</th>
-                                <th className="text-center py-2 px-3">Status</th>
-                                <th className="text-center py-2 px-3">Method</th>
-                                <th className="text-center py-2 px-3">Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {team.players.length === 0 ? (
-                                <tr>
-                                  <td colSpan="6" className="py-4 px-3 text-center text-gray-500 text-sm">
-                                    No players on this team yet
-                                  </td>
-                                </tr>
-                              ) : (
-                                team.players.map((player) => (
-                                  <tr key={player.id} className="border-b hover:bg-gray-50">
-                                    <td className="py-2 px-3 font-medium">{player.name}</td>
-                                    <td className="py-2 px-3 text-sm text-gray-600">{player.email || '-'}</td>
-                                    <td className="py-2 px-3 text-center">
-                                      {editingPaymentId === (player.payment_id || `new-${player.id}`) ? (
-                                        <div className="flex items-center justify-center gap-1">
-                                          <span className="text-sm">$</span>
-                                          <input
-                                            type="number"
-                                            value={editingPaymentAmount}
-                                            onChange={(e) => setEditingPaymentAmount(e.target.value)}
-                                            className="w-20 px-1 py-0.5 text-sm border border-gray-300 rounded"
-                                            step="0.01"
-                                            min="0"
-                                            autoFocus
-                                          />
-                                          <button
-                                            onClick={() => handleSavePaymentAmount(player)}
-                                            className="text-xs px-2 py-0.5 bg-green-600 text-white rounded hover:bg-green-700"
-                                          >
-                                            ✓
-                                          </button>
-                                          <button
-                                            onClick={() => {
-                                              setEditingPaymentId(null)
-                                              setEditingPaymentAmount('')
-                                            }}
-                                            className="text-xs px-2 py-0.5 bg-gray-400 text-white rounded hover:bg-gray-500"
-                                          >
-                                            ✕
-                                          </button>
-                                        </div>
-                                      ) : (
-                                        <div className="flex items-center justify-center gap-1">
-                                          <span>${parseFloat(player.payment_amount || activeSeason.season_dues || 0).toFixed(2)}</span>
-                                          {canManage && (
-                                            <button
-                                              onClick={() => handleEditPaymentAmount(player)}
-                                              className="text-xs text-ice-600 hover:text-ice-700"
-                                            >
-                                              ✎
-                                            </button>
-                                          )}
-                                        </div>
-                                      )}
-                                    </td>
-                                    <td className="py-2 px-3 text-center">
-                                      {player.payment_status === 'paid' ? (
-                                        <span className="badge badge-success">Paid</span>
-                                      ) : (
-                                        <span className="badge badge-error">Unpaid</span>
-                                      )}
-                                    </td>
-                                    <td className="py-2 px-3 text-center">
-                                      {player.payment_status === 'paid' && player.payment_method ? (
-                                        <span className="text-xs text-gray-600 capitalize">
-                                          {player.payment_method}
-                                        </span>
-                                      ) : (
-                                        <span className="text-xs text-gray-400">-</span>
-                                      )}
-                                    </td>
-                                    <td className="py-2 px-3 text-center">
-                                      {player.payment_status === 'paid' ? (
-                                        <div className="flex flex-col items-center gap-1">
-                                          <span className="text-xs text-gray-500">
-                                            {new Date(player.paid_date).toLocaleDateString()}
-                                          </span>
-                                          {canManage && (
-                                            <button
-                                              onClick={() => handleMarkUnpaid(player)}
-                                              className="text-xs text-red-600 hover:text-red-700 hover:underline"
-                                            >
-                                              Mark Unpaid
-                                            </button>
-                                          )}
-                                        </div>
-                                      ) : canManage ? (
-                                        <button
-                                          onClick={() => handleMarkPaid(player)}
-                                          className="text-xs text-ice-600 hover:text-ice-700 hover:underline"
-                                        >
-                                          Mark Paid
-                                        </button>
-                                      ) : (
-                                        <span className="text-xs text-gray-500">-</span>
-                                      )}
-                                    </td>
-                                  </tr>
-                                ))
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    ))
-                  })()}
-                </div>
-              )}
-
-              {activeSeason.venmo_link && (
-                <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <h3 className="font-semibold mb-2">Payment Link</h3>
-                  <a
-                    href={activeSeason.venmo_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-ice-600 hover:text-ice-700 hover:underline"
-                  >
-                    {activeSeason.venmo_link}
-                  </a>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Mass Contact Modal */}
       {showContactModal && (
