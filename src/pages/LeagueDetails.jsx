@@ -1496,7 +1496,7 @@ export default function LeagueDetails() {
       {mainTab === 'overview' && (
         <div>
           {/* League Information Section - Consolidated */}
-          <div className="card mb-6">
+          <div className="card mb-8">
             <div className="flex justify-between items-center mb-6">
               <h3 className="section-header">League Information</h3>
               <button
@@ -1708,18 +1708,14 @@ export default function LeagueDetails() {
                         {manager.phone && <span className="ml-2">• {manager.phone}</span>}
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <a href={`mailto:${manager.email}`} className="btn-secondary text-sm">
-                        Email
-                      </a>
-                      {canManage && !manager.is_owner && (
-                        <button
-                          onClick={() => handleRemoveManager(manager)}
-                          className="btn-danger text-sm"
-                        >
-                          Remove
-                        </button>
-                      )}
+                    {canManage && !manager.is_owner && (
+                      <button
+                        onClick={() => handleRemoveManager(manager)}
+                        className="btn-danger btn-sm"
+                      >
+                        Remove
+                      </button>
+                    )}
                     </div>
                   </div>
                 ))}
@@ -1759,7 +1755,7 @@ export default function LeagueDetails() {
             </div>
 
             {showAnnouncementForm && canManage && (
-              <div className="card mb-6">
+              <div className="card mb-8">
                 <h3 className="text-lg font-semibold mb-4">
                   {editingAnnouncementId ? 'Edit Announcement' : 'Create New Announcement'}
                 </h3>
@@ -1876,7 +1872,7 @@ export default function LeagueDetails() {
 
           {/* Payments Section - only show when viewing the active season */}
           {activeSeason && selectedSeasonId === activeSeason.id && (
-            <div className="card mb-6" key={`payment-${selectedSeasonId}`}>
+            <div className="card mb-8" key={`payment-${selectedSeasonId}`}>
               <div className="flex justify-between items-center mb-4">
                 <h3 className="section-header">Payment Tracking - {activeSeason.name}</h3>
                 <button
@@ -1980,7 +1976,7 @@ export default function LeagueDetails() {
 
               {/* Payment Stats */}
               {paymentStats && (
-                <div className="grid grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
                   <div>
                     <div className="text-sm text-gray-600">Total Players</div>
                     <div className="text-2xl font-bold">{paymentStats.total_players}</div>
@@ -2349,7 +2345,7 @@ export default function LeagueDetails() {
           </div>
 
           {showTeamForm && (
-            <div className="card mb-6">
+            <div className="card mb-8">
               <h2 className="section-header mb-4">Add Team to {league.name}</h2>
               <form onSubmit={handleTeamSubmit} className="space-y-4">
                 <div>
@@ -2414,7 +2410,7 @@ export default function LeagueDetails() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => toggleTeamRoster(team.id)}
-                        className="btn-secondary text-sm"
+                        className="btn-secondary btn-sm"
                       >
                         {expandedTeamId === team.id ? 'Hide' : 'Show'} Roster
                         {teamPlayers[team.id] && ` (${teamPlayers[team.id].length})`}
@@ -2436,7 +2432,7 @@ export default function LeagueDetails() {
                         <div className="mb-4">
                           <button
                             onClick={() => showPlayerForm === team.id ? handleClosePlayerForm() : setShowPlayerForm(team.id)}
-                            className="btn-primary text-sm"
+                            className="btn-primary btn-sm"
                           >
                             {showPlayerForm === team.id ? 'Cancel' : '+ Add Player'}
                           </button>
@@ -2582,13 +2578,13 @@ export default function LeagueDetails() {
                               </div>
                             </div>
                             <div className="flex gap-2">
-                              <button type="submit" className="btn-primary text-sm">
+                              <button type="submit" className="btn-primary btn-sm">
                                 {selectedUser ? 'Add Linked Player' : 'Add New Player'}
                               </button>
                               <button
                                 type="button"
                                 onClick={handleClosePlayerForm}
-                                className="btn-secondary text-sm"
+                                className="btn-secondary btn-sm"
                               >
                                 Cancel
                               </button>
@@ -2608,7 +2604,7 @@ export default function LeagueDetails() {
                                 handleClosePlayerForm() // Reset any previous state
                                 setShowPlayerForm(team.id)
                               }}
-                              className="btn-primary text-sm"
+                              className="btn-primary btn-sm"
                             >
                               Add First Player
                             </button>
@@ -2771,7 +2767,7 @@ export default function LeagueDetails() {
               </div>
 
               {showGameForm && (
-            <div className="card mb-6">
+            <div className="card mb-8">
               <h2 className="section-header mb-4">Schedule New Game</h2>
               <form onSubmit={handleGameSubmit} className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
