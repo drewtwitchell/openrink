@@ -1712,8 +1712,8 @@ export default function LeagueDetails() {
                   </div>
                 ))}
               </div>
-            )}
-            </div>
+            ) : null}
+          </div>
 
             {/* Communication Subsection */}
             <div>
