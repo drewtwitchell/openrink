@@ -114,6 +114,13 @@ function initDatabase() {
       }
     })
 
+    // Add league_info column if it doesn't exist (migration)
+    db.run(`ALTER TABLE leagues ADD COLUMN league_info TEXT`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding league_info column:', err)
+      }
+    })
+
     // Seasons table (multiple seasons per league)
     db.run(`
       CREATE TABLE IF NOT EXISTS seasons (

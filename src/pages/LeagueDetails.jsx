@@ -90,6 +90,8 @@ export default function LeagueDetails() {
   const [tempLeagueName, setTempLeagueName] = useState('')
   const [editingSeasonName, setEditingSeasonName] = useState(null) // Track which season name is being edited
   const [tempSeasonName, setTempSeasonName] = useState('')
+  const [editingLeagueInfo, setEditingLeagueInfo] = useState(false)
+  const [tempLeagueInfo, setTempLeagueInfo] = useState('')
 
   // User search state for adding players
   const [userSearchQuery, setUserSearchQuery] = useState('')
@@ -470,6 +472,27 @@ export default function LeagueDetails() {
   const handleCancelLeagueName = () => {
     setEditingLeagueName(false)
     setTempLeagueName('')
+  }
+
+  const handleEditLeagueInfo = () => {
+    setEditingLeagueInfo(true)
+    setTempLeagueInfo(league.league_info || '')
+  }
+
+  const handleSaveLeagueInfo = async () => {
+    try {
+      await leagues.update(id, { ...league, league_info: tempLeagueInfo })
+      setLeague({ ...league, league_info: tempLeagueInfo })
+      setEditingLeagueInfo(false)
+    } catch (error) {
+      console.error('Error updating league info:', error)
+      alert('Failed to update league information')
+    }
+  }
+
+  const handleCancelLeagueInfo = () => {
+    setEditingLeagueInfo(false)
+    setTempLeagueInfo('')
   }
 
   const handleEditSeasonName = (seasonId, currentName) => {
@@ -1492,6 +1515,76 @@ export default function LeagueDetails() {
       {/* Content */}
       {mainTab === 'overview' && overviewSubTab === 'managers' && (
         <div>
+          {/* League Information Section */}
+          <div className="card mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="section-header">League Information</h3>
+              {canManage && !editingLeagueInfo && (
+                <button
+                  onClick={handleEditLeagueInfo}
+                  className="btn-secondary btn-sm"
+                >
+                  {league.league_info ? 'Edit' : 'Add Information'}
+                </button>
+              )}
+            </div>
+
+            {editingLeagueInfo ? (
+              <div>
+                <div className="mb-3">
+                  <label className="label">
+                    League Information
+                    <span className="text-xs text-gray-500 ml-2">(Game locations, typical times, general information)</span>
+                  </label>
+                  <textarea
+                    value={tempLeagueInfo}
+                    onChange={(e) => setTempLeagueInfo(e.target.value)}
+                    className="input w-full"
+                    rows="6"
+                    placeholder="Example: Games are typically played at Main Ice Arena on Tuesday and Thursday evenings from 8:00-10:00 PM. Check the schedule for specific times and locations."
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveLeagueInfo}
+                    className="btn-primary"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={handleCancelLeagueInfo}
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                {league.league_info ? (
+                  <div className="text-gray-700 whitespace-pre-wrap bg-gray-50 p-4 rounded">
+                    {league.league_info}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 mb-4">No league information set</p>
+                    <p className="text-sm text-gray-400 mb-4">
+                      Add information about game locations, typical times, and other general details for players and visitors.
+                    </p>
+                    {canManage && (
+                      <button
+                        onClick={handleEditLeagueInfo}
+                        className="btn-primary"
+                      >
+                        Add League Information
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* League Managers Section */}
           <div className="card mb-6">
             <div className="flex justify-between items-center mb-4">

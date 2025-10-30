@@ -120,11 +120,11 @@ router.post('/', authenticateToken, (req, res) => {
 
 // Update league
 router.put('/:id', authenticateToken, requireLeagueManager, (req, res) => {
-  const { name, description } = req.body
+  const { name, description, league_info } = req.body
 
   db.run(
-    'UPDATE leagues SET name = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-    [name, description, req.params.id],
+    'UPDATE leagues SET name = ?, description = ?, league_info = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [name, description, league_info, req.params.id],
     function (err) {
       if (err) {
         return res.status(500).json({ error: 'Error updating league' })

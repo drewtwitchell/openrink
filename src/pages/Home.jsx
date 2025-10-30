@@ -568,6 +568,36 @@ export default function Home() {
             {(!isMultipleLeagues || !isCollapsed) && (
               <div>
 
+          {/* League Info Blurb */}
+          {league.league_info && (
+            <div className="card bg-ice-50 mb-8">
+              <h3 className="section-header mb-3">League Information</h3>
+              <div className="text-gray-700 whitespace-pre-wrap">{league.league_info}</div>
+            </div>
+          )}
+
+          {/* Login Prompt for Unauthenticated Users */}
+          {!isAuthenticated && (
+            <div className="card bg-blue-50 border-blue-200 mb-8">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 text-blue-600">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-gray-900 mb-1">Sign in to mark your attendance</h4>
+                  <p className="text-gray-700 text-sm mb-3">
+                    Players can login to mark their attendance for upcoming games, request substitutes, and view payment status.
+                  </p>
+                  <Link to="/login" className="btn-primary inline-block text-sm">
+                    Sign In / Register
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Announcements - topmost element */}
           {announcements && announcements.length > 0 && (
             <div className="mb-8 space-y-3">
