@@ -477,8 +477,16 @@ export default function Settings() {
                   <div key={record.id} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <div className="font-semibold text-gray-900">{record.league_name}</div>
-                        <div className="text-sm text-gray-600">{record.season_name}</div>
+                        <div className="font-semibold text-gray-900">{record.team_name}</div>
+                        <div className="text-xs text-gray-500 mb-1">
+                          {record.league_name && <span>League: <span className="font-medium">{record.league_name}</span></span>}
+                          {record.season_name && (
+                            <>
+                              {record.league_name && ' • '}
+                              <span>Season: <span className="font-medium">{record.season_name}</span></span>
+                            </>
+                          )}
+                        </div>
                       </div>
                       <div className="text-xs text-gray-500">
                         {formatDate(record.joined_date)}
@@ -486,18 +494,12 @@ export default function Settings() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
-                      <span
-                        className="px-2 py-1 rounded"
-                        style={{ backgroundColor: record.team_color || '#6B7280', color: '#fff' }}
-                      >
-                        {record.team_name}
-                      </span>
                       <span className="text-gray-600">
                         {record.position === 'goalie' ? 'Goalie' :
                          record.sub_position ? `${record.sub_position.charAt(0).toUpperCase() + record.sub_position.slice(1)}` : 'Player'}
                       </span>
                       {record.jersey_number && (
-                        <span className="text-gray-600">#{record.jersey_number}</span>
+                        <span className="text-gray-600">• #{record.jersey_number}</span>
                       )}
                     </div>
                   </div>
