@@ -1670,15 +1670,7 @@ export default function LeagueDetails() {
 
             {managers.length === 0 && !showManagerForm ? (
               <div className="text-center py-8">
-                <p className="text-gray-500 mb-4">No managers assigned yet</p>
-                {canManage && (
-                  <button
-                    onClick={() => setShowManagerForm(true)}
-                    className="btn-primary"
-                  >
-                    Add First Manager
-                  </button>
-                )}
+                <p className="text-gray-500">No managers assigned yet</p>
               </div>
             ) : managers.length > 0 ? (
               <div className="space-y-2">
@@ -1716,7 +1708,7 @@ export default function LeagueDetails() {
           </div>
 
             {/* Communication Subsection */}
-            <div>
+            <div className="mb-6 pb-6 border-b border-gray-200">
               <div className="flex justify-between items-center">
                 <h4 className="font-semibold text-gray-900">Communication</h4>
                 <button
@@ -1727,15 +1719,14 @@ export default function LeagueDetails() {
                 </button>
               </div>
             </div>
-          </div>
 
-          {/* Announcements Section */}
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h3 className="section-header">League Announcements</h3>
-                <p className="text-sm text-gray-500 mt-1">{announcementsList.length} total</p>
-              </div>
+            {/* Announcements Subsection */}
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h4 className="font-semibold text-gray-900">League Announcements</h4>
+                  <p className="text-sm text-gray-500 mt-1">{announcementsList.length} total</p>
+                </div>
               {canManage && (
                 <button
                   onClick={() => {
@@ -1802,12 +1793,7 @@ export default function LeagueDetails() {
 
             {announcementsList.length === 0 ? (
               <div className="card text-center py-12">
-                <p className="text-gray-500 mb-4">No announcements yet</p>
-                {canManage && (
-                  <button onClick={() => setShowAnnouncementForm(true)} className="btn-primary">
-                    Create Your First Announcement
-                  </button>
-                )}
+                <p className="text-gray-500">No announcements yet</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -1866,6 +1852,7 @@ export default function LeagueDetails() {
                 ))}
               </div>
             )}
+            </div>
           </div>
 
           {/* Payments Section - only show when viewing the active season */}
