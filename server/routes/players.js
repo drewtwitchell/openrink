@@ -33,11 +33,23 @@ router.get('/', (req, res) => {
        teams.name as team_name,
        teams.color as team_color,
        teams.league_id as team_league_id,
+       teams.season_id as team_season_id,
        CASE WHEN team_captains.user_id IS NOT NULL THEN 1 ELSE 0 END as is_captain,
-       CASE WHEN team_captains.user_id IS NOT NULL THEN 'captain' ELSE players.position END as position
+       CASE WHEN team_captains.user_id IS NOT NULL THEN 'captain' ELSE players.position END as position,
+       payments.id as payment_id,
+       payments.status as payment_status,
+       payments.amount as payment_amount,
+       payments.paid_date as payment_paid_date,
+       payments.payment_method as payment_method
      FROM players
      LEFT JOIN teams ON teams.id = players.team_id
      LEFT JOIN team_captains ON team_captains.user_id = players.user_id AND team_captains.team_id = players.team_id
+     LEFT JOIN (
+       SELECT p.*, s.is_active
+       FROM payments p
+       INNER JOIN seasons s ON p.season_id = s.id
+       WHERE s.is_active = 1 AND s.archived = 0
+     ) as payments ON payments.player_id = players.id
      ORDER BY name`,
     [],
     (err, rows) => {

@@ -325,6 +325,15 @@ function initDatabase() {
       }
     })
 
+    // Add UNIQUE constraint on (player_id, season_id) to ensure one payment record per player per season
+    db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_player_season ON payments(player_id, season_id)`, (err) => {
+      if (err) {
+        console.error('Error creating unique index on payments (player_id, season_id):', err)
+      } else {
+        console.log('✅ Unique constraint added to payments table for (player_id, season_id)')
+      }
+    })
+
     // Add standings weight columns to seasons if they don't exist (migration)
     db.run(`ALTER TABLE seasons ADD COLUMN points_win INTEGER DEFAULT 2`, (err) => {
       if (err && !err.message.includes('duplicate column')) {
