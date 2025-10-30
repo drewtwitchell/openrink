@@ -1004,37 +1004,117 @@ export default function LeagueDetails() {
 
       {/* Show setup screen when no seasons exist */}
       {leagueSeasons.length === 0 && canManage ? (
-        <div className="card text-center py-16 bg-gradient-to-br from-ice-50 to-blue-50">
-          <div className="max-w-2xl mx-auto">
-            <div className="text-6xl mb-6">🏒</div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Welcome to {league.name}!</h2>
-            <p className="text-lg text-gray-700 mb-3">
-              Let's get your league set up. Everything starts with creating your first season.
-            </p>
-            <p className="text-gray-600 mb-8">
-              A season contains your teams, games, schedule, and standings. You can create multiple seasons to organize different periods of play.
-            </p>
-            <button
-              onClick={() => {
-                setMainTab('season')
-                setSeasonSubTab(null)
-                setSelectedSeasonId(null)
-                setShowSeasonForm(true)
-                setEditingSeasonId(null)
-                setSeasonFormData({
-                  name: '',
-                  description: '',
-                  season_dues: '',
-                  venmo_link: '',
-                  start_date: '',
-                  end_date: '',
-                  is_active: false,
-                })
-              }}
-              className="btn-primary btn-lg text-lg px-8 py-3"
-            >
-              Create Your First Season
-            </button>
+        <div className="card py-12 bg-gradient-to-br from-ice-50 to-blue-50">
+          <div className="max-w-3xl mx-auto">
+            {!showSeasonForm ? (
+              <div className="text-center">
+                <div className="text-6xl mb-6">🏒</div>
+                <h2 className="text-3xl font-bold text-gray-900 mb-4">Welcome to {league.name}!</h2>
+                <p className="text-lg text-gray-700 mb-3">
+                  Let's get your league set up. Everything starts with creating your first season.
+                </p>
+                <p className="text-gray-600 mb-8">
+                  A season contains your teams, games, schedule, and standings. You can create multiple seasons to organize different periods of play.
+                </p>
+                <button
+                  onClick={() => {
+                    setShowSeasonForm(true)
+                    setEditingSeasonId(null)
+                    setSeasonFormData({
+                      name: '',
+                      description: '',
+                      season_dues: '',
+                      venmo_link: '',
+                      start_date: '',
+                      end_date: '',
+                      is_active: true,
+                    })
+                  }}
+                  className="btn-primary btn-lg text-lg px-8 py-3"
+                >
+                  Create Your First Season
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleSeasonSubmit} className="p-8 bg-white rounded-xl shadow-lg">
+                <h3 className="text-2xl font-bold mb-6 text-ice-700">✨ Create Your First Season</h3>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="label">Season Name *</label>
+                    <input
+                      type="text"
+                      value={seasonFormData.name}
+                      onChange={(e) => setSeasonFormData({ ...seasonFormData, name: e.target.value })}
+                      className="input"
+                      placeholder="e.g., Winter 2024"
+                      required
+                      autoFocus
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Season Dues (per player)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={seasonFormData.season_dues}
+                      onChange={(e) => setSeasonFormData({ ...seasonFormData, season_dues: e.target.value })}
+                      className="input"
+                      placeholder="150.00"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Start Date</label>
+                    <input
+                      type="date"
+                      value={seasonFormData.start_date}
+                      onChange={(e) => setSeasonFormData({ ...seasonFormData, start_date: e.target.value })}
+                      className="input"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">End Date</label>
+                    <input
+                      type="date"
+                      value={seasonFormData.end_date}
+                      onChange={(e) => setSeasonFormData({ ...seasonFormData, end_date: e.target.value })}
+                      className="input"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="label">Venmo Link (for payments)</label>
+                    <input
+                      type="url"
+                      value={seasonFormData.venmo_link}
+                      onChange={(e) => setSeasonFormData({ ...seasonFormData, venmo_link: e.target.value })}
+                      className="input"
+                      placeholder="https://venmo.com/..."
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="label">Description</label>
+                    <textarea
+                      value={seasonFormData.description}
+                      onChange={(e) => setSeasonFormData({ ...seasonFormData, description: e.target.value })}
+                      className="input"
+                      rows="3"
+                      placeholder="Optional details about this season..."
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-6">
+                  <button type="submit" className="btn-primary flex-1">
+                    Create Season
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowSeasonForm(false)}
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       ) : (
