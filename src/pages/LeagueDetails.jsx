@@ -1195,7 +1195,7 @@ export default function LeagueDetails() {
 
       {/* Show setup screen when no seasons exist */}
       {leagueSeasons.length === 0 && canManage ? (
-        <div className="card py-12 bg-gradient-to-br from-ice-50 to-blue-50">
+        <div className="card py-12 bg-gradient-to-br from-gray-50 to-blue-50">
           <div className="max-w-3xl mx-auto">
             {!showSeasonForm ? (
               <div className="text-center">
@@ -1228,7 +1228,7 @@ export default function LeagueDetails() {
               </div>
             ) : (
               <form onSubmit={handleSeasonSubmit} className="p-8 bg-white rounded-xl shadow-lg">
-                <h3 className="text-2xl font-bold mb-6 text-ice-700">✨ Create Your First Season</h3>
+                <h3 className="text-2xl font-bold mb-6 text-gray-800">✨ Create Your First Season</h3>
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
                     <label className="label">Season Name *</label>
@@ -1319,13 +1319,13 @@ export default function LeagueDetails() {
                   onClick={() => setMainTab('overview')}
                   className={`px-6 py-3 font-semibold transition-colors relative ${
                     mainTab === 'overview'
-                      ? 'text-ice-700 bg-white'
+                      ? 'text-gray-800 bg-white'
                       : 'text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100'
                   }`}
                 >
                   General
                   {mainTab === 'overview' && (
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-ice-600"></div>
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-700"></div>
                   )}
                 </button>
               )}
@@ -1341,7 +1341,7 @@ export default function LeagueDetails() {
             disabled={!selectedSeasonId}
             className={`px-6 py-3 font-semibold transition-colors relative ${
               mainTab === 'season' && seasonSubTab === 'teams'
-                ? 'text-ice-700 bg-white'
+                ? 'text-gray-800 bg-white'
                 : selectedSeasonId
                 ? 'text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100'
                 : 'text-gray-400 bg-gray-50 cursor-not-allowed opacity-60'
@@ -1349,7 +1349,7 @@ export default function LeagueDetails() {
           >
             Teams
             {mainTab === 'season' && seasonSubTab === 'teams' && (
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-ice-600"></div>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-700"></div>
             )}
           </button>
 
@@ -1363,7 +1363,7 @@ export default function LeagueDetails() {
             disabled={!selectedSeasonId}
             className={`px-6 py-3 font-semibold transition-colors relative ${
               mainTab === 'season' && seasonSubTab === 'schedule'
-                ? 'text-ice-700 bg-white'
+                ? 'text-gray-800 bg-white'
                 : selectedSeasonId
                 ? 'text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100'
                 : 'text-gray-400 bg-gray-50 cursor-not-allowed opacity-60'
@@ -1371,7 +1371,7 @@ export default function LeagueDetails() {
           >
             Schedule
             {mainTab === 'season' && seasonSubTab === 'schedule' && (
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-ice-600"></div>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-700"></div>
             )}
           </button>
 
@@ -1386,7 +1386,7 @@ export default function LeagueDetails() {
               disabled={!selectedSeasonId}
               className={`px-6 py-3 font-semibold transition-colors relative ${
                 mainTab === 'season' && seasonSubTab === 'scores'
-                  ? 'text-ice-700 bg-white'
+                  ? 'text-gray-800 bg-white'
                   : selectedSeasonId
                   ? 'text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100'
                   : 'text-gray-400 bg-gray-50 cursor-not-allowed opacity-60'
@@ -1394,7 +1394,7 @@ export default function LeagueDetails() {
             >
               Scores
               {mainTab === 'season' && seasonSubTab === 'scores' && (
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-ice-600"></div>
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-700"></div>
               )}
             </button>
           )}
@@ -1409,7 +1409,7 @@ export default function LeagueDetails() {
             disabled={!selectedSeasonId}
             className={`px-6 py-3 font-semibold transition-colors relative ${
               mainTab === 'season' && seasonSubTab === 'standings'
-                ? 'text-ice-700 bg-white'
+                ? 'text-gray-800 bg-white'
                 : selectedSeasonId
                 ? 'text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100'
                 : 'text-gray-400 bg-gray-50 cursor-not-allowed opacity-60'
@@ -1417,7 +1417,7 @@ export default function LeagueDetails() {
           >
             Standings
             {mainTab === 'season' && seasonSubTab === 'standings' && (
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-ice-600"></div>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-700"></div>
             )}
           </button>
 
@@ -1432,7 +1432,7 @@ export default function LeagueDetails() {
               disabled={!selectedSeasonId}
               className={`px-6 py-3 font-semibold transition-colors relative ${
                 mainTab === 'season' && seasonSubTab === 'playoffs'
-                  ? 'text-ice-700 bg-white'
+                  ? 'text-gray-800 bg-white'
                   : selectedSeasonId
                   ? 'text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100'
                   : 'text-gray-400 bg-gray-50 cursor-not-allowed opacity-60'
@@ -1440,7 +1440,7 @@ export default function LeagueDetails() {
             >
               Playoffs
               {mainTab === 'season' && seasonSubTab === 'playoffs' && (
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-ice-600"></div>
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-700"></div>
               )}
             </button>
           )}
@@ -1483,7 +1483,7 @@ export default function LeagueDetails() {
                 <p className="text-gray-500 text-sm mb-6">
                   Choose a season from the dropdown above to view and manage its teams, schedule, and standings.
                 </p>
-                <div className="text-sm text-ice-600 font-medium">
+                <div className="text-sm text-gray-700 font-medium">
                   ↑ Select a season from the dropdown above
                 </div>
               </>
@@ -1905,7 +1905,7 @@ export default function LeagueDetails() {
                     <div className="flex items-center justify-between mb-2">
                       <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Season Dues</div>
                       {!editingSeasonDues && (
-                        <button onClick={handleEditSeasonDues} className="text-xs text-ice-600 hover:text-ice-700 underline">
+                        <button onClick={handleEditSeasonDues} className="text-xs text-gray-700 hover:text-gray-800 underline">
                           Edit
                         </button>
                       )}
@@ -1930,7 +1930,7 @@ export default function LeagueDetails() {
                         </button>
                       </div>
                     ) : (
-                      <div className="text-2xl font-bold text-ice-600">
+                      <div className="text-2xl font-bold text-gray-700">
                         ${parseFloat(activeSeason.season_dues || 0).toFixed(2)}
                       </div>
                     )}
@@ -1941,7 +1941,7 @@ export default function LeagueDetails() {
                     <div className="flex items-center justify-between mb-2">
                       <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Payment Link</div>
                       {!editingPaymentLink && (
-                        <button onClick={handleEditPaymentLink} className="text-xs text-ice-600 hover:text-ice-700 underline">
+                        <button onClick={handleEditPaymentLink} className="text-xs text-gray-700 hover:text-gray-800 underline">
                           {activeSeason.venmo_link ? 'Edit' : 'Add'}
                         </button>
                       )}
@@ -1966,7 +1966,7 @@ export default function LeagueDetails() {
                     ) : (
                       <div>
                         {activeSeason.venmo_link ? (
-                          <a href={activeSeason.venmo_link} target="_blank" rel="noopener noreferrer" className="text-ice-600 hover:text-ice-700 underline text-sm truncate block">
+                          <a href={activeSeason.venmo_link} target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-gray-800 underline text-sm truncate block">
                             {activeSeason.venmo_link}
                           </a>
                         ) : (
@@ -2189,7 +2189,7 @@ export default function LeagueDetails() {
                                           {canManage && (
                                             <button
                                               onClick={() => handleEditPaymentAmount(player)}
-                                              className="text-xs text-ice-600 hover:text-ice-700"
+                                              className="text-xs text-gray-700 hover:text-gray-800"
                                             >
                                               ✎
                                             </button>
@@ -3030,7 +3030,7 @@ export default function LeagueDetails() {
                                   ? 'bg-green-500 text-white'
                                   : saving
                                   ? 'bg-gray-300 text-gray-600 cursor-wait'
-                                  : 'bg-ice-600 text-white hover:bg-ice-700'
+                                  : 'bg-gray-700 text-white hover:bg-gray-800'
                               }`}
                             >
                               {saved ? '✓ Saved' : saving ? 'Saving...' : 'Save Score'}
@@ -3597,7 +3597,7 @@ This will also delete all associated teams, games, and payment records.`}
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <form onSubmit={handleSeasonSubmit} className="p-8">
-              <h3 className="text-2xl font-bold mb-6 text-ice-700">Create New Season</h3>
+              <h3 className="text-2xl font-bold mb-6 text-gray-800">Create New Season</h3>
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <label className="label">Season Name *</label>

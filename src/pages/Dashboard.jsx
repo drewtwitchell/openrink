@@ -566,7 +566,7 @@ export default function Dashboard() {
                             <select
                               value={editFormData.position}
                               onChange={(e) => setEditFormData({ ...editFormData, position: e.target.value, sub_position: e.target.value === 'goalie' ? '' : editFormData.sub_position })}
-                              className="input input-sm"
+                              className="input"
                             >
                               <option value="player">Player</option>
                               <option value="goalie">Goalie</option>
@@ -579,7 +579,7 @@ export default function Dashboard() {
                               <select
                                 value={editFormData.sub_position}
                                 onChange={(e) => setEditFormData({ ...editFormData, sub_position: e.target.value })}
-                                className="input input-sm"
+                                className="input"
                               >
                                 <option value="">None</option>
                                 <option value="forward">Forward</option>
@@ -594,7 +594,7 @@ export default function Dashboard() {
                               type="text"
                               value={editFormData.jersey_number}
                               onChange={(e) => setEditFormData({ ...editFormData, jersey_number: e.target.value })}
-                              className="input input-sm"
+                              className="input"
                               placeholder="e.g., 10"
                             />
                           </div>

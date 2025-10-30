@@ -127,7 +127,7 @@ export default function PlayoffBracketView() {
       {/* Back Navigation */}
       <button
         onClick={() => navigate(`/leagues/${bracket.league_id}`)}
-        className="mb-4 text-ice-600 hover:text-ice-700 flex items-center gap-2 text-sm"
+        className="mb-4 text-gray-700 hover:text-gray-800 flex items-center gap-2 text-sm"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -241,7 +241,7 @@ export default function PlayoffBracketView() {
                         <div className="px-3 py-2 bg-gray-50 border-t">
                           <button
                             onClick={() => handleEditMatch(match)}
-                            className="text-xs text-ice-600 hover:text-ice-700 font-medium"
+                            className="text-xs text-gray-700 hover:text-gray-800 font-medium"
                           >
                             {match.winner_id ? 'Edit Result' : 'Enter Result'}
                           </button>

@@ -258,7 +258,7 @@ export default function Games() {
       )}
 
       {showSubRequestForm && selectedGameForSub && (
-        <div className="card mb-6 border-2 border-ice-600">
+        <div className="card mb-6 border-2 border-gray-700">
           <h2 className="section-header">Request a Substitute</h2>
           <div className="mb-4 p-3 bg-gray-50 rounded">
             <div className="font-semibold">

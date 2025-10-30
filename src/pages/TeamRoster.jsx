@@ -251,7 +251,7 @@ export default function TeamRoster() {
       {/* Back Navigation */}
       <button
         onClick={() => leagueId ? navigate(`/leagues/${leagueId}`) : navigate('/teams')}
-        className="mb-4 text-ice-600 hover:text-ice-700 flex items-center gap-2 text-sm"
+        className="mb-4 text-gray-700 hover:text-gray-800 flex items-center gap-2 text-sm"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -314,7 +314,7 @@ export default function TeamRoster() {
 
       {/* Team Captain Section */}
       {roster.filter(p => p.is_captain === 1).length > 0 && (
-        <div className="card mb-6 bg-ice-50 border-ice-200">
+        <div className="card mb-6 bg-gray-50 border-gray-200">
           <h3 className="text-lg font-semibold mb-3">
             Team Captain{roster.filter(p => p.is_captain === 1).length > 1 ? 's' : ''}
           </h3>
@@ -322,7 +322,7 @@ export default function TeamRoster() {
             {roster.filter(p => p.is_captain === 1).map((captain) => (
               <div key={captain.id} className="flex items-center justify-between p-3 bg-white rounded">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-ice-600 text-white flex items-center justify-center font-bold">
+                  <div className="w-10 h-10 rounded-full bg-gray-700 text-white flex items-center justify-center font-bold">
                     {captain.jersey_number || '?'}
                   </div>
                   <div>
@@ -518,7 +518,7 @@ export default function TeamRoster() {
                       <div className="flex items-center gap-2">
                         {player.name}
                         {player.is_captain === 1 && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-ice-100 text-ice-800">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
                             Captain
                           </span>
                         )}
@@ -543,7 +543,7 @@ export default function TeamRoster() {
                       <div className="flex gap-2 justify-center">
                         <button
                           onClick={() => openTransferModal(player)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white btn-sm rounded"
+                          className="btn-primary btn-sm"
                         >
                           Transfer
                         </button>
@@ -665,7 +665,7 @@ export default function TeamRoster() {
               </button>
               <button
                 onClick={handleTransfer}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+                className="btn-primary"
               >
                 {showNewTeamForm ? 'Create Team & Transfer' : 'Transfer Player'}
               </button>

@@ -148,7 +148,7 @@ export default function Playoffs() {
       <div className="mb-6">
         <button
           onClick={() => navigate(`/leagues/${leagueId}`)}
-          className="text-sm text-ice-600 hover:text-ice-700 flex items-center gap-1"
+          className="text-sm text-gray-700 hover:text-gray-800 flex items-center gap-1"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -222,10 +222,10 @@ export default function Playoffs() {
                       disabled={!isSelected && !canSelect}
                       className={`p-3 rounded-lg border-2 text-left transition-all ${
                         isSelected
-                          ? 'border-ice-500 bg-ice-50 text-ice-700'
+                          ? 'border-gray-500 bg-gray-50 text-gray-800'
                           : !canSelect
                           ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
-                          : 'border-gray-200 bg-white hover:border-ice-300'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
                       }`}
                     >
                       <div className="flex items-center gap-2">
@@ -235,7 +235,7 @@ export default function Playoffs() {
                         />
                         <span className="font-medium">{team.name}</span>
                         {isSelected && (
-                          <span className="ml-auto text-xs bg-ice-200 text-ice-700 px-2 py-0.5 rounded">
+                          <span className="ml-auto text-xs bg-gray-200 text-gray-800 px-2 py-0.5 rounded">
                             #{formData.selectedTeams.indexOf(team.id) + 1}
                           </span>
                         )}

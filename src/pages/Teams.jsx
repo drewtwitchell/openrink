@@ -272,7 +272,7 @@ export default function Teams() {
                                   <div className="flex items-center gap-2">
                                     {player.name}
                                     {player.is_captain === 1 && (
-                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-ice-100 text-ice-800">
+                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
                                         ⭐ C
                                       </span>
                                     )}
@@ -281,7 +281,7 @@ export default function Teams() {
                                 <td className="py-2 px-2 capitalize">{player.position || 'player'}</td>
                                 <td className="py-2 px-2">
                                   {player.email ? (
-                                    <a href={`mailto:${player.email}`} className="text-ice-600 hover:underline">
+                                    <a href={`mailto:${player.email}`} className="text-gray-700 hover:underline">
                                       {player.email}
                                     </a>
                                   ) : (
@@ -290,7 +290,7 @@ export default function Teams() {
                                 </td>
                                 <td className="py-2 px-2">
                                   {player.phone ? (
-                                    <a href={`tel:${player.phone}`} className="text-ice-600 hover:underline">
+                                    <a href={`tel:${player.phone}`} className="text-gray-700 hover:underline">
                                       {player.phone}
                                     </a>
                                   ) : (

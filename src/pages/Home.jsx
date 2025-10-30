@@ -412,7 +412,7 @@ export default function Home() {
         </div>
 
         {/* Getting Started */}
-        <div className="card bg-ice-50 text-center">
+        <div className="card bg-gray-50 text-center">
           <h2 className="section-header text-gray-900 mb-3">Ready to Get Started?</h2>
           <p className="text-gray-600 mb-6 max-w-xl mx-auto">
             {isAuthenticated
@@ -514,7 +514,7 @@ export default function Home() {
           </p>
         )}
         {isSingleLeague && displayLeagues[0]?.league.league_info && (
-          <div className="max-w-3xl mx-auto mt-4 p-4 bg-ice-50 rounded-lg">
+          <div className="max-w-3xl mx-auto mt-4 p-4 bg-gray-50 rounded-lg">
             <div className="text-gray-700 whitespace-pre-wrap text-sm">
               {displayLeagues[0].league.league_info}
             </div>
@@ -564,7 +564,7 @@ export default function Home() {
                         <p className="text-gray-600 mb-2">{league.description}</p>
                       )}
                       {league.league_info && (
-                        <div className="mt-3 p-3 bg-ice-50 rounded text-sm text-gray-700 whitespace-pre-wrap">
+                        <div className="mt-3 p-3 bg-gray-50 rounded text-sm text-gray-700 whitespace-pre-wrap">
                           {league.league_info}
                         </div>
                       )}
@@ -1026,7 +1026,7 @@ export default function Home() {
                               </span>
                             )}
                             {player.is_captain === 1 && (
-                              <span className="text-xs px-2 py-0.5 bg-ice-100 text-ice-700 rounded font-medium">
+                              <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-800 rounded font-medium">
                                 C
                               </span>
                             )}
