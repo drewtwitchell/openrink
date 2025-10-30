@@ -39,6 +39,7 @@ export default function LeagueDetails() {
   const [paymentData, setPaymentData] = useState([])
   const [paymentStats, setPaymentStats] = useState(null)
   const [showContactModal, setShowContactModal] = useState(false)
+  const [contactSubject, setContactSubject] = useState('')
   const [contactMessage, setContactMessage] = useState('')
   const [currentUser, setCurrentUser] = useState(null)
   const [announcementsList, setAnnouncementsList] = useState([])
@@ -3144,6 +3145,7 @@ export default function LeagueDetails() {
                 <button
                   onClick={() => {
                     setShowContactModal(false)
+                    setContactSubject('')
                     setContactMessage('')
                   }}
                   className="text-gray-500 hover:text-gray-700 text-2xl"
@@ -3167,6 +3169,17 @@ export default function LeagueDetails() {
               </div>
 
               <div className="mb-4">
+                <label className="label">Subject Line</label>
+                <input
+                  type="text"
+                  value={contactSubject}
+                  onChange={(e) => setContactSubject(e.target.value)}
+                  className="input"
+                  placeholder={`${league.name} - League Update`}
+                />
+              </div>
+
+              <div className="mb-4">
                 <label className="label">Quick Message Template</label>
                 <textarea
                   value={contactMessage}
@@ -3185,12 +3198,13 @@ export default function LeagueDetails() {
                       .map(p => p.email)
                       .join(',')
 
-                    const subject = `${league.name} - League Update`
+                    const subject = contactSubject || `${league.name} - League Update`
                     const body = contactMessage || ''
 
                     window.location.href = `mailto:?bcc=${encodeURIComponent(emails)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
 
                     setShowContactModal(false)
+                    setContactSubject('')
                     setContactMessage('')
                   }}
                   className="btn-primary flex-1"
@@ -3200,6 +3214,7 @@ export default function LeagueDetails() {
                 <button
                   onClick={() => {
                     setShowContactModal(false)
+                    setContactSubject('')
                     setContactMessage('')
                   }}
                   className="btn-secondary flex-1"
