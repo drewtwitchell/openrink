@@ -1171,6 +1171,9 @@ export default function LeagueDetails() {
     setShowGameForm(true)
     setShowPlayerStats(false)
     setPlayerStats({})
+    // Clear rink search state to prevent showing old search results
+    setRinkSearchActive(false)
+    setShowRinkResults(false)
   }
 
   const handleCancelGameEdit = () => {
