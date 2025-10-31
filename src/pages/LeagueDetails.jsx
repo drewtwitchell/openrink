@@ -3538,8 +3538,8 @@ export default function LeagueDetails() {
                           setShowRinkResults(true)
                         }}
                         onFocus={() => {
-                          setRinkSearchActive(true)
-                          rinkSearchResults.length > 0 && setShowRinkResults(true)
+                          // Only show results if search was already active (user has typed)
+                          rinkSearchActive && rinkSearchResults.length > 0 && setShowRinkResults(true)
                         }}
                         className="input"
                         placeholder="Start typing to search for rinks..."
