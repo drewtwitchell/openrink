@@ -298,6 +298,27 @@ function initDatabase() {
       }
     })
 
+    // Add bracket_id column to games for playoff games (migration)
+    db.run(`ALTER TABLE games ADD COLUMN bracket_id INTEGER REFERENCES playoff_brackets(id) ON DELETE SET NULL`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding bracket_id column to games:', err)
+      }
+    })
+
+    // Add match_type column to playoff_matches for round robin support (migration)
+    db.run(`ALTER TABLE playoff_matches ADD COLUMN match_type TEXT DEFAULT 'elimination'`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding match_type column to playoff_matches:', err)
+      }
+    })
+
+    // Add game_id column to playoff_matches to link to games table (migration)
+    db.run(`ALTER TABLE playoff_matches ADD COLUMN game_id INTEGER REFERENCES games(id) ON DELETE SET NULL`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding game_id column to playoff_matches:', err)
+      }
+    })
+
     // Payments table
     db.run(`
       CREATE TABLE IF NOT EXISTS payments (

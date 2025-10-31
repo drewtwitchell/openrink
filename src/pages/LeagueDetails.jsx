@@ -3,6 +3,8 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { leagues, teams as teamsApi, games as gamesApi, seasons, auth, announcements, players, teamCaptains, payments, csv } from '../lib/api'
 import ConfirmModal from '../components/ConfirmModal'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+
 // Helper function to parse date strings as local dates (not UTC)
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return null
@@ -123,6 +125,41 @@ export default function LeagueDetails() {
   const [tempLeagueInfo, setTempLeagueInfo] = useState('')
   const [leagueInfoCollapsed, setLeagueInfoCollapsed] = useState(false)
   const [paymentTrackingCollapsed, setPaymentTrackingCollapsed] = useState(false)
+
+  // Playoff state variables
+  const [playoffBrackets, setPlayoffBrackets] = useState([])
+  const [selectedBracket, setSelectedBracket] = useState(null)
+  const [showCreateBracketModal, setShowCreateBracketModal] = useState(false)
+  const [showScheduleRoundRobinModal, setShowScheduleRoundRobinModal] = useState(false)
+  const [showGenerateEliminationModal, setShowGenerateEliminationModal] = useState(false)
+  const [showMatchScoreModal, setShowMatchScoreModal] = useState(false)
+  const [selectedMatch, setSelectedMatch] = useState(null)
+  const [bracketFormData, setBracketFormData] = useState({
+    name: '',
+    format: 'single_elimination',
+    team_ids: []
+  })
+  const [roundRobinFormData, setRoundRobinFormData] = useState({
+    start_date: '',
+    game_times: [{ day_of_week: '', time: '' }]
+  })
+  const [eliminationFormData, setEliminationFormData] = useState({
+    semifinal_date: '',
+    semifinal_times: ['', ''],
+    final_date: '',
+    final_times: ['', '']
+  })
+  const [matchScoreData, setMatchScoreData] = useState({
+    team1_score: '',
+    team2_score: ''
+  })
+  const [loadingPlayoffs, setLoadingPlayoffs] = useState(false)
+  const [showCelebrationModal, setShowCelebrationModal] = useState(false)
+  const [celebrationFormData, setCelebrationFormData] = useState({
+    title: '',
+    message: '',
+    expires_at: ''
+  })
 
   // User search state for adding players
   const [userSearchQuery, setUserSearchQuery] = useState('')
@@ -495,6 +532,285 @@ export default function LeagueDetails() {
       console.error('Error fetching team players:', error)
     }
   }
+
+  // Playoff functions
+  const fetchPlayoffBrackets = async () => {
+    if (!selectedSeasonId) return
+
+    setLoadingPlayoffs(true)
+    try {
+      const response = await fetch(`${API_URL}/api/playoffs/league/${id}/season/${selectedSeasonId}`)
+      const data = await response.json()
+      setPlayoffBrackets(data)
+
+      // Auto-select first bracket if none selected
+      if (data.length > 0 && !selectedBracket) {
+        await fetchBracketDetails(data[0].id)
+      }
+    } catch (error) {
+      console.error('Error fetching playoff brackets:', error)
+    } finally {
+      setLoadingPlayoffs(false)
+    }
+  }
+
+  const fetchBracketDetails = async (bracketId) => {
+    try {
+      const response = await fetch(`${API_URL}/api/playoffs/${bracketId}`)
+      const data = await response.json()
+      setSelectedBracket(data)
+    } catch (error) {
+      console.error('Error fetching bracket details:', error)
+    }
+  }
+
+  const handleCreateBracket = async (e) => {
+    e.preventDefault()
+
+    if (!canManage) {
+      alert('You do not have permission to create playoff brackets')
+      return
+    }
+
+    try {
+      const token = auth.getToken()
+      const response = await fetch(`${API_URL}/api/playoffs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          league_id: parseInt(id),
+          season_id: selectedSeasonId,
+          name: bracketFormData.name,
+          format: bracketFormData.format,
+          team_ids: bracketFormData.team_ids
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create bracket')
+      }
+
+      alert(data.message || 'Bracket created successfully')
+      setShowCreateBracketModal(false)
+      setBracketFormData({ name: '', format: 'single_elimination', team_ids: [] })
+      await fetchPlayoffBrackets()
+
+      // Auto-select the newly created bracket
+      if (data.bracketId) {
+        await fetchBracketDetails(data.bracketId)
+      }
+    } catch (error) {
+      alert('Error creating bracket: ' + error.message)
+    }
+  }
+
+  const handleScheduleRoundRobin = async (e) => {
+    e.preventDefault()
+
+    if (!canManage || !selectedBracket) return
+
+    try {
+      const token = auth.getToken()
+
+      // Filter out empty game times
+      const validGameTimes = roundRobinFormData.game_times.filter(gt => gt.day_of_week && gt.time)
+
+      if (validGameTimes.length === 0) {
+        alert('Please add at least one game time')
+        return
+      }
+
+      const response = await fetch(`${API_URL}/api/playoffs/round-robin/schedule`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          bracket_id: selectedBracket.bracket.id,
+          team_ids: [...new Set([
+            ...selectedBracket.matches.map(m => m.team1_id),
+            ...selectedBracket.matches.map(m => m.team2_id)
+          ].filter(Boolean))],
+          start_date: roundRobinFormData.start_date,
+          game_times: validGameTimes
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to schedule round robin')
+      }
+
+      alert(data.message || 'Round robin schedule created successfully')
+      setShowScheduleRoundRobinModal(false)
+      setRoundRobinFormData({ start_date: '', game_times: [{ day_of_week: '', time: '' }] })
+      await fetchBracketDetails(selectedBracket.bracket.id)
+    } catch (error) {
+      alert('Error scheduling round robin: ' + error.message)
+    }
+  }
+
+  const handleGenerateElimination = async (e) => {
+    e.preventDefault()
+
+    if (!canManage || !selectedBracket) return
+
+    try {
+      const token = auth.getToken()
+
+      const response = await fetch(`${API_URL}/api/playoffs/${selectedBracket.bracket.id}/generate-elimination`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          semifinal_date: eliminationFormData.semifinal_date,
+          semifinal_times: eliminationFormData.semifinal_times,
+          final_date: eliminationFormData.final_date,
+          final_times: eliminationFormData.final_times
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate elimination bracket')
+      }
+
+      alert(data.message || 'Elimination bracket generated successfully')
+      setShowGenerateEliminationModal(false)
+      setEliminationFormData({
+        semifinal_date: '',
+        semifinal_times: ['', ''],
+        final_date: '',
+        final_times: ['', '']
+      })
+      await fetchBracketDetails(selectedBracket.bracket.id)
+    } catch (error) {
+      alert('Error generating elimination bracket: ' + error.message)
+    }
+  }
+
+  const handleUpdateMatchScore = async (e) => {
+    e.preventDefault()
+
+    if (!canManage || !selectedMatch) return
+
+    try {
+      const token = auth.getToken()
+
+      const team1_score = parseInt(matchScoreData.team1_score)
+      const team2_score = parseInt(matchScoreData.team2_score)
+
+      if (isNaN(team1_score) || isNaN(team2_score)) {
+        alert('Please enter valid scores')
+        return
+      }
+
+      const winner_id = team1_score > team2_score ? selectedMatch.team1_id :
+                        team2_score > team1_score ? selectedMatch.team2_id : null
+
+      const response = await fetch(`${API_URL}/api/playoffs/matches/${selectedMatch.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          team1_score,
+          team2_score,
+          winner_id
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update match score')
+      }
+
+      alert(data.message || 'Match score updated successfully')
+      setShowMatchScoreModal(false)
+      setSelectedMatch(null)
+      setMatchScoreData({ team1_score: '', team2_score: '' })
+      await fetchBracketDetails(selectedBracket.bracket.id)
+    } catch (error) {
+      alert('Error updating match score: ' + error.message)
+    }
+  }
+
+  const openMatchScoreModal = (match) => {
+    setSelectedMatch(match)
+    setMatchScoreData({
+      team1_score: match.team1_score !== null ? match.team1_score.toString() : '',
+      team2_score: match.team2_score !== null ? match.team2_score.toString() : ''
+    })
+    setShowMatchScoreModal(true)
+  }
+
+  const openCelebrationModal = (championshipMatch) => {
+    const winnerName = championshipMatch.winner_id === championshipMatch.team1_id
+      ? championshipMatch.team1_name
+      : championshipMatch.team2_name
+
+    setCelebrationFormData({
+      title: `${winnerName} are the Champions!`,
+      message: `Congratulations to ${winnerName} for winning the ${selectedBracket?.bracket?.name || 'championship'}! Amazing season!`,
+      expires_at: ''
+    })
+    setShowCelebrationModal(true)
+  }
+
+  const handleCreateCelebration = async (e) => {
+    e.preventDefault()
+
+    if (!canManage) return
+
+    try {
+      const token = auth.getToken()
+
+      const response = await fetch(`${API_URL}/api/announcements`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          league_id: league.id,
+          title: celebrationFormData.title,
+          message: celebrationFormData.message,
+          expires_at: celebrationFormData.expires_at || null
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create announcement')
+      }
+
+      alert('Championship celebration announcement created!')
+      setShowCelebrationModal(false)
+      setCelebrationFormData({ title: '', message: '', expires_at: '' })
+    } catch (error) {
+      alert('Error creating celebration: ' + error.message)
+    }
+  }
+
+  // Fetch playoffs when tab is selected
+  useEffect(() => {
+    if (mainTab === 'season' && seasonSubTab === 'playoffs' && selectedSeasonId) {
+      fetchPlayoffBrackets()
+    }
+  }, [mainTab, seasonSubTab, selectedSeasonId])
 
   const handlePlayerDelete = async (playerId, playerName, teamId) => {
     setRemovePlayerModal({ isOpen: true, playerId, playerName, teamId })
@@ -1237,6 +1553,102 @@ export default function LeagueDetails() {
     } catch (error) {
       alert('Error removing manager: ' + error.message)
     }
+  }
+
+  // Helper function to render a playoff match
+  const renderMatch = (match) => {
+    return (
+      <div
+        key={match.id}
+        className={`bg-white border-2 rounded-lg overflow-hidden shadow-sm ${
+          canManage && match.team1_id && match.team2_id ? 'cursor-pointer hover:border-blue-300' : 'border-gray-200'
+        }`}
+        onClick={() => {
+          if (canManage && match.team1_id && match.team2_id) {
+            openMatchScoreModal(match)
+          }
+        }}
+      >
+        {/* Team 1 */}
+        <div className={`p-2 border-b ${
+          match.winner_id === match.team1_id
+            ? 'bg-green-50 border-green-200'
+            : match.winner_id
+            ? 'bg-gray-50'
+            : 'bg-white'
+        }`}>
+          {match.team1_id ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-3 h-3 rounded"
+                  style={{ backgroundColor: match.team1_color || '#ccc' }}
+                />
+                <span className="text-sm font-medium">{match.team1_name}</span>
+                {match.winner_id === match.team1_id && (
+                  <span className="text-green-600 text-xs">✓</span>
+                )}
+              </div>
+              {match.team1_score !== null && (
+                <span className="font-bold">{match.team1_score}</span>
+              )}
+            </div>
+          ) : (
+            <span className="text-gray-400 italic text-sm">TBD</span>
+          )}
+        </div>
+
+        {/* Team 2 */}
+        <div className={`p-2 ${
+          match.winner_id === match.team2_id
+            ? 'bg-green-50'
+            : match.winner_id
+            ? 'bg-gray-50'
+            : 'bg-white'
+        }`}>
+          {match.team2_id ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-3 h-3 rounded"
+                  style={{ backgroundColor: match.team2_color || '#ccc' }}
+                />
+                <span className="text-sm font-medium">{match.team2_name}</span>
+                {match.winner_id === match.team2_id && (
+                  <span className="text-green-600 text-xs">✓</span>
+                )}
+              </div>
+              {match.team2_score !== null && (
+                <span className="font-bold">{match.team2_score}</span>
+              )}
+            </div>
+          ) : (
+            <span className="text-gray-400 italic text-sm">TBD</span>
+          )}
+        </div>
+
+        {/* Match Details */}
+        {(match.game_date || match.rink_name) && (
+          <div className="px-2 py-1 bg-gray-50 border-t text-xs text-gray-600">
+            {match.game_date && (
+              <div>
+                {parseLocalDate(match.game_date).toLocaleDateString()}
+                {match.game_time && ` at ${formatTime(match.game_time)}`}
+              </div>
+            )}
+            {match.rink_name && (
+              <div className="mt-1">{match.rink_name}</div>
+            )}
+          </div>
+        )}
+
+        {canManage && match.team1_id && match.team2_id && (
+          <div className="px-2 py-1 bg-blue-50 text-xs text-blue-700 text-center border-t border-blue-100">
+            Click to enter/edit score
+          </div>
+        )}
+      </div>
+    )
   }
 
   if (loading) {
@@ -3556,13 +3968,256 @@ export default function LeagueDetails() {
 
       {mainTab === 'season' && seasonSubTab === 'playoffs' && (
         <div>
-          <div className="card text-center py-12">
-            <h3 className="section-header mb-4">Playoffs Management</h3>
-            <p className="text-gray-500 mb-4">Playoff bracket and management features coming soon</p>
-            <button onClick={() => setSeasonSubTab('schedule')} className="btn-secondary btn-sm">
-              Back to Schedule
-            </button>
-          </div>
+          {loadingPlayoffs ? (
+            <div className="card text-center py-12">
+              <p className="text-gray-500">Loading playoffs...</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Header with Create Bracket Button */}
+              <div className="card">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="section-header">Playoff Brackets</h3>
+                  {canManage && (
+                    <button
+                      onClick={() => setShowCreateBracketModal(true)}
+                      className="btn-primary btn-sm"
+                    >
+                      Create New Bracket
+                    </button>
+                  )}
+                </div>
+
+                {/* Bracket selector */}
+                {playoffBrackets.length > 0 ? (
+                  <div className="mb-4">
+                    <label className="label">Select Bracket</label>
+                    <select
+                      value={selectedBracket?.bracket?.id || ''}
+                      onChange={(e) => fetchBracketDetails(e.target.value)}
+                      className="input"
+                    >
+                      {playoffBrackets.map(bracket => (
+                        <option key={bracket.id} value={bracket.id}>
+                          {bracket.name} ({bracket.format === 'round_robin' ? 'Round Robin' : 'Single Elimination'})
+                          {bracket.is_active === 1 && ' - Active'}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 mb-4">No playoff brackets created yet</p>
+                    {canManage && (
+                      <button
+                        onClick={() => setShowCreateBracketModal(true)}
+                        className="btn-primary btn-sm"
+                      >
+                        Create Your First Bracket
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Selected Bracket Display */}
+              {selectedBracket && selectedBracket.bracket && (
+                <div className="card">
+                  <div className="mb-6">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h4 className="text-xl font-bold text-gray-900">{selectedBracket.bracket.name}</h4>
+                        <p className="text-sm text-gray-500">
+                          {selectedBracket.bracket.format === 'round_robin' ? 'Round Robin Format' : 'Single Elimination Format'}
+                        </p>
+                      </div>
+                      {selectedBracket.bracket.is_active === 1 && (
+                        <span className="badge badge-success">Active</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Round Robin Specific */}
+                  {selectedBracket.bracket.format === 'round_robin' && (
+                    <div className="space-y-6">
+                      {/* Check if round robin games have been scheduled */}
+                      {selectedBracket.matchesByType && selectedBracket.matchesByType.round_robin && selectedBracket.matchesByType.round_robin.length > 0 ? (
+                        <>
+                          {/* Round Robin Standings */}
+                          {selectedBracket.standings && selectedBracket.standings.length > 0 && (
+                            <div>
+                              <h5 className="font-semibold text-gray-900 mb-3">Standings</h5>
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                  <thead>
+                                    <tr className="border-b">
+                                      <th className="text-left py-2 px-3">Rank</th>
+                                      <th className="text-left py-2 px-3">Team</th>
+                                      <th className="text-center py-2 px-3">GP</th>
+                                      <th className="text-center py-2 px-3">W</th>
+                                      <th className="text-center py-2 px-3">L</th>
+                                      <th className="text-center py-2 px-3">T</th>
+                                      <th className="text-center py-2 px-3">GF</th>
+                                      <th className="text-center py-2 px-3">GA</th>
+                                      <th className="text-center py-2 px-3">DIFF</th>
+                                      <th className="text-center py-2 px-3 font-bold">PTS</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {selectedBracket.standings.map((standing, idx) => (
+                                      <tr key={standing.team_id} className="border-b hover:bg-gray-50">
+                                        <td className="py-2 px-3 font-semibold">{idx + 1}</td>
+                                        <td className="py-2 px-3">
+                                          <div className="flex items-center gap-2">
+                                            <div
+                                              className="w-3 h-3 rounded"
+                                              style={{ backgroundColor: standing.team_color || '#ccc' }}
+                                            />
+                                            <span>{standing.team_name}</span>
+                                          </div>
+                                        </td>
+                                        <td className="text-center py-2 px-3">{standing.games_played}</td>
+                                        <td className="text-center py-2 px-3">{standing.wins}</td>
+                                        <td className="text-center py-2 px-3">{standing.losses}</td>
+                                        <td className="text-center py-2 px-3">{standing.ties}</td>
+                                        <td className="text-center py-2 px-3">{standing.goals_for}</td>
+                                        <td className="text-center py-2 px-3">{standing.goals_against}</td>
+                                        <td className="text-center py-2 px-3">{standing.differential}</td>
+                                        <td className="text-center py-2 px-3 font-bold">{standing.points}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Generate Elimination Button */}
+                          {canManage && selectedBracket.standings && selectedBracket.standings.length >= 4 &&
+                            (!selectedBracket.matchesByType.semifinal || selectedBracket.matchesByType.semifinal.length === 0) && (
+                            <div className="pt-4 border-t">
+                              <button
+                                onClick={() => setShowGenerateEliminationModal(true)}
+                                className="btn-primary btn-sm w-full"
+                              >
+                                Generate Elimination Bracket from Top 4 Teams
+                              </button>
+                              <p className="text-xs text-gray-500 mt-2 text-center">
+                                This will create semifinals (#1 vs #4, #2 vs #3) and finals
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Elimination Matches (if generated) */}
+                          {selectedBracket.matchesByType && (
+                            selectedBracket.matchesByType.semifinal?.length > 0 ||
+                            selectedBracket.matchesByType.final?.length > 0 ||
+                            selectedBracket.matchesByType.consolation?.length > 0
+                          ) && (
+                            <div className="pt-6 border-t">
+                              <h5 className="font-semibold text-gray-900 mb-4">Elimination Round</h5>
+                              <div className="grid md:grid-cols-2 gap-4">
+                                {/* Semifinals */}
+                                {selectedBracket.matchesByType.semifinal?.map((match, idx) => (
+                                  <div key={match.id}>
+                                    <div className="text-sm font-medium text-gray-700 mb-2">
+                                      Semifinal {idx + 1}
+                                    </div>
+                                    {renderMatch(match)}
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="grid md:grid-cols-2 gap-4 mt-4">
+                                {/* Championship */}
+                                {selectedBracket.matchesByType.final?.map((match) => (
+                                  <div key={match.id}>
+                                    <div className="text-sm font-medium text-gray-700 mb-2">
+                                      Championship
+                                    </div>
+                                    {renderMatch(match)}
+                                    {/* Celebrate Winner Button */}
+                                    {canManage && match.winner_id && (
+                                      <button
+                                        onClick={() => openCelebrationModal(match)}
+                                        className="mt-3 w-full bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-all flex items-center justify-center gap-2"
+                                      >
+                                        <span>🏆</span>
+                                        <span>Celebrate Winner</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
+                                {/* Consolation */}
+                                {selectedBracket.matchesByType.consolation?.map((match) => (
+                                  <div key={match.id}>
+                                    <div className="text-sm font-medium text-gray-700 mb-2">
+                                      3rd Place Game
+                                    </div>
+                                    {renderMatch(match)}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        // No round robin games scheduled yet
+                        <div className="text-center py-8 bg-gray-50 rounded-lg">
+                          <p className="text-gray-600 mb-4">Round robin games have not been scheduled yet</p>
+                          {canManage && (
+                            <button
+                              onClick={() => setShowScheduleRoundRobinModal(true)}
+                              className="btn-primary btn-sm"
+                            >
+                              Schedule Round Robin Games
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Single Elimination Bracket */}
+                  {selectedBracket.bracket.format === 'single_elimination' && selectedBracket.matches && (
+                    <div>
+                      <div className="overflow-x-auto pb-4">
+                        <div className="inline-flex gap-8 min-w-full">
+                          {(() => {
+                            const matchesByRound = {}
+                            selectedBracket.matches.forEach(match => {
+                              if (!matchesByRound[match.round]) {
+                                matchesByRound[match.round] = []
+                              }
+                              matchesByRound[match.round].push(match)
+                            })
+                            const numRounds = Object.keys(matchesByRound).length
+
+                            return Object.keys(matchesByRound).sort((a, b) => parseInt(a) - parseInt(b)).map(round => (
+                              <div key={round} className="flex-1 min-w-[250px]">
+                                <h4 className="font-semibold text-gray-900 mb-3 text-center">
+                                  {round === '1' ? 'Round 1' :
+                                   round === '2' && numRounds === 2 ? 'Finals' :
+                                   round === '2' && numRounds === 3 ? 'Semifinals' :
+                                   round === '2' && numRounds === 4 ? 'Quarterfinals' :
+                                   round === '3' && numRounds === 3 ? 'Finals' :
+                                   round === '3' && numRounds === 4 ? 'Semifinals' :
+                                   round === '4' ? 'Finals' :
+                                   `Round ${round}`}
+                                </h4>
+                                <div className="space-y-6">
+                                  {matchesByRound[round].map((match) => renderMatch(match))}
+                                </div>
+                              </div>
+                            ))
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -4081,6 +4736,574 @@ This will also delete all associated teams, games, and payment records.`}
           </div>
         </div>
       )}
+
+      {/* Playoff Modals */}
+      {/* Create Bracket Modal */}
+      {showCreateBracketModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <form onSubmit={handleCreateBracket} className="p-4 sm:p-6 space-y-4">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">Create Playoff Bracket</h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateBracketModal(false)
+                    setBracketFormData({ name: '', format: 'single_elimination', team_ids: [] })
+                  }}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div>
+                <label className="label">Bracket Name *</label>
+                <input
+                  type="text"
+                  value={bracketFormData.name}
+                  onChange={(e) => setBracketFormData({ ...bracketFormData, name: e.target.value })}
+                  className="input"
+                  placeholder="e.g., Spring 2024 Playoffs"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="label">Format *</label>
+                <select
+                  value={bracketFormData.format}
+                  onChange={(e) => setBracketFormData({ ...bracketFormData, format: e.target.value, team_ids: [] })}
+                  className="input"
+                  required
+                >
+                  <option value="single_elimination">Single Elimination</option>
+                  <option value="round_robin">Round Robin</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  {bracketFormData.format === 'single_elimination'
+                    ? 'Traditional tournament bracket (4, 8, or 16 teams)'
+                    : 'All teams play each other, top 4 advance to finals'}
+                </p>
+              </div>
+
+              <div>
+                <label className="label">Select Teams *</label>
+                <div className="space-y-2 max-h-64 overflow-y-auto border border-gray-200 rounded p-3">
+                  {teams.map(team => (
+                    <label key={team.id} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={bracketFormData.team_ids.includes(team.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setBracketFormData({
+                              ...bracketFormData,
+                              team_ids: [...bracketFormData.team_ids, team.id]
+                            })
+                          } else {
+                            setBracketFormData({
+                              ...bracketFormData,
+                              team_ids: bracketFormData.team_ids.filter(id => id !== team.id)
+                            })
+                          }
+                        }}
+                        className="checkbox"
+                      />
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded"
+                          style={{ backgroundColor: team.color }}
+                        />
+                        <span>{team.name}</span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                {bracketFormData.format === 'single_elimination' && bracketFormData.team_ids.length > 0 && ![4, 8, 16].includes(bracketFormData.team_ids.length) && (
+                  <p className="text-xs text-red-600 mt-1">
+                    Single elimination requires exactly 4, 8, or 16 teams (currently {bracketFormData.team_ids.length} selected)
+                  </p>
+                )}
+                {bracketFormData.format === 'round_robin' && bracketFormData.team_ids.length > 0 && bracketFormData.team_ids.length < 2 && (
+                  <p className="text-xs text-red-600 mt-1">
+                    Round robin requires at least 2 teams
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-2 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateBracketModal(false)
+                    setBracketFormData({ name: '', format: 'single_elimination', team_ids: [] })
+                  }}
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary flex-1"
+                  disabled={
+                    !bracketFormData.name ||
+                    bracketFormData.team_ids.length === 0 ||
+                    (bracketFormData.format === 'single_elimination' && ![4, 8, 16].includes(bracketFormData.team_ids.length)) ||
+                    (bracketFormData.format === 'round_robin' && bracketFormData.team_ids.length < 2)
+                  }
+                >
+                  Create Bracket
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Schedule Round Robin Modal */}
+      {showScheduleRoundRobinModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <form onSubmit={handleScheduleRoundRobin} className="p-4 sm:p-6 space-y-4">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">Schedule Round Robin Games</h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowScheduleRoundRobinModal(false)
+                    setRoundRobinFormData({ start_date: '', game_times: [{ day_of_week: '', time: '' }] })
+                  }}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div>
+                <label className="label">Start Date *</label>
+                <input
+                  type="date"
+                  value={roundRobinFormData.start_date}
+                  onChange={(e) => setRoundRobinFormData({ ...roundRobinFormData, start_date: e.target.value })}
+                  className="input"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="label">Game Times *</label>
+                <p className="text-xs text-gray-500 mb-2">Add one or more game times per week</p>
+                <div className="space-y-3">
+                  {roundRobinFormData.game_times.map((gameTime, index) => (
+                    <div key={index} className="flex gap-2">
+                      <select
+                        value={gameTime.day_of_week}
+                        onChange={(e) => {
+                          const newGameTimes = [...roundRobinFormData.game_times]
+                          newGameTimes[index].day_of_week = e.target.value
+                          setRoundRobinFormData({ ...roundRobinFormData, game_times: newGameTimes })
+                        }}
+                        className="input flex-1"
+                      >
+                        <option value="">Day of week...</option>
+                        <option value="Monday">Monday</option>
+                        <option value="Tuesday">Tuesday</option>
+                        <option value="Wednesday">Wednesday</option>
+                        <option value="Thursday">Thursday</option>
+                        <option value="Friday">Friday</option>
+                        <option value="Saturday">Saturday</option>
+                        <option value="Sunday">Sunday</option>
+                      </select>
+                      <input
+                        type="time"
+                        value={gameTime.time}
+                        onChange={(e) => {
+                          const newGameTimes = [...roundRobinFormData.game_times]
+                          newGameTimes[index].time = e.target.value
+                          setRoundRobinFormData({ ...roundRobinFormData, game_times: newGameTimes })
+                        }}
+                        className="input flex-1"
+                      />
+                      {roundRobinFormData.game_times.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newGameTimes = roundRobinFormData.game_times.filter((_, i) => i !== index)
+                            setRoundRobinFormData({ ...roundRobinFormData, game_times: newGameTimes })
+                          }}
+                          className="btn-secondary px-3"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRoundRobinFormData({
+                        ...roundRobinFormData,
+                        game_times: [...roundRobinFormData.game_times, { day_of_week: '', time: '' }]
+                      })
+                    }}
+                    className="btn-secondary btn-sm"
+                  >
+                    Add Game Time
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex gap-2 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowScheduleRoundRobinModal(false)
+                    setRoundRobinFormData({ start_date: '', game_times: [{ day_of_week: '', time: '' }] })
+                  }}
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary flex-1"
+                  disabled={!roundRobinFormData.start_date}
+                >
+                  Schedule Games
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Generate Elimination Modal */}
+      {showGenerateEliminationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <form onSubmit={handleGenerateElimination} className="p-4 sm:p-6 space-y-4">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">Generate Elimination Bracket</h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowGenerateEliminationModal(false)
+                    setEliminationFormData({
+                      semifinal_date: '',
+                      semifinal_times: ['', ''],
+                      final_date: '',
+                      final_times: ['', '']
+                    })
+                  }}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              <p className="text-gray-600">
+                This will create semifinals (#1 vs #4, #2 vs #3) and finals (championship + 3rd place game) based on current standings.
+              </p>
+
+              <div>
+                <h4 className="font-semibold mb-2">Semifinals</h4>
+                <div className="space-y-3">
+                  <div>
+                    <label className="label">Date *</label>
+                    <input
+                      type="date"
+                      value={eliminationFormData.semifinal_date}
+                      onChange={(e) => setEliminationFormData({ ...eliminationFormData, semifinal_date: e.target.value })}
+                      className="input"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="label">Game 1 Time *</label>
+                      <input
+                        type="time"
+                        value={eliminationFormData.semifinal_times[0]}
+                        onChange={(e) => {
+                          const newTimes = [...eliminationFormData.semifinal_times]
+                          newTimes[0] = e.target.value
+                          setEliminationFormData({ ...eliminationFormData, semifinal_times: newTimes })
+                        }}
+                        className="input"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Game 2 Time *</label>
+                      <input
+                        type="time"
+                        value={eliminationFormData.semifinal_times[1]}
+                        onChange={(e) => {
+                          const newTimes = [...eliminationFormData.semifinal_times]
+                          newTimes[1] = e.target.value
+                          setEliminationFormData({ ...eliminationFormData, semifinal_times: newTimes })
+                        }}
+                        className="input"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-2">Finals</h4>
+                <div className="space-y-3">
+                  <div>
+                    <label className="label">Date *</label>
+                    <input
+                      type="date"
+                      value={eliminationFormData.final_date}
+                      onChange={(e) => setEliminationFormData({ ...eliminationFormData, final_date: e.target.value })}
+                      className="input"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="label">Championship Time *</label>
+                      <input
+                        type="time"
+                        value={eliminationFormData.final_times[0]}
+                        onChange={(e) => {
+                          const newTimes = [...eliminationFormData.final_times]
+                          newTimes[0] = e.target.value
+                          setEliminationFormData({ ...eliminationFormData, final_times: newTimes })
+                        }}
+                        className="input"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="label">3rd Place Time *</label>
+                      <input
+                        type="time"
+                        value={eliminationFormData.final_times[1]}
+                        onChange={(e) => {
+                          const newTimes = [...eliminationFormData.final_times]
+                          newTimes[1] = e.target.value
+                          setEliminationFormData({ ...eliminationFormData, final_times: newTimes })
+                        }}
+                        className="input"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowGenerateEliminationModal(false)
+                    setEliminationFormData({
+                      semifinal_date: '',
+                      semifinal_times: ['', ''],
+                      final_date: '',
+                      final_times: ['', '']
+                    })
+                  }}
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary flex-1"
+                  disabled={
+                    !eliminationFormData.semifinal_date ||
+                    !eliminationFormData.semifinal_times[0] ||
+                    !eliminationFormData.semifinal_times[1] ||
+                    !eliminationFormData.final_date ||
+                    !eliminationFormData.final_times[0] ||
+                    !eliminationFormData.final_times[1]
+                  }
+                >
+                  Generate Bracket
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Match Score Modal */}
+      {showMatchScoreModal && selectedMatch && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <form onSubmit={handleUpdateMatchScore} className="p-4 sm:p-6 space-y-4">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">Enter Match Score</h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMatchScoreModal(false)
+                    setSelectedMatch(null)
+                    setMatchScoreData({ team1_score: '', team2_score: '' })
+                  }}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2 flex-1">
+                    <div
+                      className="w-4 h-4 rounded"
+                      style={{ backgroundColor: selectedMatch.team1_color || '#ccc' }}
+                    />
+                    <span className="font-medium">{selectedMatch.team1_name}</span>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    value={matchScoreData.team1_score}
+                    onChange={(e) => setMatchScoreData({ ...matchScoreData, team1_score: e.target.value })}
+                    className="input w-20 text-center text-lg font-bold"
+                    placeholder="0"
+                    required
+                  />
+                </div>
+
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2 flex-1">
+                    <div
+                      className="w-4 h-4 rounded"
+                      style={{ backgroundColor: selectedMatch.team2_color || '#ccc' }}
+                    />
+                    <span className="font-medium">{selectedMatch.team2_name}</span>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    value={matchScoreData.team2_score}
+                    onChange={(e) => setMatchScoreData({ ...matchScoreData, team2_score: e.target.value })}
+                    className="input w-20 text-center text-lg font-bold"
+                    placeholder="0"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMatchScoreModal(false)
+                    setSelectedMatch(null)
+                    setMatchScoreData({ team1_score: '', team2_score: '' })
+                  }}
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary flex-1"
+                >
+                  Save Score
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Championship Celebration Modal */}
+      {showCelebrationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-lg max-w-2xl w-full border-4 border-yellow-400 shadow-2xl">
+            <form onSubmit={handleCreateCelebration} className="p-4 sm:p-6 space-y-4">
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-4xl">🏆</span>
+                  <h2 className="text-2xl font-bold text-gray-900">Celebrate the Champions!</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCelebrationModal(false)
+                    setCelebrationFormData({ title: '', message: '', expires_at: '' })
+                  }}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="bg-yellow-100 border-2 border-yellow-300 rounded-lg p-4 mb-4">
+                <p className="text-sm text-gray-700 text-center">
+                  Create an announcement to celebrate the championship winners! This will be displayed prominently on the standings page.
+                </p>
+              </div>
+
+              <div>
+                <label className="label">Announcement Title</label>
+                <input
+                  type="text"
+                  value={celebrationFormData.title}
+                  onChange={(e) => setCelebrationFormData({ ...celebrationFormData, title: e.target.value })}
+                  className="input w-full"
+                  placeholder="e.g., Team Name are the Champions!"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="label">Message</label>
+                <textarea
+                  value={celebrationFormData.message}
+                  onChange={(e) => setCelebrationFormData({ ...celebrationFormData, message: e.target.value })}
+                  className="input w-full"
+                  rows="4"
+                  placeholder="Add a congratulatory message..."
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="label">Expiration Date (Optional)</label>
+                <input
+                  type="date"
+                  value={celebrationFormData.expires_at}
+                  onChange={(e) => setCelebrationFormData({ ...celebrationFormData, expires_at: e.target.value })}
+                  className="input w-full"
+                />
+                <p className="text-xs text-gray-500 mt-1">Leave blank to keep the announcement active indefinitely</p>
+              </div>
+
+              <div className="flex gap-2 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCelebrationModal(false)
+                    setCelebrationFormData({ title: '', message: '', expires_at: '' })
+                  }}
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-all"
+                >
+                  🎉 Post Celebration
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
         </>
       )}
     </div>

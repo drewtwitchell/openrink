@@ -869,14 +869,29 @@ export default function Home() {
               ) : (
                 <div className="space-y-3">
                   {upcomingGames.map((game) => (
-                    <div key={game.id} className={`p-3 rounded ${game.isPlayoff ? 'bg-yellow-50 border border-yellow-200' : 'bg-gray-50'}`}>
-                      <div className="flex items-center gap-2 mb-1">
+                    <div key={game.id} className={`p-3 rounded ${game.isPlayoff || game.bracket_id ? 'bg-yellow-50 border border-yellow-200' : 'bg-gray-50'}`}>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="font-semibold text-sm">
                           {game.home_team_name} vs {game.away_team_name}
                         </span>
-                        {game.isPlayoff && (
+                        {(game.isPlayoff || game.bracket_id) && (
                           <span className="text-xs px-2 py-0.5 bg-yellow-200 text-yellow-800 rounded font-medium">
                             Playoff
+                          </span>
+                        )}
+                        {game.round && game.round === 'semifinal' && (
+                          <span className="text-xs px-2 py-0.5 bg-blue-200 text-blue-800 rounded font-medium">
+                            Semifinal
+                          </span>
+                        )}
+                        {game.round && game.round === 'final' && (
+                          <span className="text-xs px-2 py-0.5 bg-green-200 text-green-800 rounded font-medium">
+                            Championship
+                          </span>
+                        )}
+                        {game.round && game.round === 'consolation' && (
+                          <span className="text-xs px-2 py-0.5 bg-gray-200 text-gray-800 rounded font-medium">
+                            3rd Place
                           </span>
                         )}
                       </div>
