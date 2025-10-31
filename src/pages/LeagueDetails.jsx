@@ -1156,7 +1156,7 @@ export default function LeagueDetails() {
     }
   }
 
-  const handleEditGame = (game) => {
+  const handleEditGame = async (game) => {
     setGameFormData({
       home_team_id: game.home_team_id,
       away_team_id: game.away_team_id,
@@ -1174,6 +1174,14 @@ export default function LeagueDetails() {
     // Clear rink search state to prevent showing old search results
     setRinkSearchActive(false)
     setShowRinkResults(false)
+
+    // Fetch team players for both teams to show in player stats section
+    if (!teamPlayers[game.home_team_id]) {
+      await fetchTeamPlayers(game.home_team_id)
+    }
+    if (!teamPlayers[game.away_team_id]) {
+      await fetchTeamPlayers(game.away_team_id)
+    }
   }
 
   const handleCancelGameEdit = () => {
