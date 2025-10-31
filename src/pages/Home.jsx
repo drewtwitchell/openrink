@@ -355,25 +355,13 @@ export default function Home() {
           <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
             Free, lightweight hockey league management system. Track teams, games, standings, and player payments all in one place.
           </p>
-          <div className="flex gap-4 justify-center">
-            {isAuthenticated ? (
-              <Link to="/dashboard" className="btn-primary btn-sm">
-                Go to Dashboard
-              </Link>
-            ) : (
+          {!isAuthenticated && (
+            <div className="flex justify-center">
               <Link to="/login" className="btn-primary btn-sm">
                 Sign In/Register
               </Link>
-            )}
-            <a
-              href="https://github.com/drewtwitchell/openrink"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-secondary btn-sm"
-            >
-              View on GitHub
-            </a>
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Features Grid */}
@@ -429,24 +417,17 @@ export default function Home() {
         </div>
 
         {/* Getting Started */}
-        <div className="card text-center">
-          <h2 className="section-header text-gray-900 mb-3">Ready to Get Started?</h2>
-          <p className="text-gray-600 mb-6 max-w-xl mx-auto">
-            {isAuthenticated
-              ? "Head to your dashboard to create your first league and start managing your hockey season."
-              : "Sign in to create your first league and start managing your hockey season in minutes."
-            }
-          </p>
-          {isAuthenticated ? (
+        {isAuthenticated && (
+          <div className="card text-center">
+            <h2 className="section-header text-gray-900 mb-3">Ready to Get Started?</h2>
+            <p className="text-gray-600 mb-6 max-w-xl mx-auto">
+              Head to your dashboard to create your first league and start managing your hockey season.
+            </p>
             <Link to="/dashboard" className="btn-primary btn-sm">
               Create Your First League
             </Link>
-          ) : (
-            <Link to="/login" className="btn-primary btn-sm">
-              Sign In/Register
-            </Link>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -613,13 +594,13 @@ export default function Home() {
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0 text-blue-600">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900 mb-1">Sign in to mark your attendance</h4>
+                  <h4 className="font-semibold text-gray-900 mb-1">Mark your attendance for upcoming games</h4>
                   <p className="text-gray-700 text-sm mb-3">
-                    Players can login to mark their attendance for upcoming games, request substitutes, and view payment status.
+                    Sign in to let your team know if you'll be playing.
                   </p>
                   <Link to="/login" className="btn-primary btn-sm inline-block">
                     Sign In / Register
