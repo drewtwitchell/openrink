@@ -3592,7 +3592,7 @@ export default function LeagueDetails() {
                     />
                     <p className="text-xs text-gray-500 mt-1">Auto-filled when selecting a rink above, or enter manually</p>
                   </div>
-                  {/* Only show score fields for past games */}
+                  {/* Only show score fields for past/completed games when editing */}
                   {editingGameId && (() => {
                     const now = new Date()
                     now.setHours(0, 0, 0, 0)
@@ -3601,25 +3601,27 @@ export default function LeagueDetails() {
                   })() && (
                     <>
                       <div>
-                        <label className="label">Home Team Score</label>
+                        <label className="label">Home Team Score *</label>
                         <input
                           type="number"
                           min="0"
                           value={gameFormData.home_score}
                           onChange={(e) => setGameFormData({ ...gameFormData, home_score: e.target.value })}
                           className="input"
-                          placeholder="Optional"
+                          required
+                          placeholder="Enter final score"
                         />
                       </div>
                       <div>
-                        <label className="label">Away Team Score</label>
+                        <label className="label">Away Team Score *</label>
                         <input
                           type="number"
                           min="0"
                           value={gameFormData.away_score}
                           onChange={(e) => setGameFormData({ ...gameFormData, away_score: e.target.value })}
                           className="input"
-                          placeholder="Optional"
+                          required
+                          placeholder="Enter final score"
                         />
                       </div>
                     </>
