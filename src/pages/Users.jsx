@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { auth, players } from '../lib/api'
 import ConfirmModal from '../components/ConfirmModal'
@@ -14,6 +14,8 @@ export default function Users() {
   const [expandedUsers, setExpandedUsers] = useState({}) // Track which users are expanded
   const [userHistories, setUserHistories] = useState({}) // Store histories by user ID
   const [loadingHistories, setLoadingHistories] = useState({}) // Track loading state per user
+  const [openUserMenu, setOpenUserMenu] = useState(null) // Track which user's menu is open
+  const userMenuRef = useRef(null)
 
   useEffect(() => {
     const currentUser = auth.getUser()
@@ -22,6 +24,17 @@ export default function Users() {
     // Try to fetch users (backend will handle access control)
     fetchAllUsers()
   }, [navigate])
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setOpenUserMenu(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const fetchAllUsers = async () => {
     try {
@@ -104,6 +117,32 @@ export default function Users() {
     return new Date(dateString).toLocaleDateString()
   }
 
+  const handleDeactivateUser = async (userId, userName) => {
+    if (!confirm(`Are you sure you want to deactivate ${userName}? They will not be able to log in until reactivated.`)) {
+      return
+    }
+
+    try {
+      await auth.deactivateUser(userId)
+      setMessage(`User ${userName} has been deactivated successfully`)
+      fetchAllUsers()
+      setTimeout(() => setMessage(''), 3000)
+    } catch (error) {
+      setMessage('Error deactivating user: ' + error.message)
+    }
+  }
+
+  const handleReactivateUser = async (userId, userName) => {
+    try {
+      await auth.reactivateUser(userId)
+      setMessage(`User ${userName} has been reactivated successfully`)
+      fetchAllUsers()
+      setTimeout(() => setMessage(''), 3000)
+    } catch (error) {
+      setMessage('Error reactivating user: ' + error.message)
+    }
+  }
+
   if (loading) {
     return <div className="loading">Loading users...</div>
   }
@@ -147,8 +186,13 @@ export default function Users() {
             <tbody>
               {allUsers.map((u) => (
                 <>
-                  <tr key={u.id}>
-                    <td className="font-medium">{u.email}</td>
+                  <tr key={u.id} className={u.is_active === 0 ? 'opacity-60 bg-gray-50' : ''}>
+                    <td className="font-medium">
+                      {u.email}
+                      {u.is_active === 0 && (
+                        <span className="ml-2 badge badge-neutral text-xs">Deactivated</span>
+                      )}
+                    </td>
                     <td>{u.name || '-'}</td>
                     <td className="text-gray-600">{u.phone || '-'}</td>
                     <td>
@@ -173,20 +217,75 @@ export default function Users() {
                     <td className="text-gray-600">
                       {new Date(u.created_at).toLocaleDateString()}
                     </td>
-                    <td className="text-right space-x-2">
-                      <button
-                        onClick={() => toggleUserHistory(u.id)}
-                        className="btn-secondary btn-sm"
-                      >
-                        {expandedUsers[u.id] ? 'Hide History' : 'View History'}
-                      </button>
+                    <td className="text-right">
                       {user?.role === 'admin' && (
-                        <button
-                          onClick={() => setResetPasswordModal({ isOpen: true, user: u })}
-                          className="btn-secondary btn-sm"
-                        >
-                          Reset Password
-                        </button>
+                        <div className="relative inline-block" ref={openUserMenu === u.id ? userMenuRef : null}>
+                          <button
+                            onClick={() => setOpenUserMenu(openUserMenu === u.id ? null : u.id)}
+                            className="btn-secondary btn-sm px-3"
+                            aria-label="User actions"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                            </svg>
+                          </button>
+                          {openUserMenu === u.id && (
+                            <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                              <button
+                                onClick={() => {
+                                  toggleUserHistory(u.id)
+                                  setOpenUserMenu(null)
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {expandedUsers[u.id] ? 'Hide History' : 'View History'}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setResetPasswordModal({ isOpen: true, user: u })
+                                  setOpenUserMenu(null)
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                                </svg>
+                                Reset Password
+                              </button>
+                              {u.is_active === 0 ? (
+                                <button
+                                  onClick={() => {
+                                    handleReactivateUser(u.id, u.name || u.email)
+                                    setOpenUserMenu(null)
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-green-50 flex items-center gap-2"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  Reactivate User
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    handleDeactivateUser(u.id, u.name || u.email)
+                                    setOpenUserMenu(null)
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-orange-50 flex items-center gap-2"
+                                  disabled={u.id === user?.id}
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                  </svg>
+                                  Deactivate User
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       )}
                     </td>
                   </tr>

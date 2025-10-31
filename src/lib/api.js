@@ -91,6 +91,14 @@ export const auth = {
     body: JSON.stringify({ new_password: newPassword }),
   }),
 
+  deactivateUser: (userId) => apiRequest(`/api/auth/users/${userId}/deactivate`, {
+    method: 'PUT',
+  }),
+
+  reactivateUser: (userId) => apiRequest(`/api/auth/users/${userId}/reactivate`, {
+    method: 'PUT',
+  }),
+
   changePassword: async (currentPassword, newPassword) => {
     return apiRequest('/api/auth/change-password', {
       method: 'PUT',

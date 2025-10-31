@@ -56,6 +56,22 @@ function initDatabase() {
       })
     })
 
+    // Add is_active column if it doesn't exist (migration)
+    db.run(`ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1`, (err) => {
+      // Ignore error if column already exists
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding is_active column:', err)
+      }
+    })
+
+    // Add must_change_password column if it doesn't exist (migration)
+    db.run(`ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0`, (err) => {
+      // Ignore error if column already exists
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding must_change_password column:', err)
+      }
+    })
+
     // League managers table
     db.run(`
       CREATE TABLE IF NOT EXISTS league_managers (

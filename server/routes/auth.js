@@ -90,6 +90,11 @@ router.post('/signin', [
       return res.status(401).json({ error: 'Invalid credentials' })
     }
 
+    // Check if user is deactivated
+    if (user.is_active === 0) {
+      return res.status(403).json({ error: 'Account deactivated. Please contact an administrator.' })
+    }
+
     try {
       const validPassword = await bcrypt.compare(password, user.password)
       if (!validPassword) {
@@ -106,6 +111,7 @@ router.post('/signin', [
           name: user.name,
           phone: user.phone,
           role: user.role,
+          must_change_password: user.must_change_password || 0,
           password_reset_required: user.password_reset_required || 0
         }
       })
@@ -216,7 +222,7 @@ router.get('/users', authenticateToken, (req, res) => {
 
     // Admins can see all users
     if (user.role === 'admin') {
-      db.all('SELECT id, username, email, name, phone, role, created_at FROM users ORDER BY created_at DESC', [], (err, users) => {
+      db.all('SELECT id, username, email, name, phone, role, is_active, must_change_password, created_at FROM users ORDER BY created_at DESC', [], (err, users) => {
         if (err) {
           return res.status(500).json({ error: 'Error fetching users' })
         }
@@ -345,9 +351,9 @@ router.put('/users/:id/reset-password', [
       // Hash new password
       const hashedPassword = await bcrypt.hash(new_password, 10)
 
-      // Update password
+      // Update password and force user to change it on next login
       db.run(
-        'UPDATE users SET password = ?, password_reset_required = 0 WHERE id = ?',
+        'UPDATE users SET password = ?, must_change_password = 1, password_reset_required = 0 WHERE id = ?',
         [hashedPassword, req.params.id],
         function (err) {
           if (err) {
@@ -356,13 +362,66 @@ router.put('/users/:id/reset-password', [
           if (this.changes === 0) {
             return res.status(404).json({ error: 'User not found' })
           }
-          res.json({ message: 'Password reset successfully' })
+          res.json({ message: 'Password reset successfully. User will be required to change it on next login.' })
         }
       )
     })
   } catch (error) {
     res.status(500).json({ error: 'Server error' })
   }
+})
+
+// Deactivate user (admin only)
+router.put('/users/:id/deactivate', authenticateToken, (req, res) => {
+  // Check if user is admin
+  db.get('SELECT role FROM users WHERE id = ?', [req.user.id], (err, user) => {
+    if (err || !user || user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' })
+    }
+
+    // Prevent deactivating yourself
+    if (parseInt(req.params.id) === req.user.id) {
+      return res.status(400).json({ error: 'Cannot deactivate your own account' })
+    }
+
+    db.run(
+      'UPDATE users SET is_active = 0 WHERE id = ?',
+      [req.params.id],
+      function (err) {
+        if (err) {
+          return res.status(500).json({ error: 'Error deactivating user' })
+        }
+        if (this.changes === 0) {
+          return res.status(404).json({ error: 'User not found' })
+        }
+        res.json({ message: 'User deactivated successfully' })
+      }
+    )
+  })
+})
+
+// Reactivate user (admin only)
+router.put('/users/:id/reactivate', authenticateToken, (req, res) => {
+  // Check if user is admin
+  db.get('SELECT role FROM users WHERE id = ?', [req.user.id], (err, user) => {
+    if (err || !user || user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' })
+    }
+
+    db.run(
+      'UPDATE users SET is_active = 1 WHERE id = ?',
+      [req.params.id],
+      function (err) {
+        if (err) {
+          return res.status(500).json({ error: 'Error reactivating user' })
+        }
+        if (this.changes === 0) {
+          return res.status(404).json({ error: 'User not found' })
+        }
+        res.json({ message: 'User reactivated successfully' })
+      }
+    )
+  })
 })
 
 // Delete user (admin only)
