@@ -239,7 +239,7 @@ export default function TeamRoster() {
     return (
       <div className="card text-center py-12">
         <p className="text-gray-500 mb-4">Team not found</p>
-        <button onClick={() => navigate('/teams')} className="btn-primary">
+        <button onClick={() => navigate('/teams')} className="btn-primary btn-sm">
           Back to Teams
         </button>
       </div>
@@ -274,18 +274,18 @@ export default function TeamRoster() {
           <div className="flex gap-2">
             <button
               onClick={() => setShowForm(!showForm)}
-              className="btn-primary"
+              className="btn-primary btn-sm"
             >
               {showForm ? 'Cancel' : '+ Add Player'}
             </button>
             <button
               onClick={() => csv.downloadRosterTemplate()}
-              className="btn-secondary"
+              className="btn-secondary btn-sm"
               title="Download CSV Template"
             >
               Template
             </button>
-            <label className="btn-secondary cursor-pointer" title="Upload Roster CSV">
+            <label className="btn-secondary btn-sm cursor-pointer" title="Upload Roster CSV">
               Upload CSV
               <input
                 ref={fileInputRef}
@@ -314,7 +314,7 @@ export default function TeamRoster() {
 
       {/* Team Captain Section */}
       {roster.filter(p => p.is_captain === 1).length > 0 && (
-        <div className="card mb-6 bg-gray-50 border-gray-200">
+        <div className="card mb-6">
           <h3 className="text-lg font-semibold mb-3">
             Team Captain{roster.filter(p => p.is_captain === 1).length > 1 ? 's' : ''}
           </h3>
@@ -480,7 +480,7 @@ export default function TeamRoster() {
               </label>
             </div>
 
-            <button type="submit" className="btn-primary">
+            <button type="submit" className="btn-primary btn-sm">
               Add Player
             </button>
           </form>
@@ -665,7 +665,7 @@ export default function TeamRoster() {
               </button>
               <button
                 onClick={handleTransfer}
-                className="btn-primary"
+                className="btn-primary btn-sm"
               >
                 {showNewTeamForm ? 'Create Team & Transfer' : 'Transfer Player'}
               </button>

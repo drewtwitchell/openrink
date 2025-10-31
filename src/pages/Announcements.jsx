@@ -133,7 +133,7 @@ export default function Announcements() {
             setEditingId(null)
             setFormData({ title: '', message: '', expires_at: '' })
           }}
-          className="btn-primary"
+          className="btn-primary btn-sm"
         >
           {showForm ? 'Cancel' : 'New Announcement'}
         </button>
@@ -182,7 +182,7 @@ export default function Announcements() {
               </p>
             </div>
 
-            <button type="submit" className="btn-primary">
+            <button type="submit" className="btn-primary btn-sm">
               {editingId ? 'Update Announcement' : 'Create Announcement'}
             </button>
           </form>
@@ -192,7 +192,7 @@ export default function Announcements() {
       {announcementsList.length === 0 ? (
         <div className="card text-center py-12">
           <p className="text-gray-500 mb-4">No announcements yet</p>
-          <button onClick={() => setShowForm(true)} className="btn-primary">
+          <button onClick={() => setShowForm(true)} className="btn-primary btn-sm">
             Create Your First Announcement
           </button>
         </div>
@@ -201,12 +201,12 @@ export default function Announcements() {
           {announcementsList.map((announcement) => (
             <div
               key={announcement.id}
-              className={`card ${announcement.is_active === 1 ? 'bg-white' : 'bg-gray-50'}`}
+              className="card"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-semibold text-lg">{announcement.title}</h3>
+                    <h3 className="text-lg font-semibold">{announcement.title}</h3>
                     <span
                       className={`badge ${
                         announcement.is_active === 1 ? 'badge-success' : 'badge-neutral'

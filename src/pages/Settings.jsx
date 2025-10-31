@@ -311,7 +311,7 @@ export default function Settings() {
             <p className="text-xs text-gray-500 mt-1">Used for team notifications and roster display</p>
           </div>
 
-          <button type="submit" className="btn-primary">
+          <button type="submit" className="btn-primary btn-sm">
             Save Changes
           </button>
         </form>
@@ -484,7 +484,7 @@ export default function Settings() {
             />
           </div>
 
-          <button type="submit" className="btn-primary">
+          <button type="submit" className="btn-primary btn-sm">
             Update Password
           </button>
         </form>
@@ -576,7 +576,7 @@ export default function Settings() {
           </p>
           <button
             onClick={() => navigate('/users')}
-            className="btn-primary"
+            className="btn-primary btn-sm"
           >
             Manage All Users
           </button>

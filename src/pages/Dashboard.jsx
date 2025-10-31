@@ -538,7 +538,7 @@ export default function Dashboard() {
                         </div>
                         <button
                           onClick={() => navigate('/')}
-                          className="btn-primary text-sm whitespace-nowrap"
+                          className="btn-primary btn-sm whitespace-nowrap"
                         >
                           View Schedule & Standings
                         </button>
@@ -696,13 +696,13 @@ export default function Dashboard() {
                           <div className="flex flex-col gap-2">
                             <button
                               onClick={() => startEditPlayer(profile)}
-                              className="btn-secondary text-sm"
+                              className="btn-secondary btn-sm"
                             >
                               Edit
                             </button>
                             <button
                               onClick={() => toggleTeamRoster(profile.team_id)}
-                              className="btn-secondary text-sm"
+                              className="btn-secondary btn-sm"
                             >
                               {expandedTeams[profile.team_id] ? 'Hide Roster' : 'View Roster'}
                             </button>
@@ -1078,7 +1078,7 @@ export default function Dashboard() {
                       </div>
                       <button
                         onClick={() => navigate(`/leagues/${league.id}`)}
-                        className="btn-primary text-sm whitespace-nowrap ml-4"
+                        className="btn-primary btn-sm whitespace-nowrap ml-4"
                       >
                         Manage League
                       </button>
@@ -1204,7 +1204,7 @@ export default function Dashboard() {
                   <div className="alert alert-info">
                     After creating the league, you'll be able to add seasons with payment details, teams, and schedules.
                   </div>
-                  <button type="submit" className="btn-primary">
+                  <button type="submit" className="btn-primary btn-sm">
                     Create League
                   </button>
                 </form>
@@ -1240,13 +1240,13 @@ export default function Dashboard() {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={(e) => handleToggleArchiveLeague(e, league)}
-                              className={`btn-secondary text-sm px-3 py-1 ${league.archived === 1 ? '' : 'text-amber-600'}`}
+                              className={`btn-secondary btn-sm px-3 py-1 ${league.archived === 1 ? '' : 'text-amber-600'}`}
                             >
                               {league.archived === 1 ? 'Unarchive' : 'Archive'}
                             </button>
                             <button
                               onClick={(e) => handleDeleteLeague(e, league)}
-                              className="btn-danger text-sm px-3 py-1"
+                              className="btn-danger btn-sm"
                             >
                               Delete
                             </button>

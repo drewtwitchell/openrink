@@ -363,13 +363,13 @@ export default function PlayoffBracketView() {
                 </div>
 
                 <div className="flex gap-2 pt-4">
-                  <button type="submit" className="btn-primary flex-1">
+                  <button type="submit" className="btn-primary btn-sm flex-1">
                     Save Match
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditingMatch(null)}
-                    className="btn-secondary flex-1"
+                    className="btn-secondary btn-sm flex-1"
                   >
                     Cancel
                   </button>

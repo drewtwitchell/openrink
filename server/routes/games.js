@@ -37,6 +37,8 @@ router.post('/', authenticateToken, (req, res) => {
     rink_id,
     surface_name,
     season_id,
+    location,
+    rink_name,
   } = req.body
 
   if (!home_team_id || !away_team_id || !game_date || !game_time) {
@@ -83,8 +85,8 @@ router.post('/', authenticateToken, (req, res) => {
 
       function createGame() {
         db.run(
-          'INSERT INTO games (home_team_id, away_team_id, game_date, game_time, rink_id, surface_name, season_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          [home_team_id, away_team_id, game_date, game_time, rink_id, surface_name || 'NHL', season_id || null],
+          'INSERT INTO games (home_team_id, away_team_id, game_date, game_time, rink_id, surface_name, season_id, location, rink_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [home_team_id, away_team_id, game_date, game_time, rink_id, surface_name || 'NHL', season_id || null, location || null, rink_name || null],
           function (err) {
             if (err) {
               return res.status(500).json({ error: 'Error creating game' })
@@ -95,6 +97,37 @@ router.post('/', authenticateToken, (req, res) => {
       }
     })
   })
+})
+
+// Update game
+router.put('/:id', authenticateToken, requireGameLeagueManager, (req, res) => {
+  const {
+    home_team_id,
+    away_team_id,
+    game_date,
+    game_time,
+    rink_id,
+    surface_name,
+    location,
+    rink_name,
+    home_score,
+    away_score,
+  } = req.body
+
+  if (!home_team_id || !away_team_id || !game_date || !game_time) {
+    return res.status(400).json({ error: 'Required fields missing' })
+  }
+
+  db.run(
+    'UPDATE games SET home_team_id = ?, away_team_id = ?, game_date = ?, game_time = ?, rink_id = ?, surface_name = ?, location = ?, rink_name = ?, home_score = ?, away_score = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [home_team_id, away_team_id, game_date, game_time, rink_id, surface_name || 'NHL', location || null, rink_name || null, home_score !== '' && home_score !== null && home_score !== undefined ? home_score : null, away_score !== '' && away_score !== null && away_score !== undefined ? away_score : null, req.params.id],
+    function (err) {
+      if (err) {
+        return res.status(500).json({ error: 'Error updating game' })
+      }
+      res.json({ message: 'Game updated successfully' })
+    }
+  )
 })
 
 // Update game score

@@ -118,14 +118,14 @@ export default function Leagues() {
         <div className="flex gap-2">
           <button
             onClick={() => setShowArchived(!showArchived)}
-            className="btn-secondary"
+            className="btn-secondary btn-sm"
           >
             {showArchived ? 'Show Active' : 'Show Archived'}
           </button>
           {canManageLeagues() && (
             <button
               onClick={() => setShowForm(!showForm)}
-              className="btn-primary"
+              className="btn-primary btn-sm"
             >
               {showForm ? 'Cancel' : 'New League'}
             </button>
@@ -184,7 +184,7 @@ export default function Leagues() {
               After creating the league, you'll be taken to add seasons with payment details, teams, and schedules.
             </div>
 
-            <button type="submit" className="btn-primary">
+            <button type="submit" className="btn-primary btn-sm">
               Create League
             </button>
           </form>
@@ -199,7 +199,7 @@ export default function Leagues() {
               {canManageLeagues() ? 'Create your first league to get started' : 'No leagues are available'}
             </p>
             {canManageLeagues() && (
-              <button onClick={() => setShowForm(true)} className="btn-primary">
+              <button onClick={() => setShowForm(true)} className="btn-primary btn-sm">
                 Create Your First League
               </button>
             )}

@@ -340,11 +340,11 @@ export default function Home() {
           </p>
           <div className="flex gap-4 justify-center">
             {isAuthenticated ? (
-              <Link to="/dashboard" className="btn-primary">
+              <Link to="/dashboard" className="btn-primary btn-sm">
                 Go to Dashboard
               </Link>
             ) : (
-              <Link to="/login" className="btn-primary">
+              <Link to="/login" className="btn-primary btn-sm">
                 Sign In/Register
               </Link>
             )}
@@ -352,7 +352,7 @@ export default function Home() {
               href="https://github.com/drewtwitchell/openrink"
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-secondary"
+              className="btn-secondary btn-sm"
             >
               View on GitHub
             </a>
@@ -412,7 +412,7 @@ export default function Home() {
         </div>
 
         {/* Getting Started */}
-        <div className="card bg-gray-50 text-center">
+        <div className="card text-center">
           <h2 className="section-header text-gray-900 mb-3">Ready to Get Started?</h2>
           <p className="text-gray-600 mb-6 max-w-xl mx-auto">
             {isAuthenticated
@@ -421,11 +421,11 @@ export default function Home() {
             }
           </p>
           {isAuthenticated ? (
-            <Link to="/dashboard" className="btn-primary">
+            <Link to="/dashboard" className="btn-primary btn-sm">
               Create Your First League
             </Link>
           ) : (
-            <Link to="/login" className="btn-primary">
+            <Link to="/login" className="btn-primary btn-sm">
               Sign In/Register
             </Link>
           )}
@@ -604,7 +604,7 @@ export default function Home() {
                   <p className="text-gray-700 text-sm mb-3">
                     Players can login to mark their attendance for upcoming games, request substitutes, and view payment status.
                   </p>
-                  <Link to="/login" className="btn-primary inline-block text-sm">
+                  <Link to="/login" className="btn-primary btn-sm inline-block">
                     Sign In / Register
                   </Link>
                 </div>
@@ -667,7 +667,7 @@ export default function Home() {
 
                     return Object.keys(matchesByRound).sort((a, b) => parseInt(a) - parseInt(b)).map(round => (
                       <div key={round} className="flex-1 min-w-[250px]">
-                        <h4 className="text-md font-semibold mb-3 text-center">
+                        <h4 className="font-semibold text-gray-900 mb-3 text-center">
                           {round === '1' ? 'Round 1' :
                            round === '2' && numRounds === 2 ? 'Finals' :
                            round === '2' && numRounds === 3 ? 'Semifinals' :
@@ -927,7 +927,7 @@ export default function Home() {
               <div className="mt-6 pt-4 border-t">
                 <button
                   onClick={() => toggleScheduleExpanded(league.id)}
-                  className="btn-secondary w-full"
+                  className="btn-secondary btn-sm w-full"
                 >
                   {isScheduleExpanded ? 'Hide Full Schedule' : 'View Full Schedule'}
                 </button>
@@ -1043,7 +1043,7 @@ export default function Home() {
           )}
 
           {/* Calendar Subscription */}
-          <div className="card bg-blue-50">
+          <div className="card">
             <h3 className="section-header mb-3">
               {isMultipleLeagues ? `${league.name} - Subscribe to Game Calendar` : 'Subscribe to Game Calendar'}
             </h3>
@@ -1057,7 +1057,7 @@ export default function Home() {
                   href={`${API_URL}/api/calendar/league/${league.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn-primary inline-block"
+                  className="btn-primary btn-sm inline-block"
                 >
                   Subscribe to All Games
                 </a>

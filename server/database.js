@@ -284,6 +284,20 @@ function initDatabase() {
       }
     })
 
+    // Add location column to games if it doesn't exist (migration)
+    db.run(`ALTER TABLE games ADD COLUMN location TEXT`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding location column to games:', err)
+      }
+    })
+
+    // Add rink_name column to games if it doesn't exist (migration)
+    db.run(`ALTER TABLE games ADD COLUMN rink_name TEXT`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding rink_name column to games:', err)
+      }
+    })
+
     // Payments table
     db.run(`
       CREATE TABLE IF NOT EXISTS payments (

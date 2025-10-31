@@ -14,9 +14,9 @@ const ROSTER_TEMPLATE = `Name,Email,Phone,Jersey Number
 John Doe,john@example.com,(555) 123-4567,10
 Jane Smith,jane@example.com,(555) 987-6543,15`
 
-const SCHEDULE_TEMPLATE = `Home Team,Away Team,Date,Time,Rink,Surface
-Team A,Team B,2025-01-15,7:00 PM,IceCenter,NHL
-Team C,Team D,2025-01-17,8:30 PM,Twin Rinks Arena,Olympic`
+const SCHEDULE_TEMPLATE = `Home Team,Away Team,Date,Time,Rink Name,Location
+Team A,Team B,2025-01-15,7:00 PM,IceCenter,123 Main St
+Team C,Team D,2025-01-17,8:30 PM,Twin Rinks Arena,456 Oak Ave`
 
 const STANDINGS_TEMPLATE = `Team,Wins,Losses,Ties,Points,Goals For,Goals Against
 Team A,10,5,2,22,45,30
@@ -241,7 +241,8 @@ router.post('/upload/schedule/:leagueId', upload.single('file'), async (req, res
             const awayTeamCol = findColumn(headers, ['away team', 'awayteam', 'away', 'visitor'])
             const dateCol = findColumn(headers, ['date', 'game date', 'gamedate'])
             const timeCol = findColumn(headers, ['time', 'game time', 'gametime'])
-            const rinkCol = findColumn(headers, ['rink', 'arena', 'venue', 'location'])
+            const rinkCol = findColumn(headers, ['rink', 'rink name', 'rinkname', 'arena', 'venue'])
+            const locationCol = findColumn(headers, ['location', 'address', 'venue address'])
             const surfaceCol = findColumn(headers, ['surface', 'ice surface', 'rink type'])
 
             if (!homeTeamCol || !awayTeamCol || !dateCol || !timeCol) {
@@ -259,6 +260,7 @@ router.post('/upload/schedule/:leagueId', upload.single('file'), async (req, res
               const dateStr = record[dateCol]
               const timeStr = record[timeCol]
               const rinkName = rinkCol ? record[rinkCol] : null
+              const location = locationCol ? record[locationCol] : null
               const surface = surfaceCol ? record[surfaceCol] : 'NHL'
 
               // Find teams by name (case-insensitive)
@@ -279,8 +281,8 @@ router.post('/upload/schedule/:leagueId', upload.single('file'), async (req, res
               const gameTime = parseTime(timeStr)
 
               db.run(
-                'INSERT INTO games (home_team_id, away_team_id, game_date, game_time, rink_id, surface_name) VALUES (?, ?, ?, ?, ?, ?)',
-                [homeTeam.id, awayTeam.id, gameDate, gameTime, rink?.id, surface || 'NHL'],
+                'INSERT INTO games (home_team_id, away_team_id, game_date, game_time, rink_id, surface_name, rink_name, location) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                [homeTeam.id, awayTeam.id, gameDate, gameTime, rink?.id, surface || 'NHL', rinkName, location],
                 (err) => {
                   if (err) {
                     errors.push(`Error adding game ${homeTeamName} vs ${awayTeamName}: ${err.message}`)

@@ -198,16 +198,16 @@ export default function Games() {
         </div>
         {canScheduleGames() && (
           <div className="flex gap-2">
-            <button onClick={() => setShowForm(!showForm)} className="btn-primary">
+            <button onClick={() => setShowForm(!showForm)} className="btn-primary btn-sm">
               {showForm ? 'Cancel' : 'Schedule Game'}
             </button>
             <button
               onClick={() => csv.downloadScheduleTemplate()}
-              className="btn-secondary"
+              className="btn-secondary btn-sm"
             >
               Download Template
             </button>
-            <label className="btn-secondary cursor-pointer">
+            <label className="btn-secondary btn-sm cursor-pointer">
               Upload CSV
               <input
                 ref={fileInputRef}
@@ -258,7 +258,7 @@ export default function Games() {
       )}
 
       {showSubRequestForm && selectedGameForSub && (
-        <div className="card mb-6 border-2 border-gray-700">
+        <div className="card mb-6">
           <h2 className="section-header">Request a Substitute</h2>
           <div className="mb-4 p-3 bg-gray-50 rounded">
             <div className="font-semibold">
@@ -339,7 +339,7 @@ export default function Games() {
             </div>
 
             <div className="flex gap-2">
-              <button type="submit" className="btn-primary">
+              <button type="submit" className="btn-primary btn-sm">
                 Request Substitute
               </button>
               <button
@@ -348,7 +348,7 @@ export default function Games() {
                   setShowSubRequestForm(false)
                   setSelectedGameForSub(null)
                 }}
-                className="btn-secondary"
+                className="btn-secondary btn-sm"
               >
                 Cancel
               </button>
@@ -462,7 +462,7 @@ export default function Games() {
               </select>
             </div>
 
-            <button type="submit" className="btn-primary">
+            <button type="submit" className="btn-primary btn-sm">
               Schedule Game
             </button>
           </form>
@@ -478,7 +478,7 @@ export default function Games() {
                 <p className="empty-state-description">
                   Schedule your first game to get started
                 </p>
-                <button onClick={() => setShowForm(true)} className="btn-primary">
+                <button onClick={() => setShowForm(true)} className="btn-primary btn-sm">
                   Schedule Game
                 </button>
               </>
@@ -488,10 +488,10 @@ export default function Games() {
                   You'll need teams and rinks before scheduling games
                 </p>
                 <div className="flex gap-3 justify-center">
-                  <button onClick={() => window.location.href = '/teams'} className="btn-primary">
+                  <button onClick={() => window.location.href = '/teams'} className="btn-primary btn-sm">
                     Create Teams
                   </button>
-                  <button onClick={() => window.location.href = '/rinks'} className="btn-primary">
+                  <button onClick={() => window.location.href = '/rinks'} className="btn-primary btn-sm">
                     Add Rinks
                   </button>
                 </div>

@@ -244,7 +244,7 @@ export default function Users() {
       </div>
 
       <div className="card">
-        <h2 className="text-2xl font-bold mb-4">About Roles & Permissions</h2>
+        <h2 className="section-header mb-4">About Roles & Permissions</h2>
         <div className="space-y-4">
           <div>
             <h3 className="font-semibold text-gray-900 mb-2">System Roles</h3>
@@ -301,13 +301,13 @@ export default function Users() {
                   setResetPasswordModal({ isOpen: false, user: null })
                   setNewPassword('')
                 }}
-                className="btn-secondary"
+                className="btn-secondary btn-sm"
               >
                 Cancel
               </button>
               <button
                 onClick={handleResetPassword}
-                className="btn-primary"
+                className="btn-primary btn-sm"
               >
                 Reset Password
               </button>

@@ -106,7 +106,7 @@ export default function Teams() {
         {canManageTeams() && (
           <button
             onClick={() => setShowForm(!showForm)}
-            className="btn-primary"
+            className="btn-primary btn-sm"
           >
             {showForm ? 'Cancel' : 'New Team'}
           </button>
@@ -163,7 +163,7 @@ export default function Teams() {
               />
             </div>
 
-            <button type="submit" className="btn-primary">
+            <button type="submit" className="btn-primary btn-sm">
               Create Team
             </button>
           </form>
@@ -178,7 +178,7 @@ export default function Teams() {
               {leaguesList.length > 0 ? 'Create your first team to get started' : 'Create a league before adding teams'}
             </p>
             {leaguesList.length > 0 && (
-              <button onClick={() => setShowForm(true)} className="btn-primary">
+              <button onClick={() => setShowForm(true)} className="btn-primary btn-sm">
                 Create Team
               </button>
             )}
@@ -195,7 +195,7 @@ export default function Teams() {
                     style={{ backgroundColor: team.color }}
                   />
                   <div className="flex-1">
-                    <h3 className="font-bold text-lg text-gray-900">{team.name}</h3>
+                    <h3 className="text-lg font-bold text-gray-900">{team.name}</h3>
                     <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
                       <span>{team.league_name || 'No League'}</span>
                       <span>•</span>
@@ -212,14 +212,14 @@ export default function Teams() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => toggleTeamRoster(team.id)}
-                    className="btn-secondary text-sm"
+                    className="btn-secondary btn-sm"
                   >
                     {expandedTeams[team.id] ? 'Hide Roster' : 'View Roster'}
                   </button>
                   {canManageTeams() && (
                     <button
                       onClick={() => handleDelete(team.id, team.name)}
-                      className="btn-danger text-sm"
+                      className="btn-danger btn-sm"
                     >
                       Delete
                     </button>
@@ -234,7 +234,7 @@ export default function Teams() {
                     <div className="flex justify-end mb-3">
                       <button
                         onClick={() => navigate(`/teams/${team.id}/roster`)}
-                        className="btn-primary text-xs"
+                        className="btn-primary btn-sm"
                       >
                         Manage Roster
                       </button>
@@ -255,7 +255,7 @@ export default function Teams() {
                           </thead>
                           <tbody>
                             {teamRosters[team.id].map((player) => (
-                              <tr key={player.id} className="border-b hover:bg-white">
+                              <tr key={player.id} className="border-b hover:bg-gray-50">
                                 <td className="py-2 px-2">
                                   {player.jersey_number ? (
                                     <div
@@ -308,7 +308,7 @@ export default function Teams() {
                         {canManageTeams() && (
                           <button
                             onClick={() => navigate(`/teams/${team.id}/roster`)}
-                            className="btn-primary mt-4"
+                            className="btn-primary btn-sm mt-4"
                           >
                             Add Players
                           </button>

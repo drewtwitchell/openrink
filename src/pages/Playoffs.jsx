@@ -263,7 +263,7 @@ export default function Playoffs() {
       {brackets.length === 0 ? (
         <div className="card text-center py-12">
           <p className="text-gray-500 mb-4">No playoff brackets yet</p>
-          <button onClick={() => setShowForm(true)} className="btn-primary">
+          <button onClick={() => setShowForm(true)} className="btn-primary btn-sm">
             Create Your First Bracket
           </button>
         </div>
@@ -274,7 +274,7 @@ export default function Playoffs() {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-semibold text-lg">{bracket.name}</h3>
+                    <h3 className="text-lg font-semibold">{bracket.name}</h3>
                     <span className="badge badge-neutral">{bracket.format}</span>
                     <span
                       className={`badge ${

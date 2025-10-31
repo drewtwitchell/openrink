@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { leagues, teams as teamsApi, games as gamesApi, seasons, auth, announcements, players, teamCaptains, payments } from '../lib/api'
+import { leagues, teams as teamsApi, games as gamesApi, seasons, auth, announcements, players, teamCaptains, payments, csv } from '../lib/api'
 import ConfirmModal from '../components/ConfirmModal'
 
 export default function LeagueDetails() {
@@ -57,13 +57,26 @@ export default function LeagueDetails() {
   const [selectedTeamId, setSelectedTeamId] = useState('')
   const [selectedSeasonId, setSelectedSeasonId] = useState(null) // Track which season is selected in Season tab
   const [showGameForm, setShowGameForm] = useState(false)
+  const [editingGameId, setEditingGameId] = useState(null)
   const [gameFormData, setGameFormData] = useState({
     home_team_id: '',
     away_team_id: '',
     game_date: '',
     game_time: '',
     rink_name: '',
+    location: '',
+    home_score: '',
+    away_score: '',
   })
+  const [uploadingSchedule, setUploadingSchedule] = useState(false)
+  const [scheduleUploadMessage, setScheduleUploadMessage] = useState('')
+  const scheduleFileInputRef = useRef(null)
+  const [pastGamesCollapsed, setPastGamesCollapsed] = useState(true)
+  const rinkNameInputRef = useRef(null)
+  const [rinkSearchResults, setRinkSearchResults] = useState([])
+  const [showRinkResults, setShowRinkResults] = useState(false)
+  const [searchingRinks, setSearchingRinks] = useState(false)
+  const [rinkSearchActive, setRinkSearchActive] = useState(true)
   const [showPlayerForm, setShowPlayerForm] = useState(null) // Track which team's form is showing
   const [editingPlayerId, setEditingPlayerId] = useState(null)
   const [editingPlayerData, setEditingPlayerData] = useState({
@@ -146,6 +159,40 @@ export default function LeagueDetails() {
     return teams.filter(team => isTeamCaptain(team.id))
   }, [teams, canManage, currentUser])
 
+  // Split games into upcoming and past, and sort them
+  const { upcomingGames, pastGames } = useMemo(() => {
+    const now = new Date()
+    now.setHours(0, 0, 0, 0) // Set to start of today
+
+    const upcoming = []
+    const past = []
+
+    games.forEach(game => {
+      const gameDate = new Date(game.game_date)
+      if (gameDate >= now) {
+        upcoming.push(game)
+      } else {
+        past.push(game)
+      }
+    })
+
+    // Sort upcoming games chronologically (soonest first)
+    upcoming.sort((a, b) => {
+      const dateA = new Date(`${a.game_date} ${a.game_time}`)
+      const dateB = new Date(`${b.game_date} ${b.game_time}`)
+      return dateA - dateB
+    })
+
+    // Sort past games reverse chronologically (most recent first)
+    past.sort((a, b) => {
+      const dateA = new Date(`${a.game_date} ${a.game_time}`)
+      const dateB = new Date(`${b.game_date} ${b.game_time}`)
+      return dateB - dateA
+    })
+
+    return { upcomingGames: upcoming, pastGames: past }
+  }, [games])
+
   useEffect(() => {
     setCurrentUser(auth.getUser())
     fetchLeagueData()
@@ -203,6 +250,64 @@ export default function LeagueDetails() {
     const handleClickOutside = (event) => {
       if (leagueMenuRef.current && !leagueMenuRef.current.contains(event.target)) {
         setShowLeagueMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Search for rinks using OpenStreetMap Photon API (free, no API key needed)
+  const searchRinks = async (query) => {
+    if (!query || query.trim().length < 3) {
+      setRinkSearchResults([])
+      setShowRinkResults(false)
+      return
+    }
+
+    setSearchingRinks(true)
+    try {
+      const response = await fetch(
+        `https://photon.komoot.io/api/?q=${encodeURIComponent(query + ' ice rink arena')}&limit=5`
+      )
+      const data = await response.json()
+
+      const results = data.features.map(feature => ({
+        name: feature.properties.name || feature.properties.street || 'Unknown',
+        address: [
+          feature.properties.street,
+          feature.properties.city,
+          feature.properties.state,
+          feature.properties.postcode,
+          feature.properties.country
+        ].filter(Boolean).join(', ')
+      }))
+
+      setRinkSearchResults(results)
+      setShowRinkResults(results.length > 0)
+    } catch (error) {
+      console.error('Error searching rinks:', error)
+      setRinkSearchResults([])
+    } finally {
+      setSearchingRinks(false)
+    }
+  }
+
+  // Debounce rink search
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (gameFormData.rink_name && showGameForm && rinkSearchActive) {
+        searchRinks(gameFormData.rink_name)
+      }
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [gameFormData.rink_name, showGameForm, rinkSearchActive])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (rinkNameInputRef.current && !rinkNameInputRef.current.contains(event.target)) {
+        setShowRinkResults(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -663,21 +768,142 @@ export default function LeagueDetails() {
   const handleGameSubmit = async (e) => {
     e.preventDefault()
     try {
-      await gamesApi.create({
-        ...gameFormData,
-        season_id: selectedSeasonId,
-      })
+      if (editingGameId) {
+        await gamesApi.update(editingGameId, {
+          ...gameFormData,
+          season_id: selectedSeasonId,
+        })
+      } else {
+        await gamesApi.create({
+          ...gameFormData,
+          season_id: selectedSeasonId,
+        })
+      }
       setGameFormData({
         home_team_id: '',
         away_team_id: '',
         game_date: '',
         game_time: '',
         rink_name: '',
+        location: '',
+        home_score: '',
+        away_score: '',
       })
+      setEditingGameId(null)
       setShowGameForm(false)
       fetchLeagueData()
     } catch (error) {
-      alert('Error creating game: ' + error.message)
+      alert(`Error ${editingGameId ? 'updating' : 'creating'} game: ${error.message}`)
+    }
+  }
+
+  const handleEditGame = (game) => {
+    setGameFormData({
+      home_team_id: game.home_team_id,
+      away_team_id: game.away_team_id,
+      game_date: game.game_date,
+      game_time: game.game_time,
+      rink_name: game.rink_name || '',
+      location: game.location || '',
+      home_score: game.home_score ?? '',
+      away_score: game.away_score ?? '',
+    })
+    setEditingGameId(game.id)
+    setShowGameForm(true)
+  }
+
+  const handleCancelGameEdit = () => {
+    setGameFormData({
+      home_team_id: '',
+      away_team_id: '',
+      game_date: '',
+      game_time: '',
+      rink_name: '',
+      location: '',
+      home_score: '',
+      away_score: '',
+    })
+    setEditingGameId(null)
+    setShowGameForm(false)
+  }
+
+  const handleDeleteGame = async (gameId) => {
+    if (!confirm('Are you sure you want to delete this game?')) {
+      return
+    }
+    try {
+      await gamesApi.delete(gameId)
+      fetchLeagueData()
+    } catch (error) {
+      alert('Error deleting game: ' + error.message)
+    }
+  }
+
+  const updateGameScore = (gameId, field, value) => {
+    setGameScores(prev => ({
+      ...prev,
+      [gameId]: {
+        ...prev[gameId],
+        [field]: value
+      }
+    }))
+  }
+
+  const handleSaveScore = async (gameId) => {
+    const scores = gameScores[gameId] || {}
+    const homeScore = scores.home_score
+    const awayScore = scores.away_score
+
+    if (homeScore === '' || awayScore === '' || homeScore === undefined || awayScore === undefined) {
+      alert('Please enter both scores')
+      return
+    }
+
+    setGameScores(prev => ({
+      ...prev,
+      [gameId]: { ...prev[gameId], saving: true }
+    }))
+
+    try {
+      await gamesApi.updateScore(gameId, parseInt(homeScore), parseInt(awayScore))
+      setGameScores(prev => ({
+        ...prev,
+        [gameId]: { ...prev[gameId], saving: false, saved: true }
+      }))
+      setTimeout(() => {
+        setGameScores(prev => ({
+          ...prev,
+          [gameId]: { ...prev[gameId], saved: false }
+        }))
+      }, 2000)
+      fetchLeagueData() // Refresh to update standings
+    } catch (error) {
+      alert('Error saving score: ' + error.message)
+      setGameScores(prev => ({
+        ...prev,
+        [gameId]: { ...prev[gameId], saving: false }
+      }))
+    }
+  }
+
+  const handleScheduleCSVUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    setUploadingSchedule(true)
+    setScheduleUploadMessage('')
+
+    try {
+      const result = await csv.uploadSchedule(id, file)
+      setScheduleUploadMessage(result.message)
+      fetchLeagueData()
+      if (scheduleFileInputRef.current) {
+        scheduleFileInputRef.current.value = ''
+      }
+    } catch (error) {
+      setScheduleUploadMessage('Error: ' + error.message)
+    } finally {
+      setUploadingSchedule(false)
     }
   }
 
@@ -998,7 +1224,7 @@ export default function LeagueDetails() {
     return (
       <div className="card text-center py-12">
         <p className="text-gray-500 mb-4">League not found</p>
-        <button onClick={() => navigate('/leagues')} className="btn-primary">
+        <button onClick={() => navigate('/leagues')} className="btn-primary btn-sm">
           Back to Leagues
         </button>
       </div>
@@ -1200,8 +1426,8 @@ export default function LeagueDetails() {
             {!showSeasonForm ? (
               <div className="text-center">
                 <div className="text-6xl mb-6">🏒</div>
-                <h2 className="text-3xl font-bold text-gray-900 mb-4">Welcome to {league.name}!</h2>
-                <p className="text-lg text-gray-700 mb-3">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">Welcome to {league.name}!</h3>
+                <p className="text-gray-600 mb-3">
                   Let's get your league set up. Everything starts with creating your first season.
                 </p>
                 <p className="text-gray-600 mb-8">
@@ -1299,7 +1525,7 @@ export default function LeagueDetails() {
                   <button
                     type="button"
                     onClick={() => setShowSeasonForm(false)}
-                    className="btn-secondary"
+                    className="btn-secondary btn-sm"
                   >
                     Cancel
                   </button>
@@ -1375,30 +1601,6 @@ export default function LeagueDetails() {
             )}
           </button>
 
-          {canManage && (
-            <button
-              onClick={() => {
-                if (selectedSeasonId) {
-                  setMainTab('season')
-                  setSeasonSubTab('scores')
-                }
-              }}
-              disabled={!selectedSeasonId}
-              className={`px-6 py-3 font-semibold transition-colors relative ${
-                mainTab === 'season' && seasonSubTab === 'scores'
-                  ? 'text-gray-800 bg-white'
-                  : selectedSeasonId
-                  ? 'text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100'
-                  : 'text-gray-400 bg-gray-50 cursor-not-allowed opacity-60'
-              }`}
-            >
-              Scores
-              {mainTab === 'season' && seasonSubTab === 'scores' && (
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-700"></div>
-              )}
-            </button>
-          )}
-
           <button
             onClick={() => {
               if (selectedSeasonId) {
@@ -1454,7 +1656,7 @@ export default function LeagueDetails() {
             <div className="text-4xl mb-4">🏒</div>
             {!leagueSeasons.some(s => s.archived !== 1) ? (
               <>
-                <h3 className="text-2xl font-bold text-gray-800 mb-3">Create Your First Season</h3>
+                <h3 className="text-lg font-bold text-gray-800 mb-3">Create Your First Season</h3>
                 <p className="text-gray-600 mb-2">
                   Everything in your league is organized by season - teams, games, standings, and payments all belong to a specific season.
                 </p>
@@ -1476,7 +1678,7 @@ export default function LeagueDetails() {
               </>
             ) : (
               <>
-                <h3 className="text-2xl font-bold text-gray-800 mb-3">Select a Season</h3>
+                <h3 className="text-lg font-bold text-gray-800 mb-3">Select a Season</h3>
                 <p className="text-gray-600 mb-2">
                   Everything in your league is organized by season - teams, games, standings, and payments all belong to a specific season.
                 </p>
@@ -1524,7 +1726,7 @@ export default function LeagueDetails() {
               {canManage && !editingLeagueInfo && (
                 <button
                   onClick={handleEditLeagueInfo}
-                  className="btn-primary"
+                  className="btn-primary btn-sm"
                 >
                   {league.league_info ? 'Edit Information' : 'Add Information'}
                 </button>
@@ -1549,13 +1751,13 @@ export default function LeagueDetails() {
                 <div className="flex gap-2">
                   <button
                     onClick={handleSaveLeagueInfo}
-                    className="btn-primary"
+                    className="btn-primary btn-sm"
                   >
                     Save
                   </button>
                   <button
                     onClick={handleCancelLeagueInfo}
-                    className="btn-secondary"
+                    className="btn-secondary btn-sm"
                   >
                     Cancel
                   </button>
@@ -1588,7 +1790,7 @@ export default function LeagueDetails() {
               {canManage && (
                 <button
                   onClick={() => setShowManagerForm(!showManagerForm)}
-                  className="btn-primary"
+                  className="btn-primary btn-sm"
                 >
                   {showManagerForm ? 'Cancel' : '+ Add Manager'}
                 </button>
@@ -1597,7 +1799,7 @@ export default function LeagueDetails() {
 
             {showManagerForm && (
               <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-semibold mb-3">Add Manager</h4>
+                <h4 className="font-semibold text-gray-900 mb-3">Add Manager</h4>
                 <form onSubmit={handleAddManager} className="space-y-4">
                   {/* User Search */}
                   <div>
@@ -1668,7 +1870,7 @@ export default function LeagueDetails() {
                   </div>
 
                   <div className="flex gap-2">
-                    <button type="submit" className="btn-primary" disabled={!selectedUser}>
+                    <button type="submit" className="btn-primary btn-sm" disabled={!selectedUser}>
                       Add Manager
                     </button>
                     <button
@@ -1679,7 +1881,7 @@ export default function LeagueDetails() {
                         setUserSearchQuery('')
                         setUserSearchResults([])
                       }}
-                      className="btn-secondary"
+                      className="btn-secondary btn-sm"
                     >
                       Cancel
                     </button>
@@ -1699,7 +1901,7 @@ export default function LeagueDetails() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-gray-900">{manager.name || 'No name'}</span>
-                        {manager.is_owner && (
+                        {manager.is_owner === 1 && (
                           <span className="badge badge-info text-xs">Owner</span>
                         )}
                       </div>
@@ -1716,7 +1918,6 @@ export default function LeagueDetails() {
                         Remove
                       </button>
                     )}
-                    </div>
                   </div>
                 ))}
               </div>
@@ -1729,7 +1930,7 @@ export default function LeagueDetails() {
                 <h4 className="font-semibold text-gray-900">Communication</h4>
                 <button
                   onClick={() => setShowContactModal(true)}
-                  className="btn-primary"
+                  className="btn-primary btn-sm"
                 >
                   Contact All Players
                 </button>
@@ -1747,7 +1948,7 @@ export default function LeagueDetails() {
                     setEditingAnnouncementId(null)
                     setAnnouncementFormData({ title: '', message: '', expires_at: '' })
                   }}
-                  className="btn-primary"
+                  className="btn-primary btn-sm"
                 >
                   {showAnnouncementForm ? 'Cancel' : 'New Announcement'}
                 </button>
@@ -1797,7 +1998,7 @@ export default function LeagueDetails() {
                     </p>
                   </div>
 
-                  <button type="submit" className="btn-primary">
+                  <button type="submit" className="btn-primary btn-sm">
                     {editingAnnouncementId ? 'Update Announcement' : 'Create Announcement'}
                   </button>
                 </form>
@@ -1818,7 +2019,7 @@ export default function LeagueDetails() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-lg">{announcement.title}</h3>
+                          <h3 className="font-semibold">{announcement.title}</h3>
                           <span
                             className={`badge ${
                               announcement.is_active === 1 ? 'badge-success' : 'badge-neutral'
@@ -2090,7 +2291,7 @@ export default function LeagueDetails() {
                       setMainTab('season')
                       setSeasonSubTab('teams')
                     }}
-                    className="btn-primary"
+                    className="btn-primary btn-sm"
                   >
                     Go to Teams
                   </button>
@@ -2338,7 +2539,7 @@ export default function LeagueDetails() {
           <div className="mb-6 flex justify-end">
             <button
               onClick={() => setShowTeamForm(!showTeamForm)}
-              className="btn-primary"
+              className="btn-primary btn-sm"
             >
               {showTeamForm ? 'Cancel' : '+ Add Team'}
             </button>
@@ -2370,7 +2571,7 @@ export default function LeagueDetails() {
                   />
                 </div>
 
-                <button type="submit" className="btn-primary">
+                <button type="submit" className="btn-primary btn-sm">
                   Create Team
                 </button>
               </form>
@@ -2418,7 +2619,7 @@ export default function LeagueDetails() {
                       {canManage && (
                         <button
                           onClick={() => handleDeleteTeam(team.id, team.name)}
-                          className="btn-danger text-sm px-3"
+                          className="btn-danger btn-sm"
                         >
                           Delete Team
                         </button>
@@ -2441,7 +2642,7 @@ export default function LeagueDetails() {
 
                       {showPlayerForm === team.id && (
                         <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                          <h4 className="font-semibold mb-3">Add Player to {team.name}</h4>
+                          <h4 className="font-semibold text-gray-900 mb-3">Add Player to {team.name}</h4>
 
                           {/* User Search Section */}
                           {!selectedUser && (
@@ -2747,7 +2948,7 @@ export default function LeagueDetails() {
                     setMainTab('season')
                     setSeasonSubTab('teams')
                   }}
-                  className="btn-primary"
+                  className="btn-primary btn-sm"
                 >
                   Go to Teams
                 </button>
@@ -2755,20 +2956,67 @@ export default function LeagueDetails() {
             </div>
           ) : (
             <>
-              <div className="mb-6 flex justify-end">
+              <div className="mb-6 flex justify-end gap-2">
                 {canManage && (
-                  <button
-                    onClick={() => setShowGameForm(!showGameForm)}
-                    className="btn-primary"
-                  >
-                    {showGameForm ? 'Cancel' : '+ Add Game'}
-                  </button>
+                  <>
+                    <button
+                      onClick={() => csv.downloadScheduleTemplate()}
+                      className="btn-secondary btn-sm"
+                      title="Download CSV Template"
+                    >
+                      Download Template
+                    </button>
+                    <label className="btn-secondary btn-sm cursor-pointer" title="Upload Schedule CSV">
+                      Upload CSV
+                      <input
+                        ref={scheduleFileInputRef}
+                        type="file"
+                        accept=".csv"
+                        onChange={handleScheduleCSVUpload}
+                        className="hidden"
+                        disabled={uploadingSchedule}
+                      />
+                    </label>
+                    <button
+                      onClick={() => setShowGameForm(!showGameForm)}
+                      className="btn-primary btn-sm"
+                    >
+                      {showGameForm ? 'Cancel' : '+ Add Game'}
+                    </button>
+                  </>
                 )}
               </div>
 
+              {uploadingSchedule && (
+                <div className="card mb-6 bg-blue-50 border-blue-200">
+                  <p className="text-blue-700">
+                    Uploading and processing CSV... This may take a moment.
+                  </p>
+                </div>
+              )}
+
+              {scheduleUploadMessage && !uploadingSchedule && (
+                <div className={`card mb-6 ${scheduleUploadMessage.includes('Error') ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+                  <p className={scheduleUploadMessage.includes('Error') ? 'text-red-700' : 'text-green-700'}>
+                    {scheduleUploadMessage}
+                  </p>
+                </div>
+              )}
+
               {showGameForm && (
-            <div className="card mb-8">
-              <h2 className="section-header mb-4">Schedule New Game</h2>
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-2xl font-bold">{editingGameId ? 'Edit Game' : 'Schedule New Game'}</h2>
+                    <button
+                      onClick={handleCancelGameEdit}
+                      className="text-gray-500 hover:text-gray-700 text-2xl"
+                      type="button"
+                    >
+                      ×
+                    </button>
+                  </div>
               <form onSubmit={handleGameSubmit} className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
@@ -2819,230 +3067,333 @@ export default function LeagueDetails() {
                       required
                     />
                   </div>
-                  <div className="md:col-span-2">
+                  <div className="md:col-span-2 relative">
                     <label className="label">Rink Name</label>
+                    <div ref={rinkNameInputRef}>
+                      <input
+                        type="text"
+                        value={gameFormData.rink_name}
+                        onChange={(e) => {
+                          setGameFormData({ ...gameFormData, rink_name: e.target.value })
+                          setRinkSearchActive(true)
+                          setShowRinkResults(true)
+                        }}
+                        onFocus={() => {
+                          setRinkSearchActive(true)
+                          rinkSearchResults.length > 0 && setShowRinkResults(true)
+                        }}
+                        className="input"
+                        placeholder="Start typing to search for rinks..."
+                      />
+                      {searchingRinks && (
+                        <div className="absolute right-3 top-9 text-gray-400">
+                          <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        </div>
+                      )}
+                      {showRinkResults && rinkSearchResults.length > 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                          {rinkSearchResults.map((result, index) => (
+                            <button
+                              key={index}
+                              type="button"
+                              className="w-full text-left px-4 py-2 hover:bg-gray-100 border-b border-gray-100 last:border-b-0"
+                              onClick={() => {
+                                setRinkSearchActive(false)
+                                setGameFormData({
+                                  ...gameFormData,
+                                  rink_name: result.name,
+                                  location: result.address
+                                })
+                                setShowRinkResults(false)
+                              }}
+                            >
+                              <div className="font-medium text-gray-900">{result.name}</div>
+                              <div className="text-sm text-gray-600">{result.address}</div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Type at least 3 characters to search</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="label">Location (Address)</label>
                     <input
                       type="text"
-                      value={gameFormData.rink_name}
-                      onChange={(e) => setGameFormData({ ...gameFormData, rink_name: e.target.value })}
+                      value={gameFormData.location}
+                      onChange={(e) => setGameFormData({ ...gameFormData, location: e.target.value })}
                       className="input"
-                      placeholder="e.g., Main Arena"
+                      placeholder="e.g., 123 Main St, City, State ZIP"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Auto-filled when selecting a rink above, or enter manually</p>
+                  </div>
+                  <div>
+                    <label className="label">Home Team Score</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={gameFormData.home_score}
+                      onChange={(e) => setGameFormData({ ...gameFormData, home_score: e.target.value })}
+                      className="input"
+                      placeholder="Score (optional)"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Away Team Score</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={gameFormData.away_score}
+                      onChange={(e) => setGameFormData({ ...gameFormData, away_score: e.target.value })}
+                      className="input"
+                      placeholder="Score (optional)"
                     />
                   </div>
                 </div>
-                <button type="submit" className="btn-primary">
-                  Schedule Game
-                </button>
+                <div className="flex gap-2">
+                  <button type="submit" className="btn-primary btn-sm">
+                    {editingGameId ? 'Update Game' : 'Schedule Game'}
+                  </button>
+                  {canManage && (
+                    <button
+                      type="button"
+                      onClick={handleCancelGameEdit}
+                      className="btn-secondary btn-sm"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
               </form>
+                </div>
+              </div>
             </div>
           )}
 
-          {games.length === 0 && !showGameForm ? (
+{games.length === 0 && !showGameForm ? (
             <div className="card text-center py-12">
               <p className="text-gray-500 mb-4">No games scheduled yet</p>
               {canManage && (
-                <button onClick={() => setShowGameForm(true)} className="btn-primary">
+                <button onClick={() => setShowGameForm(true)} className="btn-primary btn-sm">
                   Schedule Your First Game
                 </button>
               )}
             </div>
           ) : (
-            <div className="space-y-4">
-              {games.map((game) => (
-                <div key={game.id} className="card">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="font-semibold">{game.home_team_name} vs {game.away_team_name}</div>
-                      <div className="text-sm text-gray-600">
-                        {new Date(game.game_date).toLocaleDateString()} at {game.game_time}
-                      </div>
-                      {game.rink_name && (
-                        <div className="text-xs text-gray-500">{game.rink_name}</div>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      {game.home_score != null ? (
-                        <div className="font-bold text-lg">
-                          {game.home_score} - {game.away_score}
+            <div className="space-y-6">
+              {/* Upcoming Games Section */}
+              {upcomingGames.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-lg mb-4">Upcoming Games</h3>
+                  <div className="space-y-4">
+                    {upcomingGames.map((game) => (
+                      <div key={game.id} className="card">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <div className="font-semibold">{game.home_team_name} vs {game.away_team_name}</div>
+                            <div className="text-sm text-gray-600">
+                              {new Date(game.game_date).toLocaleDateString()} at {game.game_time}
+                            </div>
+                            {game.rink_name && (
+                              <div className="text-xs text-gray-500">{game.rink_name}</div>
+                            )}
+                            {game.location && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                <span className="mr-2">{game.location}</span>
+                                <span className="text-blue-600 space-x-2">
+                                  <a
+                                    href={`http://maps.apple.com/?address=${encodeURIComponent(game.location)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="hover:underline"
+                                  >
+                                    Apple Maps
+                                  </a>
+                                  <span>•</span>
+                                  <a
+                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(game.location)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="hover:underline"
+                                  >
+                                    Google Maps
+                                  </a>
+                                  <span>•</span>
+                                  <a
+                                    href={`https://waze.com/ul?q=${encodeURIComponent(game.location)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="hover:underline"
+                                  >
+                                    Waze
+                                  </a>
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-right flex flex-col items-end gap-2">
+                            {game.home_score != null ? (
+                              <div className="font-bold text-lg">
+                                {game.home_score} - {game.away_score}
+                              </div>
+                            ) : (
+                              <div className="text-gray-500">Scheduled</div>
+                            )}
+                            {canManage && (
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleEditGame(game)}
+                                  className="btn-secondary btn-sm text-xs"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteGame(game.id)}
+                                  className="btn-danger btn-sm text-xs"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      ) : (
-                        <div className="text-gray-500">Scheduled</div>
-                      )}
-                    </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
+              )}
+
+              {/* Past Games Section */}
+              {pastGames.length > 0 && (
+                <div>
+                  <button
+                    onClick={() => setPastGamesCollapsed(!pastGamesCollapsed)}
+                    className="w-full flex justify-between items-center mb-4 text-left"
+                  >
+                    <h3 className="font-semibold text-lg">Past Games ({pastGames.length})</h3>
+                    <svg
+                      className={`w-5 h-5 transition-transform ${pastGamesCollapsed ? '' : 'rotate-180'}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {!pastGamesCollapsed && (
+                    <>
+                      {(() => {
+                        const gamesNeedingScores = pastGames.filter(g => g.home_score === null || g.away_score === null)
+                        if (gamesNeedingScores.length > 0) {
+                          return (
+                            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+                              <div className="flex">
+                                <div className="flex-shrink-0">
+                                  <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                                <div className="ml-3">
+                                  <p className="text-sm text-yellow-700">
+                                    <span className="font-semibold">{gamesNeedingScores.length} game{gamesNeedingScores.length !== 1 ? 's' : ''}</span> still need{gamesNeedingScores.length === 1 ? 's' : ''} scores to be complete. Click "Edit" to add scores.
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        }
+                        return null
+                      })()}
+                    <div className="space-y-4">
+                      {pastGames.map((game) => (
+                        <div key={game.id} className={`card ${game.home_score === null ? 'bg-yellow-50 border-l-4 border-yellow-400' : 'bg-gray-50'}`}>
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <div className="font-semibold">{game.home_team_name} vs {game.away_team_name}</div>
+                              <div className="text-sm text-gray-600">
+                                {new Date(game.game_date).toLocaleDateString()} at {game.game_time}
+                              </div>
+                              {game.rink_name && (
+                                <div className="text-xs text-gray-500">{game.rink_name}</div>
+                              )}
+                              {game.location && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  <span className="mr-2">{game.location}</span>
+                                  <span className="text-blue-600 space-x-2">
+                                    <a
+                                      href={`http://maps.apple.com/?address=${encodeURIComponent(game.location)}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="hover:underline"
+                                    >
+                                      Apple Maps
+                                    </a>
+                                    <span>•</span>
+                                    <a
+                                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(game.location)}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="hover:underline"
+                                    >
+                                      Google Maps
+                                    </a>
+                                    <span>•</span>
+                                    <a
+                                      href={`https://waze.com/ul?q=${encodeURIComponent(game.location)}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="hover:underline"
+                                    >
+                                      Waze
+                                    </a>
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-right flex flex-col items-end gap-2">
+                              {game.home_score != null ? (
+                                <div className="font-bold text-lg">
+                                  {game.home_score} - {game.away_score}
+                                </div>
+                              ) : (
+                                <div className="bg-yellow-200 text-yellow-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                  Score Needed
+                                </div>
+                              )}
+                              {canManage && (
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleEditGame(game)}
+                                    className="btn-secondary btn-sm text-xs"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteGame(game.id)}
+                                    className="btn-danger btn-sm text-xs"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
           </>
         )}
         </div>
       )}
-
-      {mainTab === 'season' && seasonSubTab === 'scores' && (
-        <div>
-          <div className="card">
-            <h3 className="section-header mb-4">Enter Game Scores</h3>
-            {(() => {
-              // Filter games that need scores or are recent
-              const now = new Date()
-              const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
-              const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-
-              const gamesNeedingScores = games.filter(game => {
-                const gameDate = new Date(game.game_date)
-                // Show games that either don't have scores, or are within the time window
-                const needsScore = game.home_score === null || game.away_score === null
-                const isInTimeWindow = gameDate >= twoWeeksAgo && gameDate <= oneWeekFromNow
-                return needsScore && isInTimeWindow
-              }).sort((a, b) => new Date(b.game_date) - new Date(a.game_date))
-
-              if (gamesNeedingScores.length === 0) {
-                return (
-                  <div className="text-center py-12 text-gray-500">
-                    <p>No games need scores at this time.</p>
-                    <p className="text-sm mt-2">Games from the past 2 weeks and next week will appear here.</p>
-                  </div>
-                )
-              }
-
-              const handleSaveScore = async (gameId) => {
-                const scores = gameScores[gameId] || {}
-                const homeScore = scores.home_score
-                const awayScore = scores.away_score
-
-                if (homeScore === '' || awayScore === '' || homeScore === undefined || awayScore === undefined) {
-                  alert('Please enter both scores')
-                  return
-                }
-
-                setGameScores(prev => ({
-                  ...prev,
-                  [gameId]: { ...prev[gameId], saving: true }
-                }))
-
-                try {
-                  await gamesApi.updateScore(gameId, parseInt(homeScore), parseInt(awayScore))
-                  setGameScores(prev => ({
-                    ...prev,
-                    [gameId]: { ...prev[gameId], saving: false, saved: true }
-                  }))
-                  setTimeout(() => {
-                    setGameScores(prev => ({
-                      ...prev,
-                      [gameId]: { ...prev[gameId], saved: false }
-                    }))
-                  }, 2000)
-                  fetchLeagueData() // Refresh to update standings
-                } catch (error) {
-                  alert('Error saving score: ' + error.message)
-                  setGameScores(prev => ({
-                    ...prev,
-                    [gameId]: { ...prev[gameId], saving: false }
-                  }))
-                }
-              }
-
-              const updateGameScore = (gameId, field, value) => {
-                setGameScores(prev => ({
-                  ...prev,
-                  [gameId]: {
-                    ...prev[gameId],
-                    [field]: value
-                  }
-                }))
-              }
-
-              return (
-                <div className="space-y-4">
-                  {gamesNeedingScores.map(game => {
-                    const scores = gameScores[game.id] || {}
-                    const homeScore = scores.home_score !== undefined ? scores.home_score : (game.home_score ?? '')
-                    const awayScore = scores.away_score !== undefined ? scores.away_score : (game.away_score ?? '')
-                    const saving = scores.saving || false
-                    const saved = scores.saved || false
-
-                    const gameDate = new Date(game.game_date)
-                    const formattedDate = gameDate.toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric'
-                    })
-                    const isPast = gameDate < now
-
-                    return (
-                      <div key={game.id} className="border rounded-lg p-4 bg-gray-50">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="text-sm text-gray-500 mb-2">
-                              {formattedDate} at {game.game_time}
-                              {!isPast && <span className="ml-2 text-yellow-600 font-medium">(Upcoming)</span>}
-                            </div>
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-3">
-                                <div className="flex items-center gap-2 flex-1">
-                                  <div
-                                    className="w-4 h-4 rounded"
-                                    style={{ backgroundColor: game.home_team_color || '#94a3b8' }}
-                                  ></div>
-                                  <span className="font-medium">{game.home_team_name}</span>
-                                  <span className="text-gray-400 text-sm">(Home)</span>
-                                </div>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={homeScore}
-                                  onChange={(e) => updateGameScore(game.id, 'home_score', e.target.value)}
-                                  className="w-20 px-3 py-1 border rounded text-center"
-                                  placeholder="0"
-                                />
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <div className="flex items-center gap-2 flex-1">
-                                  <div
-                                    className="w-4 h-4 rounded"
-                                    style={{ backgroundColor: game.away_team_color || '#94a3b8' }}
-                                  ></div>
-                                  <span className="font-medium">{game.away_team_name}</span>
-                                  <span className="text-gray-400 text-sm">(Away)</span>
-                                </div>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={awayScore}
-                                  onChange={(e) => updateGameScore(game.id, 'away_score', e.target.value)}
-                                  className="w-20 px-3 py-1 border rounded text-center"
-                                  placeholder="0"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleSaveScore(game.id)}
-                              disabled={saving || saved}
-                              className={`px-4 py-2 rounded font-medium transition-colors ${
-                                saved
-                                  ? 'bg-green-500 text-white'
-                                  : saving
-                                  ? 'bg-gray-300 text-gray-600 cursor-wait'
-                                  : 'bg-gray-700 text-white hover:bg-gray-800'
-                              }`}
-                            >
-                              {saved ? '✓ Saved' : saving ? 'Saving...' : 'Save Score'}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )
-            })()}
-          </div>
-        </div>
-      )}
-
       {mainTab === 'season' && seasonSubTab === 'standings' && (
         <div>
           <div className="card">
@@ -3054,7 +3405,7 @@ export default function LeagueDetails() {
                 return (
                   <div className="text-center py-8">
                     <p className="text-gray-500 mb-4">Standings will appear once games are completed</p>
-                    <button onClick={() => { setMainTab('season'); setSeasonSubTab('schedule'); }} className="btn-secondary">
+                    <button onClick={() => { setMainTab('season'); setSeasonSubTab('schedule'); }} className="btn-secondary btn-sm">
                       View Schedule
                     </button>
                   </div>
@@ -3162,7 +3513,7 @@ export default function LeagueDetails() {
           <div className="card text-center py-12">
             <h3 className="section-header mb-4">Playoffs Management</h3>
             <p className="text-gray-500 mb-4">Playoff bracket and management features coming soon</p>
-            <button onClick={() => setSeasonSubTab('schedule')} className="btn-secondary">
+            <button onClick={() => setSeasonSubTab('schedule')} className="btn-secondary btn-sm">
               Back to Schedule
             </button>
           </div>
@@ -3274,7 +3625,7 @@ export default function LeagueDetails() {
       {/* Payment Method Selection Modal */}
       {showPaymentMethodModal && playerToMarkPaid && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full shadow-2xl">
+          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl">
             <form onSubmit={handlePaymentFormSubmit} className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-900">Mark Payment</h2>
@@ -3675,7 +4026,7 @@ This will also delete all associated teams, games, and payment records.`}
                 <button
                   type="button"
                   onClick={() => setShowSeasonForm(false)}
-                  className="btn-secondary"
+                  className="btn-secondary btn-sm"
                 >
                   Cancel
                 </button>

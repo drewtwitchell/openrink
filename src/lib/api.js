@@ -185,6 +185,10 @@ export const games = {
     method: 'POST',
     body: JSON.stringify(data),
   }),
+  update: (id, data) => apiRequest(`/api/games/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
   updateScore: (id, homeScore, awayScore) => apiRequest(`/api/games/${id}/score`, {
     method: 'PUT',
     body: JSON.stringify({ home_score: homeScore, away_score: awayScore }),
