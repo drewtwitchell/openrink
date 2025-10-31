@@ -230,7 +230,7 @@ export default function Users() {
                             </svg>
                           </button>
                           {openUserMenu === u.id && (
-                            <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                            <div className="absolute right-0 bottom-full mb-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
                               <button
                                 onClick={() => {
                                   toggleUserHistory(u.id)
