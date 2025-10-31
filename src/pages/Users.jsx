@@ -187,6 +187,7 @@ export default function Users() {
       const query = searchQuery.toLowerCase()
       return (
         u.email?.toLowerCase().includes(query) ||
+        u.username?.toLowerCase().includes(query) ||
         u.name?.toLowerCase().includes(query) ||
         u.phone?.toLowerCase().includes(query)
       )
@@ -196,9 +197,9 @@ export default function Users() {
       if (a.id === 1) return -1
       if (b.id === 1) return 1
 
-      // Then sort alphabetically by name or email
-      const aName = a.name || a.email
-      const bName = b.name || b.email
+      // Then sort alphabetically by name, email, or username
+      const aName = a.name || a.email || a.username
+      const bName = b.name || b.email || b.username
       return aName.toLowerCase().localeCompare(bName.toLowerCase())
     })
 
@@ -256,7 +257,7 @@ export default function Users() {
                 <>
                   <tr key={u.id} className={`${u.is_active === 0 ? 'opacity-60 bg-gray-50' : ''} ${u.id === 1 ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''}`}>
                     <td className="font-medium">
-                      {u.email}
+                      {u.email || u.username || '-'}
                       {u.is_active === 0 && (
                         <span className="ml-2 badge badge-neutral text-xs">Deactivated</span>
                       )}
