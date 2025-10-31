@@ -4,6 +4,23 @@ import { auth } from '../lib/api'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
+// Helper function to parse date strings as local dates (not UTC)
+const parseLocalDate = (dateStr) => {
+  if (!dateStr) return null
+  const [year, month, day] = dateStr.split('-')
+  return new Date(year, month - 1, day)
+}
+
+// Helper function to format time in 12-hour format with AM/PM
+const formatTime = (timeStr) => {
+  if (!timeStr) return ''
+  const [hours, minutes] = timeStr.split(':')
+  const hour = parseInt(hours)
+  const ampm = hour >= 12 ? 'PM' : 'AM'
+  const hour12 = hour % 12 || 12
+  return `${hour12}:${minutes} ${ampm}`
+}
+
 // Helper function to generate map URLs
 const getMapUrls = (location) => {
   const encoded = encodeURIComponent(location)
@@ -743,8 +760,8 @@ export default function Home() {
                                 <div className="px-2 py-1 bg-gray-50 border-t text-xs text-gray-600">
                                   {match.game_date && (
                                     <div>
-                                      {new Date(match.game_date).toLocaleDateString()}
-                                      {match.game_time && ` ${match.game_time}`}
+                                      {parseLocalDate(match.game_date).toLocaleDateString()}
+                                      {match.game_time && ` at ${formatTime(match.game_time)}`}
                                     </div>
                                   )}
                                   {match.rink_name && (
@@ -874,48 +891,51 @@ export default function Home() {
                         )}
                       </div>
                       <div className="text-xs text-gray-600">
-                        {new Date(game.game_date).toLocaleDateString('en-US', {
+                        {parseLocalDate(game.game_date).toLocaleDateString('en-US', {
                           weekday: 'short',
                           month: 'short',
                           day: 'numeric'
-                        })} at {game.game_time}
+                        })} at {formatTime(game.game_time)}
                       </div>
-                      {game.rink_name && (
-                        <div className="text-xs text-gray-500 mt-2">
-                          <div className="flex items-center justify-between flex-wrap gap-2">
-                            <span>
-                              {game.rink_name}{game.surface_name ? ` - ${game.surface_name}` : ''}
-                            </span>
-                            <div className="flex gap-1">
-                              <a
-                                href={getMapUrls(game.rink_name).google}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-xs font-medium transition-colors"
-                                title="Open in Google Maps"
-                              >
-                                Google
-                              </a>
-                              <a
-                                href={getMapUrls(game.rink_name).apple}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-medium transition-colors"
-                                title="Open in Apple Maps"
-                              >
-                                Apple
-                              </a>
-                              <a
-                                href={getMapUrls(game.rink_name).waze}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-2 py-1 bg-cyan-100 hover:bg-cyan-200 text-cyan-700 rounded text-xs font-medium transition-colors"
-                                title="Open in Waze"
-                              >
-                                Waze
-                              </a>
-                            </div>
+                      {(game.rink_name || game.location) && (
+                        <div className="text-xs mt-2">
+                          {game.rink_name && (
+                            <div className="text-gray-600 font-medium mb-0.5">{game.rink_name}</div>
+                          )}
+                          {game.location && (
+                            <div className="text-gray-500 mb-1">{game.location}</div>
+                          )}
+                          {game.location && (
+                            <div className="flex gap-2">
+                            <a
+                              href={getMapUrls(game.location).google}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="hover:opacity-75 transition-opacity"
+                              title="Open in Google Maps"
+                            >
+                              <img src="/icons/google-maps.png" alt="Google Maps" className="w-6 h-6" />
+                            </a>
+                            <a
+                              href={getMapUrls(game.location).apple}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="hover:opacity-75 transition-opacity"
+                              title="Open in Apple Maps"
+                            >
+                              <img src="/icons/apple-maps.ico" alt="Apple Maps" className="w-6 h-6" />
+                            </a>
+                            <a
+                              href={getMapUrls(game.location).waze}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="hover:opacity-75 transition-opacity"
+                              title="Open in Waze"
+                            >
+                              <img src="/icons/waze.ico" alt="Waze" className="w-6 h-6" />
+                            </a>
                           </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -935,54 +955,46 @@ export default function Home() {
                 {isScheduleExpanded && (
                   <div className="mt-4">
                     {allGames && allGames.length > 0 ? (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b">
-                              <th className="text-left py-3 px-4">Date</th>
-                              <th className="text-left py-3 px-4">Time</th>
-                              <th className="text-left py-3 px-4">Matchup</th>
-                              <th className="text-center py-3 px-4">Score</th>
-                              <th className="text-left py-3 px-4">Location</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {allGames.map((game) => (
-                              <tr key={game.id} className={`border-b hover:bg-gray-50 ${
-                                game.home_score !== null && game.away_score !== null ? 'bg-gray-50/50' : ''
-                              }`}>
-                                <td className="py-3 px-4">
-                                  {new Date(game.game_date).toLocaleDateString('en-US', {
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {allGames.map((game) => (
+                          <div key={game.id} className={`p-3 rounded border ${
+                            game.home_score !== null && game.away_score !== null ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200'
+                          }`}>
+                            <div className="flex justify-between items-start gap-4">
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm">
+                                  {game.home_team_name} vs {game.away_team_name}
+                                </div>
+                                <div className="text-xs text-gray-600 mt-0.5">
+                                  {parseLocalDate(game.game_date).toLocaleDateString('en-US', {
                                     month: 'short',
                                     day: 'numeric',
                                     year: 'numeric'
-                                  })}
-                                </td>
-                                <td className="py-3 px-4">{game.game_time}</td>
-                                <td className="py-3 px-4">
-                                  <span className="font-medium">{game.home_team_name}</span>
-                                  <span className="text-gray-500 mx-2">vs</span>
-                                  <span className="font-medium">{game.away_team_name}</span>
-                                </td>
-                                <td className="text-center py-3 px-4">
-                                  {game.home_score !== null && game.away_score !== null ? (
-                                    <span className="font-semibold">
-                                      {game.home_score} - {game.away_score}
-                                    </span>
-                                  ) : (
-                                    <span className="text-gray-400 italic text-xs">Not played</span>
-                                  )}
-                                </td>
-                                <td className="py-3 px-4 text-gray-600">
-                                  {game.rink_name || '-'}
-                                  {game.surface_name && game.rink_name && (
-                                    <span className="text-xs text-gray-500"> ({game.surface_name})</span>
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                                  })} • {formatTime(game.game_time)}
+                                </div>
+                                {(game.rink_name || game.location) && (
+                                  <div className="text-xs mt-1">
+                                    {game.rink_name && (
+                                      <div className="text-gray-600">{game.rink_name}</div>
+                                    )}
+                                    {game.location && (
+                                      <div className="text-gray-500">{game.location}</div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-shrink-0 text-right">
+                                {game.home_score !== null && game.away_score !== null ? (
+                                  <div className="font-bold text-lg">
+                                    {game.home_score} - {game.away_score}
+                                  </div>
+                                ) : (
+                                  <div className="text-gray-400 italic text-xs">Not played</div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     ) : (
                       <p className="text-gray-500 text-center py-8">No games scheduled</p>
@@ -1043,7 +1055,7 @@ export default function Home() {
           )}
 
           {/* Calendar Subscription */}
-          <div className="card">
+          <div className="card mt-8">
             <h3 className="section-header mb-3">
               {isMultipleLeagues ? `${league.name} - Subscribe to Game Calendar` : 'Subscribe to Game Calendar'}
             </h3>

@@ -10,12 +10,10 @@ router.get('/', (req, res) => {
   db.all(
     `SELECT games.*,
        home_team.name as home_team_name, home_team.color as home_team_color,
-       away_team.name as away_team_name, away_team.color as away_team_color,
-       rinks.name as rink_name
+       away_team.name as away_team_name, away_team.color as away_team_color
      FROM games
      LEFT JOIN teams as home_team ON games.home_team_id = home_team.id
      LEFT JOIN teams as away_team ON games.away_team_id = away_team.id
-     LEFT JOIN rinks ON games.rink_id = rinks.id
      ORDER BY games.game_date, games.game_time`,
     [],
     (err, rows) => {

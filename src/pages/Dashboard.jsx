@@ -3,6 +3,33 @@ import { auth, leagues, teams, players, seasons, announcements } from '../lib/ap
 import { useNavigate } from 'react-router-dom'
 import ConfirmModal from '../components/ConfirmModal'
 
+// Helper function to parse date strings as local dates (not UTC)
+const parseLocalDate = (dateStr) => {
+  if (!dateStr) return null
+  const [year, month, day] = dateStr.split('-')
+  return new Date(year, month - 1, day)
+}
+
+// Helper function to format time in 12-hour format with AM/PM
+const formatTime = (timeStr) => {
+  if (!timeStr) return ''
+  const [hours, minutes] = timeStr.split(':')
+  const hour = parseInt(hours)
+  const ampm = hour >= 12 ? 'PM' : 'AM'
+  const hour12 = hour % 12 || 12
+  return `${hour12}:${minutes} ${ampm}`
+}
+
+// Helper function to generate map URLs
+const getMapUrls = (location) => {
+  const encoded = encodeURIComponent(location)
+  return {
+    google: `https://www.google.com/maps/search/?api=1&query=${encoded}`,
+    apple: `https://maps.apple.com/?q=${encoded}`,
+    waze: `https://waze.com/ul?q=${encoded}`
+  }
+}
+
 export default function Dashboard() {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
@@ -730,10 +757,13 @@ export default function Dashboard() {
                                       {game.home_team_name} vs {game.away_team_name}
                                     </div>
                                     <div className="text-xs text-gray-600">
-                                      {new Date(game.game_date).toLocaleDateString()} at {game.game_time}
+                                      {parseLocalDate(game.game_date).toLocaleDateString()} at {formatTime(game.game_time)}
                                     </div>
                                     {game.rink_name && (
                                       <div className="text-xs text-gray-500">{game.rink_name}</div>
+                                    )}
+                                    {game.location && (
+                                      <div className="text-xs text-gray-500 mt-1">{game.location}</div>
                                     )}
                                   </div>
                                   <div className="text-xs text-gray-600">
@@ -741,6 +771,37 @@ export default function Dashboard() {
                                     {maybeCount > 0 && <div>Maybe: {maybeCount}</div>}
                                   </div>
                                 </div>
+                                {game.location && (
+                                  <div className="flex gap-2 mb-2">
+                                    <a
+                                      href={getMapUrls(game.location).google}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="hover:opacity-75 transition-opacity"
+                                      title="Open in Google Maps"
+                                    >
+                                      <img src="/icons/google-maps.png" alt="Google Maps" className="w-6 h-6" />
+                                    </a>
+                                    <a
+                                      href={getMapUrls(game.location).apple}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="hover:opacity-75 transition-opacity"
+                                      title="Open in Apple Maps"
+                                    >
+                                      <img src="/icons/apple-maps.ico" alt="Apple Maps" className="w-6 h-6" />
+                                    </a>
+                                    <a
+                                      href={getMapUrls(game.location).waze}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="hover:opacity-75 transition-opacity"
+                                      title="Open in Waze"
+                                    >
+                                      <img src="/icons/waze.ico" alt="Waze" className="w-6 h-6" />
+                                    </a>
+                                  </div>
+                                )}
                                 <div className="flex gap-2 mt-2">
                                   <button
                                     onClick={() => updateAttendance(game.id, profile.id, 'attending')}
@@ -942,8 +1003,9 @@ export default function Dashboard() {
                                     {game.home_team_name} vs {game.away_team_name}
                                   </div>
                                   <div className="text-xs text-gray-600 mt-1">
-                                    {new Date(game.game_date).toLocaleDateString()} at {game.game_time}
+                                    {parseLocalDate(game.game_date).toLocaleDateString()} at {formatTime(game.game_time)}
                                     {game.rink_name && ` - ${game.rink_name}`}
+                                    {game.location && <div className="text-gray-500">{game.location}</div>}
                                   </div>
                                 </div>
                               </div>

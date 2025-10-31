@@ -3,6 +3,23 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { leagues, teams as teamsApi, games as gamesApi, seasons, auth, announcements, players, teamCaptains, payments, csv } from '../lib/api'
 import ConfirmModal from '../components/ConfirmModal'
 
+// Helper function to parse date strings as local dates (not UTC)
+const parseLocalDate = (dateStr) => {
+  if (!dateStr) return null
+  const [year, month, day] = dateStr.split('-')
+  return new Date(year, month - 1, day)
+}
+
+// Helper function to format time in 12-hour format with AM/PM
+const formatTime = (timeStr) => {
+  if (!timeStr) return ''
+  const [hours, minutes] = timeStr.split(':')
+  const hour = parseInt(hours)
+  const ampm = hour >= 12 ? 'PM' : 'AM'
+  const hour12 = hour % 12 || 12
+  return `${hour12}:${minutes} ${ampm}`
+}
+
 export default function LeagueDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -162,14 +179,20 @@ export default function LeagueDetails() {
   // Split games into upcoming and past, and sort them
   const { upcomingGames, pastGames } = useMemo(() => {
     const now = new Date()
-    now.setHours(0, 0, 0, 0) // Set to start of today
 
     const upcoming = []
     const past = []
 
     games.forEach(game => {
-      const gameDate = new Date(game.game_date)
-      if (gameDate >= now) {
+      const gameDate = parseLocalDate(game.game_date)
+      // Create a datetime by combining date and time for accurate comparison
+      const gameDateTime = new Date(gameDate)
+      if (game.game_time) {
+        const [hours, minutes] = game.game_time.split(':')
+        gameDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+      }
+
+      if (gameDateTime >= now) {
         upcoming.push(game)
       } else {
         past.push(game)
@@ -1395,7 +1418,7 @@ export default function LeagueDetails() {
               if (!season || (!season.start_date && !season.end_date)) return null
 
               const formatDate = (dateStr) => {
-                const date = new Date(dateStr)
+                const date = parseLocalDate(dateStr)
                 return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
               }
 
@@ -1595,7 +1618,7 @@ export default function LeagueDetails() {
                 : 'text-gray-400 bg-gray-50 cursor-not-allowed opacity-60'
             }`}
           >
-            Schedule
+            Games
             {mainTab === 'season' && seasonSubTab === 'schedule' && (
               <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-700"></div>
             )}
@@ -2030,10 +2053,10 @@ export default function LeagueDetails() {
                         </div>
                         <p className="text-gray-700 mb-3">{announcement.message}</p>
                         <div className="flex items-center gap-4 text-sm text-gray-500">
-                          <span>Posted {new Date(announcement.created_at).toLocaleDateString()}</span>
+                          <span>Posted {parseLocalDate(announcement.created_at.split('T')[0]).toLocaleDateString()}</span>
                           {announcement.expires_at && (
                             <span>
-                              Expires {new Date(announcement.expires_at).toLocaleDateString()}
+                              Expires {parseLocalDate(announcement.expires_at).toLocaleDateString()}
                             </span>
                           )}
                           {announcement.author_name && <span>By {announcement.author_name}</span>}
@@ -2414,7 +2437,7 @@ export default function LeagueDetails() {
                                       {player.payment_status === 'paid' ? (
                                         <div className="flex flex-col items-center gap-1">
                                           <span className="text-xs text-gray-500">
-                                            {new Date(player.paid_date).toLocaleDateString()}
+                                            {parseLocalDate(player.paid_date.split('T')[0]).toLocaleDateString()}
                                           </span>
                                           {canManage && (
                                             <button
@@ -3130,28 +3153,38 @@ export default function LeagueDetails() {
                     />
                     <p className="text-xs text-gray-500 mt-1">Auto-filled when selecting a rink above, or enter manually</p>
                   </div>
-                  <div>
-                    <label className="label">Home Team Score</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={gameFormData.home_score}
-                      onChange={(e) => setGameFormData({ ...gameFormData, home_score: e.target.value })}
-                      className="input"
-                      placeholder="Score (optional)"
-                    />
-                  </div>
-                  <div>
-                    <label className="label">Away Team Score</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={gameFormData.away_score}
-                      onChange={(e) => setGameFormData({ ...gameFormData, away_score: e.target.value })}
-                      className="input"
-                      placeholder="Score (optional)"
-                    />
-                  </div>
+                  {/* Only show score fields for past games */}
+                  {editingGameId && (() => {
+                    const now = new Date()
+                    now.setHours(0, 0, 0, 0)
+                    const gameDate = parseLocalDate(gameFormData.game_date)
+                    return gameDate < now
+                  })() && (
+                    <>
+                      <div>
+                        <label className="label">Home Team Score *</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={gameFormData.home_score}
+                          onChange={(e) => setGameFormData({ ...gameFormData, home_score: e.target.value })}
+                          className="input"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="label">Away Team Score *</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={gameFormData.away_score}
+                          onChange={(e) => setGameFormData({ ...gameFormData, away_score: e.target.value })}
+                          className="input"
+                          required
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <button type="submit" className="btn-primary btn-sm">
@@ -3195,42 +3228,43 @@ export default function LeagueDetails() {
                           <div>
                             <div className="font-semibold">{game.home_team_name} vs {game.away_team_name}</div>
                             <div className="text-sm text-gray-600">
-                              {new Date(game.game_date).toLocaleDateString()} at {game.game_time}
+                              {parseLocalDate(game.game_date).toLocaleDateString()} at {formatTime(game.game_time)}
                             </div>
                             {game.rink_name && (
                               <div className="text-xs text-gray-500">{game.rink_name}</div>
                             )}
                             {game.location && (
                               <div className="text-xs text-gray-500 mt-1">
-                                <span className="mr-2">{game.location}</span>
-                                <span className="text-blue-600 space-x-2">
-                                  <a
-                                    href={`http://maps.apple.com/?address=${encodeURIComponent(game.location)}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="hover:underline"
-                                  >
-                                    Apple Maps
-                                  </a>
-                                  <span>•</span>
+                                <div className="mb-1">{game.location}</div>
+                                <div className="flex gap-2">
                                   <a
                                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(game.location)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="hover:underline"
+                                    className="hover:opacity-75 transition-opacity"
+                                    title="Open in Google Maps"
                                   >
-                                    Google Maps
+                                    <img src="/icons/google-maps.png" alt="Google Maps" className="w-6 h-6" />
                                   </a>
-                                  <span>•</span>
+                                  <a
+                                    href={`https://maps.apple.com/?q=${encodeURIComponent(game.location)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="hover:opacity-75 transition-opacity"
+                                    title="Open in Apple Maps"
+                                  >
+                                    <img src="/icons/apple-maps.ico" alt="Apple Maps" className="w-6 h-6" />
+                                  </a>
                                   <a
                                     href={`https://waze.com/ul?q=${encodeURIComponent(game.location)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="hover:underline"
+                                    className="hover:opacity-75 transition-opacity"
+                                    title="Open in Waze"
                                   >
-                                    Waze
+                                    <img src="/icons/waze.ico" alt="Waze" className="w-6 h-6" />
                                   </a>
-                                </span>
+                                </div>
                               </div>
                             )}
                           </div>
@@ -3309,67 +3343,79 @@ export default function LeagueDetails() {
                       })()}
                     <div className="space-y-4">
                       {pastGames.map((game) => (
-                        <div key={game.id} className={`card ${game.home_score === null ? 'bg-yellow-50 border-l-4 border-yellow-400' : 'bg-gray-50'}`}>
+                        <div key={game.id} className={`card ${game.home_score === null ? 'bg-yellow-50 border-2 border-yellow-400 shadow-md' : 'bg-gray-50'}`}>
                           <div className="flex justify-between items-center">
-                            <div>
+                            <div className="flex-1">
                               <div className="font-semibold">{game.home_team_name} vs {game.away_team_name}</div>
                               <div className="text-sm text-gray-600">
-                                {new Date(game.game_date).toLocaleDateString()} at {game.game_time}
+                                {parseLocalDate(game.game_date).toLocaleDateString()} at {formatTime(game.game_time)}
                               </div>
                               {game.rink_name && (
                                 <div className="text-xs text-gray-500">{game.rink_name}</div>
                               )}
                               {game.location && (
                                 <div className="text-xs text-gray-500 mt-1">
-                                  <span className="mr-2">{game.location}</span>
-                                  <span className="text-blue-600 space-x-2">
-                                    <a
-                                      href={`http://maps.apple.com/?address=${encodeURIComponent(game.location)}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="hover:underline"
-                                    >
-                                      Apple Maps
-                                    </a>
-                                    <span>•</span>
+                                  <div className="mb-1">{game.location}</div>
+                                  <div className="flex gap-2">
                                     <a
                                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(game.location)}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="hover:underline"
+                                      className="hover:opacity-75 transition-opacity"
+                                      title="Open in Google Maps"
                                     >
-                                      Google Maps
+                                      <img src="/icons/google-maps.png" alt="Google Maps" className="w-6 h-6" />
                                     </a>
-                                    <span>•</span>
+                                    <a
+                                      href={`https://maps.apple.com/?q=${encodeURIComponent(game.location)}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="hover:opacity-75 transition-opacity"
+                                      title="Open in Apple Maps"
+                                    >
+                                      <img src="/icons/apple-maps.ico" alt="Apple Maps" className="w-6 h-6" />
+                                    </a>
                                     <a
                                       href={`https://waze.com/ul?q=${encodeURIComponent(game.location)}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="hover:underline"
+                                      className="hover:opacity-75 transition-opacity"
+                                      title="Open in Waze"
                                     >
-                                      Waze
+                                      <img src="/icons/waze.ico" alt="Waze" className="w-6 h-6" />
                                     </a>
-                                  </span>
+                                  </div>
+                                </div>
+                              )}
+                              {game.home_score === null && (
+                                <div className="mt-2 text-sm text-yellow-800 font-medium flex items-center gap-1">
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                  </svg>
+                                  Action Required: Click "Edit" to enter final score
                                 </div>
                               )}
                             </div>
-                            <div className="text-right flex flex-col items-end gap-2">
+                            <div className="text-right flex flex-col items-end gap-2 ml-4">
                               {game.home_score != null ? (
                                 <div className="font-bold text-lg">
                                   {game.home_score} - {game.away_score}
                                 </div>
                               ) : (
-                                <div className="bg-yellow-200 text-yellow-800 px-3 py-1 rounded-full text-sm font-semibold">
-                                  Score Needed
+                                <div className="bg-yellow-400 text-yellow-900 px-4 py-2 rounded-lg text-base font-bold flex items-center gap-2 shadow-sm">
+                                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                  </svg>
+                                  SCORE NEEDED
                                 </div>
                               )}
                               {canManage && (
                                 <div className="flex gap-2">
                                   <button
                                     onClick={() => handleEditGame(game)}
-                                    className="btn-secondary btn-sm text-xs"
+                                    className={`btn-sm text-xs ${game.home_score === null ? 'bg-yellow-600 hover:bg-yellow-700 text-white font-semibold' : 'btn-secondary'}`}
                                   >
-                                    Edit
+                                    {game.home_score === null ? 'Add Score' : 'Edit'}
                                   </button>
                                   <button
                                     onClick={() => handleDeleteGame(game.id)}
