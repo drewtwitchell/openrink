@@ -2,6 +2,19 @@ import jwt from 'jsonwebtoken'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 
+// Validate JWT_SECRET in production
+if (process.env.NODE_ENV === 'production') {
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'your-secret-key-change-in-production') {
+    console.error('CRITICAL SECURITY WARNING: JWT_SECRET is not set or using default value in production!')
+    console.error('Please set a strong JWT_SECRET in your .env file immediately.')
+    console.error('Application will continue but is INSECURE.')
+  }
+
+  if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
+    console.warn('SECURITY WARNING: JWT_SECRET should be at least 32 characters long for production use.')
+  }
+}
+
 export function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization']
   const token = authHeader && authHeader.split(' ')[1]

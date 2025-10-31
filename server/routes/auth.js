@@ -1,17 +1,44 @@
 import express from 'express'
 import bcrypt from 'bcrypt'
+import { body, query, validationResult } from 'express-validator'
 import db from '../database.js'
 import { generateToken, authenticateToken } from '../middleware/auth.js'
 
 const router = express.Router()
 
-// Sign up
-router.post('/signup', async (req, res) => {
-  const { email, password, name, phone } = req.body
-
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password required' })
+// Validation middleware helper
+const validate = (req, res, next) => {
+  const errors = validationResult(req)
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ error: errors.array()[0].msg })
   }
+  next()
+}
+
+// Password validation rules - require 8+ chars with at least one uppercase, lowercase, and number
+const passwordValidation = body('password')
+  .trim()
+  .isLength({ min: 8 })
+  .withMessage('Password must be at least 8 characters')
+  .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+  .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number')
+
+const newPasswordValidation = body('new_password')
+  .trim()
+  .isLength({ min: 8 })
+  .withMessage('Password must be at least 8 characters')
+  .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+  .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number')
+
+// Sign up
+router.post('/signup', [
+  body('email').trim().isEmail().normalizeEmail().withMessage('Valid email required'),
+  body('name').optional().trim().escape().isLength({ max: 100 }).withMessage('Name too long'),
+  body('phone').optional().trim().matches(/^[\d\s\-\+\(\)]*$/).withMessage('Invalid phone number format'),
+  passwordValidation,
+  validate
+], async (req, res) => {
+  const { email, password, name, phone } = req.body
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10)
@@ -50,12 +77,12 @@ router.post('/signup', async (req, res) => {
 })
 
 // Sign in
-router.post('/signin', (req, res) => {
+router.post('/signin', [
+  body('email').trim().notEmpty().withMessage('Email/username required'),
+  body('password').notEmpty().withMessage('Password required'),
+  validate
+], (req, res) => {
   const { email, password } = req.body
-
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Username/email and password required' })
-  }
 
   // Support login with username OR email
   db.get('SELECT * FROM users WHERE email = ? OR username = ?', [email, email], async (err, user) => {
@@ -103,7 +130,15 @@ router.get('/me', authenticateToken, (req, res) => {
 })
 
 // Update user profile
-router.put('/profile', authenticateToken, (req, res) => {
+router.put('/profile', [
+  authenticateToken,
+  body('name').optional().trim().escape().isLength({ max: 100 }).withMessage('Name too long'),
+  body('phone').optional().trim().matches(/^[\d\s\-\+\(\)]*$/).withMessage('Invalid phone number format'),
+  body('position').optional().trim().isIn(['goalie', 'defense', 'forward', 'player']).withMessage('Invalid position'),
+  body('sub_position').optional().trim(),
+  body('jersey_number').optional().isInt({ min: 0, max: 999 }).withMessage('Invalid jersey number'),
+  validate
+], (req, res) => {
   const { name, phone, position, sub_position, jersey_number } = req.body
 
   // Update user table (position/sub_position/jersey_number are team-specific, not on users table)
@@ -146,7 +181,15 @@ router.put('/profile', authenticateToken, (req, res) => {
 })
 
 // Search users by name or email (authenticated users)
-router.get('/users/search', authenticateToken, (req, res) => {
+router.get('/users/search', [
+  authenticateToken,
+  query('q').optional().trim().escape().isLength({ min: 2, max: 100 }).withMessage('Search query must be 2-100 characters')
+], (req, res) => {
+  const errors = validationResult(req)
+  if (!errors.isEmpty()) {
+    return res.json([])
+  }
+
   const { q } = req.query
 
   if (!q || q.length < 2) {
@@ -220,16 +263,13 @@ router.get('/users', authenticateToken, (req, res) => {
 })
 
 // Change password
-router.put('/change-password', authenticateToken, async (req, res) => {
+router.put('/change-password', [
+  authenticateToken,
+  body('current_password').notEmpty().withMessage('Current password required'),
+  newPasswordValidation,
+  validate
+], async (req, res) => {
   const { current_password, new_password } = req.body
-
-  if (!current_password || !new_password) {
-    return res.status(400).json({ error: 'Current password and new password required' })
-  }
-
-  if (new_password.length < 6) {
-    return res.status(400).json({ error: 'New password must be at least 6 characters' })
-  }
 
   try {
     // Get current user
@@ -265,12 +305,12 @@ router.put('/change-password', authenticateToken, async (req, res) => {
 })
 
 // Update user role (admin only)
-router.put('/users/:id/role', authenticateToken, (req, res) => {
+router.put('/users/:id/role', [
+  authenticateToken,
+  body('role').isIn(['admin', 'league_manager', 'player']).withMessage('Invalid role'),
+  validate
+], (req, res) => {
   const { role } = req.body
-
-  if (!['admin', 'league_manager', 'player'].includes(role)) {
-    return res.status(400).json({ error: 'Invalid role' })
-  }
 
   // Check if user is admin
   db.get('SELECT role FROM users WHERE id = ?', [req.user.id], (err, user) => {
@@ -292,16 +332,12 @@ router.put('/users/:id/role', authenticateToken, (req, res) => {
 })
 
 // Reset user password (admin only)
-router.put('/users/:id/reset-password', authenticateToken, async (req, res) => {
+router.put('/users/:id/reset-password', [
+  authenticateToken,
+  newPasswordValidation,
+  validate
+], async (req, res) => {
   const { new_password } = req.body
-
-  if (!new_password) {
-    return res.status(400).json({ error: 'New password required' })
-  }
-
-  if (new_password.length < 6) {
-    return res.status(400).json({ error: 'Password must be at least 6 characters' })
-  }
 
   try {
     // Check if user is admin
