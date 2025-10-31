@@ -156,14 +156,25 @@ export default function Users() {
       return
     }
 
-    // Calculate if there's enough space below for the dropdown
+    // Calculate available space above and below the button
     const button = event.currentTarget
     const rect = button.getBoundingClientRect()
     const spaceBelow = window.innerHeight - rect.bottom
+    const spaceAbove = rect.top
     const dropdownHeight = 200 // Approximate height of dropdown
 
-    // If not enough space below, open upward; otherwise open downward
-    const openUpward = spaceBelow < dropdownHeight
+    // Determine best direction: prefer downward if enough space, otherwise check upward
+    let openUpward
+    if (spaceBelow >= dropdownHeight) {
+      // Enough space below, open downward (preferred default)
+      openUpward = false
+    } else if (spaceAbove >= dropdownHeight) {
+      // Not enough space below but enough above, open upward
+      openUpward = true
+    } else {
+      // Neither has enough space, choose direction with more space
+      openUpward = spaceAbove > spaceBelow
+    }
 
     setDropdownPosition({ ...dropdownPosition, [userId]: openUpward ? 'up' : 'down' })
     setOpenUserMenu(userId)
