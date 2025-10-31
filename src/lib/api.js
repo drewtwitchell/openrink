@@ -193,6 +193,7 @@ export const games = {
     method: 'PUT',
     body: JSON.stringify({ home_score: homeScore, away_score: awayScore }),
   }),
+  getStats: (id) => apiRequest(`/api/games/${id}/stats`),
   delete: (id) => apiRequest(`/api/games/${id}`, {
     method: 'DELETE',
   }),
@@ -228,6 +229,7 @@ export const players = {
   }),
   getHistory: (id) => apiRequest(`/api/players/${id}/history`),
   getHistoryByUser: (userId) => apiRequest(`/api/players/user/${userId}/history`),
+  getStats: (id) => apiRequest(`/api/players/${id}/stats`),
 }
 
 // Announcements API

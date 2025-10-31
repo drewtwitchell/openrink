@@ -12,6 +12,7 @@ export default function TeamRoster() {
   const [league, setLeague] = useState(null)
   const [roster, setRoster] = useState([])
   const [loading, setLoading] = useState(true)
+  const [playerStatsMap, setPlayerStatsMap] = useState({})
   const [showForm, setShowForm] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadMessage, setUploadMessage] = useState('')
@@ -65,6 +66,21 @@ export default function TeamRoster() {
         const leagueData = leaguesData.find(l => l.id === parseInt(leagueId))
         setLeague(leagueData)
       }
+
+      // Fetch stats for all players
+      const statsPromises = playersData.map(player =>
+        players.getStats(player.id).catch(() => null)
+      )
+      const statsResults = await Promise.all(statsPromises)
+
+      // Build a map of player_id -> stats
+      const statsMap = {}
+      playersData.forEach((player, index) => {
+        if (statsResults[index]) {
+          statsMap[player.id] = statsResults[index]
+        }
+      })
+      setPlayerStatsMap(statsMap)
     } catch (error) {
       console.error('Error fetching roster:', error)
     } finally {
@@ -503,60 +519,84 @@ export default function TeamRoster() {
                   <th className="text-left py-3 px-4">#</th>
                   <th className="text-left py-3 px-4">Name</th>
                   <th className="text-left py-3 px-4">Position</th>
-                  <th className="text-left py-3 px-4">Email</th>
-                  <th className="text-left py-3 px-4">Phone</th>
+                  <th className="text-center py-3 px-4 hidden sm:table-cell">G</th>
+                  <th className="text-center py-3 px-4 hidden sm:table-cell">A</th>
+                  <th className="text-center py-3 px-4 hidden sm:table-cell">PTS</th>
+                  <th className="text-center py-3 px-4 hidden sm:table-cell">PIM</th>
+                  <th className="text-left py-3 px-4 hidden md:table-cell">Email</th>
+                  <th className="text-left py-3 px-4 hidden lg:table-cell">Phone</th>
                   <th className="text-center py-3 px-4">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {roster.map((player) => (
-                  <tr key={player.id} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-4 font-semibold">
-                      {player.jersey_number || '-'}
-                    </td>
-                    <td className="py-3 px-4 font-medium">
-                      <div className="flex items-center gap-2">
-                        {player.name}
-                        {player.is_captain === 1 && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                            Captain
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-sm">
-                      <span className={`badge ${
-                        (player.position || player.user_position) === 'goalie'
-                          ? 'badge-warning'
-                          : 'badge-info'
-                      }`}>
-                        {(player.position || player.user_position || 'player').charAt(0).toUpperCase() + (player.position || player.user_position || 'player').slice(1)}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-sm text-gray-600">
-                      {player.email || player.user_email || '-'}
-                    </td>
-                    <td className="py-3 px-4 text-sm text-gray-600">
-                      {player.phone || player.user_phone || '-'}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <div className="flex gap-2 justify-center">
-                        <button
-                          onClick={() => openTransferModal(player)}
-                          className="btn-primary btn-sm"
-                        >
-                          Transfer
-                        </button>
-                        <button
-                          onClick={() => handleDelete(player.id, player.name)}
-                          className="btn-danger btn-sm"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {roster.map((player) => {
+                  const stats = playerStatsMap[player.id] || {}
+                  const goals = stats.total_goals || 0
+                  const assists = stats.total_assists || 0
+                  const points = goals + assists
+                  const pim = stats.total_penalty_minutes || 0
+
+                  return (
+                    <tr key={player.id} className="border-b hover:bg-gray-50">
+                      <td className="py-3 px-4 font-semibold">
+                        {player.jersey_number || '-'}
+                      </td>
+                      <td className="py-3 px-4 font-medium">
+                        <div className="flex items-center gap-2">
+                          {player.name}
+                          {player.is_captain === 1 && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                              Captain
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-sm">
+                        <span className={`badge ${
+                          (player.position || player.user_position) === 'goalie'
+                            ? 'badge-warning'
+                            : 'badge-info'
+                        }`}>
+                          {(player.position || player.user_position || 'player').charAt(0).toUpperCase() + (player.position || player.user_position || 'player').slice(1)}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center text-sm font-semibold hidden sm:table-cell">
+                        {goals}
+                      </td>
+                      <td className="py-3 px-4 text-center text-sm font-semibold hidden sm:table-cell">
+                        {assists}
+                      </td>
+                      <td className="py-3 px-4 text-center text-sm font-bold hidden sm:table-cell">
+                        {points}
+                      </td>
+                      <td className="py-3 px-4 text-center text-sm hidden sm:table-cell">
+                        {pim}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-gray-600 hidden md:table-cell">
+                        {player.email || player.user_email || '-'}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-gray-600 hidden lg:table-cell">
+                        {player.phone || player.user_phone || '-'}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <div className="flex gap-2 justify-center">
+                          <button
+                            onClick={() => openTransferModal(player)}
+                            className="btn-primary btn-sm"
+                          >
+                            Transfer
+                          </button>
+                          <button
+                            onClick={() => handleDelete(player.id, player.name)}
+                            className="btn-danger btn-sm"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

@@ -153,6 +153,8 @@ export default function LeagueDetails() {
     team1_score: '',
     team2_score: ''
   })
+  const [showPlayerStats, setShowPlayerStats] = useState(false)
+  const [playerStats, setPlayerStats] = useState({})
   const [loadingPlayoffs, setLoadingPlayoffs] = useState(false)
   const [showCelebrationModal, setShowCelebrationModal] = useState(false)
   const [celebrationFormData, setCelebrationFormData] = useState({
@@ -1107,10 +1109,26 @@ export default function LeagueDetails() {
   const handleGameSubmit = async (e) => {
     e.preventDefault()
     try {
+      // Build player stats array - only include players with at least one non-zero stat
+      const player_stats = Object.values(playerStats)
+        .filter(stat => {
+          const goals = parseInt(stat.goals) || 0
+          const assists = parseInt(stat.assists) || 0
+          const penalty_minutes = parseInt(stat.penalty_minutes) || 0
+          return goals > 0 || assists > 0 || penalty_minutes > 0
+        })
+        .map(stat => ({
+          player_id: stat.player_id,
+          goals: parseInt(stat.goals) || 0,
+          assists: parseInt(stat.assists) || 0,
+          penalty_minutes: parseInt(stat.penalty_minutes) || 0
+        }))
+
       if (editingGameId) {
         await gamesApi.update(editingGameId, {
           ...gameFormData,
           season_id: selectedSeasonId,
+          player_stats: player_stats.length > 0 ? player_stats : undefined
         })
       } else {
         await gamesApi.create({
@@ -1130,6 +1148,8 @@ export default function LeagueDetails() {
       })
       setEditingGameId(null)
       setShowGameForm(false)
+      setShowPlayerStats(false)
+      setPlayerStats({})
       fetchLeagueData()
     } catch (error) {
       alert(`Error ${editingGameId ? 'updating' : 'creating'} game: ${error.message}`)
@@ -1149,6 +1169,8 @@ export default function LeagueDetails() {
     })
     setEditingGameId(game.id)
     setShowGameForm(true)
+    setShowPlayerStats(false)
+    setPlayerStats({})
   }
 
   const handleCancelGameEdit = () => {
@@ -1164,6 +1186,8 @@ export default function LeagueDetails() {
     })
     setEditingGameId(null)
     setShowGameForm(false)
+    setShowPlayerStats(false)
+    setPlayerStats({})
   }
 
   const handleDeleteGame = async (gameId) => {
@@ -3574,28 +3598,219 @@ export default function LeagueDetails() {
                   })() && (
                     <>
                       <div>
-                        <label className="label">Home Team Score *</label>
+                        <label className="label">Home Team Score</label>
                         <input
                           type="number"
                           min="0"
                           value={gameFormData.home_score}
                           onChange={(e) => setGameFormData({ ...gameFormData, home_score: e.target.value })}
                           className="input"
-                          required
+                          placeholder="Optional"
                         />
                       </div>
                       <div>
-                        <label className="label">Away Team Score *</label>
+                        <label className="label">Away Team Score</label>
                         <input
                           type="number"
                           min="0"
                           value={gameFormData.away_score}
                           onChange={(e) => setGameFormData({ ...gameFormData, away_score: e.target.value })}
                           className="input"
-                          required
+                          placeholder="Optional"
                         />
                       </div>
                     </>
+                  )}
+
+                  {/* Player Stats Section - Only show for past games when editing */}
+                  {editingGameId && (() => {
+                    const now = new Date()
+                    now.setHours(0, 0, 0, 0)
+                    const gameDate = parseLocalDate(gameFormData.game_date)
+                    return gameDate < now
+                  })() && gameFormData.home_team_id && gameFormData.away_team_id && (
+                    <div className="md:col-span-2 border-t pt-4 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowPlayerStats(!showPlayerStats)}
+                        className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        <span className="font-medium text-gray-700">
+                          {showPlayerStats ? '▼' : '▶'} Add Player Stats (Optional)
+                        </span>
+                        <span className="text-xs text-gray-500">Track individual performance</span>
+                      </button>
+
+                      {showPlayerStats && (
+                        <div className="mt-4 space-y-6">
+                          <p className="text-sm text-gray-600 mb-4">
+                            Add stats to track individual player performance. Only include players with stats.
+                          </p>
+
+                          {/* Home Team Players */}
+                          <div className="border rounded-lg p-4" style={{
+                            borderLeftWidth: '4px',
+                            borderLeftColor: teams.find(t => t.id === parseInt(gameFormData.home_team_id))?.color || '#gray'
+                          }}>
+                            <h4 className="font-semibold text-gray-900 mb-3">
+                              {teams.find(t => t.id === parseInt(gameFormData.home_team_id))?.name || 'Home Team'} Players
+                            </h4>
+                            <div className="space-y-3">
+                              {(() => {
+                                const homeTeamPlayers = teamPlayers[gameFormData.home_team_id] || []
+                                if (homeTeamPlayers.length === 0) {
+                                  return (
+                                    <p className="text-sm text-gray-500 italic">No players found for this team</p>
+                                  )
+                                }
+                                return homeTeamPlayers.map(player => (
+                                  <div key={player.id} className="grid grid-cols-4 gap-3 items-center bg-white p-3 rounded border">
+                                    <div className="col-span-4 sm:col-span-1 font-medium text-sm">
+                                      #{player.jersey_number || '?'} {player.name}
+                                    </div>
+                                    <div>
+                                      <label className="text-xs text-gray-600 block mb-1">Goals</label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        placeholder="0"
+                                        value={playerStats[player.id]?.goals || ''}
+                                        onChange={(e) => setPlayerStats({
+                                          ...playerStats,
+                                          [player.id]: {
+                                            ...playerStats[player.id],
+                                            player_id: player.id,
+                                            goals: e.target.value
+                                          }
+                                        })}
+                                        className="input input-sm w-full"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-xs text-gray-600 block mb-1">Assists</label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        placeholder="0"
+                                        value={playerStats[player.id]?.assists || ''}
+                                        onChange={(e) => setPlayerStats({
+                                          ...playerStats,
+                                          [player.id]: {
+                                            ...playerStats[player.id],
+                                            player_id: player.id,
+                                            assists: e.target.value
+                                          }
+                                        })}
+                                        className="input input-sm w-full"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-xs text-gray-600 block mb-1">PIM</label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        placeholder="0"
+                                        value={playerStats[player.id]?.penalty_minutes || ''}
+                                        onChange={(e) => setPlayerStats({
+                                          ...playerStats,
+                                          [player.id]: {
+                                            ...playerStats[player.id],
+                                            player_id: player.id,
+                                            penalty_minutes: e.target.value
+                                          }
+                                        })}
+                                        className="input input-sm w-full"
+                                      />
+                                    </div>
+                                  </div>
+                                ))
+                              })()}
+                            </div>
+                          </div>
+
+                          {/* Away Team Players */}
+                          <div className="border rounded-lg p-4" style={{
+                            borderLeftWidth: '4px',
+                            borderLeftColor: teams.find(t => t.id === parseInt(gameFormData.away_team_id))?.color || '#gray'
+                          }}>
+                            <h4 className="font-semibold text-gray-900 mb-3">
+                              {teams.find(t => t.id === parseInt(gameFormData.away_team_id))?.name || 'Away Team'} Players
+                            </h4>
+                            <div className="space-y-3">
+                              {(() => {
+                                const awayTeamPlayers = teamPlayers[gameFormData.away_team_id] || []
+                                if (awayTeamPlayers.length === 0) {
+                                  return (
+                                    <p className="text-sm text-gray-500 italic">No players found for this team</p>
+                                  )
+                                }
+                                return awayTeamPlayers.map(player => (
+                                  <div key={player.id} className="grid grid-cols-4 gap-3 items-center bg-white p-3 rounded border">
+                                    <div className="col-span-4 sm:col-span-1 font-medium text-sm">
+                                      #{player.jersey_number || '?'} {player.name}
+                                    </div>
+                                    <div>
+                                      <label className="text-xs text-gray-600 block mb-1">Goals</label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        placeholder="0"
+                                        value={playerStats[player.id]?.goals || ''}
+                                        onChange={(e) => setPlayerStats({
+                                          ...playerStats,
+                                          [player.id]: {
+                                            ...playerStats[player.id],
+                                            player_id: player.id,
+                                            goals: e.target.value
+                                          }
+                                        })}
+                                        className="input input-sm w-full"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-xs text-gray-600 block mb-1">Assists</label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        placeholder="0"
+                                        value={playerStats[player.id]?.assists || ''}
+                                        onChange={(e) => setPlayerStats({
+                                          ...playerStats,
+                                          [player.id]: {
+                                            ...playerStats[player.id],
+                                            player_id: player.id,
+                                            assists: e.target.value
+                                          }
+                                        })}
+                                        className="input input-sm w-full"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-xs text-gray-600 block mb-1">PIM</label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        placeholder="0"
+                                        value={playerStats[player.id]?.penalty_minutes || ''}
+                                        onChange={(e) => setPlayerStats({
+                                          ...playerStats,
+                                          [player.id]: {
+                                            ...playerStats[player.id],
+                                            player_id: player.id,
+                                            penalty_minutes: e.target.value
+                                          }
+                                        })}
+                                        className="input input-sm w-full"
+                                      />
+                                    </div>
+                                  </div>
+                                ))
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
                 <div className="flex gap-2">
@@ -3719,7 +3934,20 @@ export default function LeagueDetails() {
                     onClick={() => setPastGamesCollapsed(!pastGamesCollapsed)}
                     className="w-full flex justify-between items-center mb-4 text-left"
                   >
-                    <h3 className="font-semibold text-lg">Past Games ({pastGames.length})</h3>
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-semibold text-lg">Past Games ({pastGames.length})</h3>
+                      {(() => {
+                        const gamesNeedingScores = pastGames.filter(g => g.home_score === null || g.away_score === null)
+                        if (gamesNeedingScores.length > 0) {
+                          return (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-400">
+                              {gamesNeedingScores.length} need{gamesNeedingScores.length === 1 ? 's' : ''} score{gamesNeedingScores.length !== 1 ? 's' : ''}
+                            </span>
+                          )
+                        }
+                        return null
+                      })()}
+                    </div>
                     <svg
                       className={`w-5 h-5 transition-transform ${pastGamesCollapsed ? '' : 'rotate-180'}`}
                       fill="none"
@@ -3976,42 +4204,44 @@ export default function LeagueDetails() {
             <div className="space-y-6">
               {/* Header with Create Bracket Button */}
               <div className="card">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="section-header">Playoff Brackets</h3>
-                  {canManage && (
-                    <button
-                      onClick={() => setShowCreateBracketModal(true)}
-                      className="btn-primary btn-sm"
-                    >
-                      Create New Bracket
-                    </button>
-                  )}
-                </div>
-
-                {/* Bracket selector */}
                 {playoffBrackets.length > 0 ? (
-                  <div className="mb-4">
-                    <label className="label">Select Bracket</label>
-                    <select
-                      value={selectedBracket?.bracket?.id || ''}
-                      onChange={(e) => fetchBracketDetails(e.target.value)}
-                      className="input"
-                    >
-                      {playoffBrackets.map(bracket => (
-                        <option key={bracket.id} value={bracket.id}>
-                          {bracket.name} ({bracket.format === 'round_robin' ? 'Round Robin' : 'Single Elimination'})
-                          {bracket.is_active === 1 && ' - Active'}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="section-header">Playoff Brackets</h3>
+                      {canManage && (
+                        <button
+                          onClick={() => setShowCreateBracketModal(true)}
+                          className="btn-primary btn-sm"
+                        >
+                          Create New Bracket
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="mb-4">
+                      <label className="label">Select Bracket</label>
+                      <select
+                        value={selectedBracket?.bracket?.id || ''}
+                        onChange={(e) => fetchBracketDetails(e.target.value)}
+                        className="input"
+                      >
+                        {playoffBrackets.map(bracket => (
+                          <option key={bracket.id} value={bracket.id}>
+                            {bracket.name} ({bracket.format === 'round_robin' ? 'Round Robin' : 'Single Elimination'})
+                            {bracket.is_active === 1 && ' - Active'}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
                 ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500 mb-4">No playoff brackets created yet</p>
+                  <div className="text-center py-12">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No Playoff Brackets Yet</h3>
+                    <p className="text-gray-500 mb-6">Create a playoff bracket to start tracking your tournament</p>
                     {canManage && (
                       <button
                         onClick={() => setShowCreateBracketModal(true)}
-                        className="btn-primary btn-sm"
+                        className="btn-primary"
                       >
                         Create Your First Bracket
                       </button>

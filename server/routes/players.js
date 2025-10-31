@@ -516,6 +516,116 @@ router.get('/user/:userId/history', authenticateToken, (req, res) => {
   })
 })
 
+// Get aggregate stats for a player across all games
+router.get('/:id/stats', (req, res) => {
+  const playerId = req.params.id
+
+  // First verify player exists and get player info
+  db.get(
+    `SELECT p.*, t.name as team_name, t.color as team_color, t.league_id
+     FROM players p
+     LEFT JOIN teams t ON p.team_id = t.id
+     WHERE p.id = ?`,
+    [playerId],
+    (err, player) => {
+      if (err) {
+        return res.status(500).json({ error: 'Error fetching player' })
+      }
+      if (!player) {
+        return res.status(404).json({ error: 'Player not found' })
+      }
+
+      // Get aggregate stats
+      db.get(
+        `SELECT
+          COUNT(DISTINCT gs.game_id) as games_played,
+          COALESCE(SUM(gs.goals), 0) as total_goals,
+          COALESCE(SUM(gs.assists), 0) as total_assists,
+          COALESCE(SUM(gs.penalty_minutes), 0) as total_penalty_minutes,
+          COALESCE(SUM(gs.goals + gs.assists), 0) as total_points,
+          ROUND(CAST(SUM(gs.goals) AS FLOAT) / NULLIF(COUNT(DISTINCT gs.game_id), 0), 2) as goals_per_game,
+          ROUND(CAST(SUM(gs.assists) AS FLOAT) / NULLIF(COUNT(DISTINCT gs.game_id), 0), 2) as assists_per_game,
+          ROUND(CAST(SUM(gs.goals + gs.assists) AS FLOAT) / NULLIF(COUNT(DISTINCT gs.game_id), 0), 2) as points_per_game
+         FROM game_stats gs
+         WHERE gs.player_id = ?`,
+        [playerId],
+        (err, aggregateStats) => {
+          if (err) {
+            return res.status(500).json({ error: 'Error fetching aggregate stats' })
+          }
+
+          // Get per-game breakdown
+          db.all(
+            `SELECT
+              gs.id,
+              gs.game_id,
+              gs.goals,
+              gs.assists,
+              gs.penalty_minutes,
+              (gs.goals + gs.assists) as points,
+              gs.created_at,
+              gs.updated_at,
+              g.game_date,
+              g.game_time,
+              g.home_score,
+              g.away_score,
+              g.status,
+              home_team.id as home_team_id,
+              home_team.name as home_team_name,
+              home_team.color as home_team_color,
+              away_team.id as away_team_id,
+              away_team.name as away_team_name,
+              away_team.color as away_team_color,
+              CASE
+                WHEN p.team_id = g.home_team_id THEN 'home'
+                WHEN p.team_id = g.away_team_id THEN 'away'
+                ELSE 'unknown'
+              END as player_side
+             FROM game_stats gs
+             JOIN games g ON gs.game_id = g.id
+             JOIN players p ON gs.player_id = p.id
+             LEFT JOIN teams home_team ON g.home_team_id = home_team.id
+             LEFT JOIN teams away_team ON g.away_team_id = away_team.id
+             WHERE gs.player_id = ?
+             ORDER BY g.game_date DESC, g.game_time DESC`,
+            [playerId],
+            (err, gameBreakdown) => {
+              if (err) {
+                return res.status(500).json({ error: 'Error fetching game breakdown' })
+              }
+
+              // Return comprehensive stats response
+              res.json({
+                player: {
+                  id: player.id,
+                  name: player.name,
+                  jersey_number: player.jersey_number,
+                  team_id: player.team_id,
+                  team_name: player.team_name,
+                  team_color: player.team_color,
+                  position: player.position,
+                  sub_position: player.sub_position
+                },
+                aggregate: {
+                  games_played: aggregateStats.games_played || 0,
+                  total_goals: aggregateStats.total_goals || 0,
+                  total_assists: aggregateStats.total_assists || 0,
+                  total_points: aggregateStats.total_points || 0,
+                  total_penalty_minutes: aggregateStats.total_penalty_minutes || 0,
+                  goals_per_game: aggregateStats.goals_per_game || 0,
+                  assists_per_game: aggregateStats.assists_per_game || 0,
+                  points_per_game: aggregateStats.points_per_game || 0
+                },
+                games: gameBreakdown
+              })
+            }
+          )
+        }
+      )
+    }
+  )
+})
+
 // Player self-reports payment (marks own payment as paid)
 router.post('/:id/self-report-payment', authenticateToken, (req, res) => {
   const { season_id, payment_method, confirmation_number, payment_notes } = req.body

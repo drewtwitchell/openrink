@@ -492,6 +492,42 @@ function initDatabase() {
       )
     `)
 
+    // Game stats table for tracking player statistics
+    db.run(`
+      CREATE TABLE IF NOT EXISTS game_stats (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        game_id INTEGER NOT NULL,
+        player_id INTEGER NOT NULL,
+        goals INTEGER DEFAULT 0,
+        assists INTEGER DEFAULT 0,
+        penalty_minutes INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE,
+        FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
+        UNIQUE(game_id, player_id)
+      )
+    `, (err) => {
+      if (err) {
+        console.error('Error creating game_stats table:', err)
+      } else {
+        console.log('Game stats table ready')
+      }
+    })
+
+    // Create indexes for game_stats table for faster queries
+    db.run(`CREATE INDEX IF NOT EXISTS idx_game_stats_game_id ON game_stats(game_id)`, (err) => {
+      if (err) {
+        console.error('Error creating game_stats game_id index:', err)
+      }
+    })
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_game_stats_player_id ON game_stats(player_id)`, (err) => {
+      if (err) {
+        console.error('Error creating game_stats player_id index:', err)
+      }
+    })
+
     // Create player history table to track team/season history
     db.run(`
       CREATE TABLE IF NOT EXISTS player_history (
