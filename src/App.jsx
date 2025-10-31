@@ -20,6 +20,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [user, setUser] = useState(null)
   const [showPasswordResetModal, setShowPasswordResetModal] = useState(false)
   const [passwordData, setPasswordData] = useState({
@@ -146,87 +147,146 @@ function App() {
         {/* Navigation */}
         <nav className="bg-white shadow-md">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between h-16">
-              <div className="flex items-center space-x-8">
-                <Link to="/" className="text-2xl font-bold text-ice-600">
-                  🏒 OpenRink
-                </Link>
-                {isAuthenticated && (
-                  <div className="flex items-center space-x-4">
-                    <Link
-                      to="/"
-                      className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-ice-600 hover:bg-gray-100"
-                    >
-                      Standings/Schedule
-                    </Link>
-                    <Link
-                      to="/dashboard"
-                      className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-ice-600 hover:bg-gray-100"
-                    >
-                      Dashboard
-                    </Link>
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center space-x-4">
+            <div className="flex justify-between items-center h-16">
+              {/* Logo */}
+              <Link to="/" className="text-xl sm:text-2xl font-bold text-ice-600 flex-shrink-0">
+                🏒 OpenRink
+              </Link>
+
+              {/* Desktop Navigation */}
+              {isAuthenticated && (
+                <div className="hidden md:flex items-center gap-4">
+                  <Link
+                    to="/"
+                    className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-ice-600 hover:bg-gray-100 transition-colors"
+                  >
+                    Standings/Schedule
+                  </Link>
+                  <Link
+                    to="/dashboard"
+                    className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-ice-600 hover:bg-gray-100 transition-colors"
+                  >
+                    Dashboard
+                  </Link>
+                </div>
+              )}
+
+              {/* Right side - User menu or Sign in */}
+              <div className="flex items-center gap-2">
                 {isAuthenticated ? (
-                  <div className="relative">
+                  <>
+                    {/* Mobile hamburger menu button */}
                     <button
-                      onClick={() => setShowUserMenu(!showUserMenu)}
-                      className="flex items-center space-x-2 text-gray-700 hover:text-ice-600 focus:outline-none"
+                      onClick={() => setShowMobileMenu(!showMobileMenu)}
+                      className="md:hidden p-2 text-gray-700 hover:text-ice-600 hover:bg-gray-100 rounded-md transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                      aria-label="Toggle mobile menu"
                     >
-                      <div className="text-right">
-                        <div className="font-medium">{user?.name || user?.username || user?.email}</div>
-                        <div className="text-xs text-gray-500">{user?.role?.replace('_', ' ')}</div>
-                      </div>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {showMobileMenu ? (
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        ) : (
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                        )}
                       </svg>
                     </button>
 
-                    {showUserMenu && (
-                      <>
-                        <div
-                          className="fixed inset-0 z-10"
-                          onClick={() => setShowUserMenu(false)}
-                        />
-                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20 border border-gray-200">
-                          <Link
-                            to="/settings"
-                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    {/* User profile dropdown */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowUserMenu(!showUserMenu)}
+                        className="flex items-center gap-2 p-2 min-h-[44px] text-gray-700 hover:text-ice-600 focus:outline-none -mr-2 rounded-md hover:bg-gray-100 transition-colors"
+                        aria-label="User menu"
+                      >
+                        <div className="text-right max-w-[120px] sm:max-w-[200px] hidden sm:block">
+                          <div className="font-medium text-sm truncate">
+                            {user?.name || user?.username || user?.email}
+                          </div>
+                          <div className="text-xs text-gray-500 truncate">
+                            {user?.role?.replace('_', ' ')}
+                          </div>
+                        </div>
+                        <div className="sm:hidden w-8 h-8 rounded-full bg-ice-600 text-white flex items-center justify-center font-semibold text-sm">
+                          {(user?.name || user?.username || user?.email || 'U')[0].toUpperCase()}
+                        </div>
+                        <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+
+                      {showUserMenu && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-10"
                             onClick={() => setShowUserMenu(false)}
-                          >
-                            Profile Settings
-                          </Link>
-                          {user?.role === 'admin' && (
+                          />
+                          <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-20 border border-gray-200">
+                            {/* Show user info in dropdown on mobile */}
+                            <div className="sm:hidden px-4 py-3 border-b border-gray-200">
+                              <div className="font-medium text-sm text-gray-900 truncate">
+                                {user?.name || user?.username || user?.email}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                {user?.role?.replace('_', ' ')}
+                              </div>
+                            </div>
+
                             <Link
-                              to="/users"
-                              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                              to="/settings"
+                              className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                               onClick={() => setShowUserMenu(false)}
                             >
-                              User Management
+                              Profile Settings
                             </Link>
-                          )}
-                          <button
-                            onClick={() => {
-                              setShowUserMenu(false)
-                              handleSignOut()
-                            }}
-                            className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                          >
-                            Sign Out
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                            {user?.role === 'admin' && (
+                              <Link
+                                to="/users"
+                                className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                onClick={() => setShowUserMenu(false)}
+                              >
+                                User Management
+                              </Link>
+                            )}
+                            <button
+                              onClick={() => {
+                                setShowUserMenu(false)
+                                handleSignOut()
+                              }}
+                              className="block w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-gray-100 transition-colors border-t border-gray-200"
+                            >
+                              Sign Out
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </>
                 ) : (
-                  <Link to="/login" className="btn-primary">
+                  <Link to="/login" className="btn-primary text-sm sm:text-base">
                     Sign In
                   </Link>
                 )}
               </div>
             </div>
+
+            {/* Mobile Navigation Menu */}
+            {showMobileMenu && isAuthenticated && (
+              <div className="md:hidden border-t border-gray-200 py-2">
+                <Link
+                  to="/"
+                  className="block px-4 py-3 text-base font-medium text-gray-700 hover:text-ice-600 hover:bg-gray-100 rounded-md transition-colors"
+                  onClick={() => setShowMobileMenu(false)}
+                >
+                  Standings/Schedule
+                </Link>
+                <Link
+                  to="/dashboard"
+                  className="block px-4 py-3 text-base font-medium text-gray-700 hover:text-ice-600 hover:bg-gray-100 rounded-md transition-colors"
+                  onClick={() => setShowMobileMenu(false)}
+                >
+                  Dashboard
+                </Link>
+              </div>
+            )}
           </div>
         </nav>
 

@@ -349,7 +349,7 @@ export default function Home() {
       <div className="max-w-5xl mx-auto">
         {/* Hero Section */}
         <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             Welcome to OpenRink
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
@@ -379,7 +379,7 @@ export default function Home() {
         {/* Features Grid */}
         <div className="card mb-12">
           <h2 className="section-header text-gray-900 mb-6 text-center">Everything You Need to Manage Your League</h2>
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 gap-6 sm:gap-8">
             <div className="space-y-4">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">League & Season Management</h3>
@@ -508,7 +508,7 @@ export default function Home() {
   return (
     <div>
       <div className="mb-8 text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-2">
           {isSingleLeague && displayLeagues[0]?.league.name
             ? displayLeagues[0].league.name
             : 'League Standings & Schedule'}
@@ -553,7 +553,7 @@ export default function Home() {
                   <div className="flex items-center gap-3 flex-1">
                     <button
                       onClick={() => toggleLeagueCollapse(league.id)}
-                      className="btn-secondary p-2 flex-shrink-0"
+                      className="btn-secondary p-2 flex-shrink-0 min-w-[44px] min-h-[44px]"
                       title={isCollapsed ? 'Expand league' : 'Collapse league'}
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -566,7 +566,7 @@ export default function Home() {
                     </button>
                     <button
                       onClick={() => toggleLeagueStar(league.id)}
-                      className="p-2 flex-shrink-0"
+                      className="p-2 flex-shrink-0 min-w-[44px] min-h-[44px]"
                       title={isStarred ? 'Remove from favorites' : 'Add to favorites'}
                     >
                       <svg className={`w-6 h-6 ${isStarred ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'}`} stroke="currentColor" viewBox="0 0 24 24">
@@ -633,15 +633,15 @@ export default function Home() {
           {announcements && announcements.length > 0 && (
             <div className="mb-8 space-y-3">
               {announcements.map((announcement) => (
-                <div key={announcement.id} className="card bg-amber-50 border-amber-200">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 text-amber-600">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div key={announcement.id} className="card bg-amber-50 border-amber-200 p-4 sm:p-6">
+                  <div className="flex items-start gap-3 flex-col sm:flex-row">
+                    <div className="flex-shrink-0 text-amber-600 mx-auto sm:mx-0">
+                      <svg className="w-8 h-8 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
                       </svg>
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 mb-1">{announcement.title}</h4>
+                    <div className="flex-1 text-center sm:text-left">
+                      <h4 className="font-semibold text-gray-900 mb-1 text-base sm:text-sm">{announcement.title}</h4>
                       <p className="text-gray-700 text-sm mb-2">{announcement.message}</p>
                       <div className="flex items-center gap-4 text-xs text-gray-500">
                         <span>Posted {new Date(announcement.created_at).toLocaleDateString()}</span>
@@ -670,8 +670,17 @@ export default function Home() {
                   )}
                 </span>
               </h3>
-              <div className="overflow-x-auto pb-4">
-                <div className="inline-flex gap-8 min-w-full">
+              <div className="md:hidden text-center text-xs text-gray-500 mb-2 flex items-center justify-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
+                </svg>
+                Swipe to see all rounds
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </div>
+              <div className="overflow-x-auto pb-4 -mx-4 px-4">
+                <div className="inline-flex gap-4 md:gap-8 min-w-full">
                   {(() => {
                     const matchesByRound = {}
                     bracket.matches.forEach(match => {
@@ -824,26 +833,26 @@ export default function Home() {
                 <p className="text-gray-500 text-center py-8">No games played yet</p>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-xs sm:text-sm">
                     <thead>
                       <tr className="border-b">
-                        <th className="text-left py-3 px-4">#</th>
-                        <th className="text-left py-3 px-4">Team</th>
-                        <th className="text-center py-3 px-4">W</th>
-                        <th className="text-center py-3 px-4">L</th>
-                        <th className="text-center py-3 px-4">T</th>
-                        <th className="text-center py-3 px-4">GF</th>
-                        <th className="text-center py-3 px-4">GA</th>
-                        <th className="text-center py-3 px-4">DIFF</th>
-                        <th className="text-center py-3 px-4 font-bold">PTS</th>
+                        <th className="text-left py-3 px-2 sm:px-4">#</th>
+                        <th className="text-left py-3 px-2 sm:px-4">Team</th>
+                        <th className="text-center py-3 px-2 sm:px-4">W</th>
+                        <th className="text-center py-3 px-2 sm:px-4">L</th>
+                        <th className="text-center py-3 px-2 sm:px-4 hidden sm:table-cell">T</th>
+                        <th className="text-center py-3 px-2 sm:px-4 hidden sm:table-cell">GF</th>
+                        <th className="text-center py-3 px-2 sm:px-4 hidden sm:table-cell">GA</th>
+                        <th className="text-center py-3 px-2 sm:px-4 hidden lg:table-cell">DIFF</th>
+                        <th className="text-center py-3 px-2 sm:px-4 font-bold">PTS</th>
                       </tr>
                     </thead>
                     <tbody>
                       {standings.slice(0, 8).map((standing, index) => (
                         <tr key={standing.team.id} className="border-b hover:bg-gray-50">
-                          <td className="py-3 px-4 font-semibold">{index + 1}</td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center space-x-2">
+                          <td className="py-3 px-2 sm:px-4 font-semibold">{index + 1}</td>
+                          <td className="py-3 px-2 sm:px-4">
+                            <div className="flex items-center gap-2">
                               <div
                                 className="w-3 h-3 rounded-full"
                                 style={{ backgroundColor: standing.team.color }}
@@ -851,13 +860,13 @@ export default function Home() {
                               <span className="font-medium">{standing.team.name}</span>
                             </div>
                           </td>
-                          <td className="text-center py-3 px-4">{standing.wins}</td>
-                          <td className="text-center py-3 px-4">{standing.losses}</td>
-                          <td className="text-center py-3 px-4">{standing.ties}</td>
-                          <td className="text-center py-3 px-4">{standing.gf}</td>
-                          <td className="text-center py-3 px-4">{standing.ga}</td>
-                          <td className="text-center py-3 px-4">{standing.gf - standing.ga}</td>
-                          <td className="text-center py-3 px-4 font-bold">{standing.points}</td>
+                          <td className="text-center py-3 px-2 sm:px-4">{standing.wins}</td>
+                          <td className="text-center py-3 px-2 sm:px-4">{standing.losses}</td>
+                          <td className="text-center py-3 px-2 sm:px-4 hidden sm:table-cell">{standing.ties}</td>
+                          <td className="text-center py-3 px-2 sm:px-4 hidden sm:table-cell">{standing.gf}</td>
+                          <td className="text-center py-3 px-2 sm:px-4 hidden sm:table-cell">{standing.ga}</td>
+                          <td className="text-center py-3 px-2 sm:px-4 hidden lg:table-cell">{standing.gf - standing.ga}</td>
+                          <td className="text-center py-3 px-2 sm:px-4 font-bold">{standing.points}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1014,9 +1023,9 @@ export default function Home() {
                   <span className="text-sm font-normal text-gray-500 ml-2">({activeSeason.name})</span>
                 )}
               </h3>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {teams.map((team) => (
-                  <div key={team.id} className="border border-gray-200 rounded-lg p-4 bg-white">
+                  <div key={team.id} className="border border-gray-200 rounded-lg p-3 sm:p-4 bg-white">
                     <div className="flex items-center gap-2 mb-3 pb-2 border-b">
                       <div
                         className="w-4 h-4 rounded"

@@ -583,7 +583,7 @@ export default function Dashboard() {
                   >
                     {editingPlayer === profile.id ? (
                       // Edit mode
-                      <div className="space-y-4">
+                      <div className="space-y-3 sm:space-y-4">
                         <div className="font-bold text-lg text-gray-900">{profile.team_name}</div>
                         <div className="text-sm text-gray-600 mb-2">{profile.name}</div>
 
@@ -627,7 +627,7 @@ export default function Dashboard() {
                           </div>
                         </div>
 
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                           <button
                             onClick={() => savePlayerEdit(profile)}
                             className="btn-primary btn-sm"
@@ -645,37 +645,41 @@ export default function Dashboard() {
                     ) : (
                       // View mode
                       <>
-                        <div className="flex items-start gap-4 mb-4">
+                        <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 mb-4">
                           {profile.jersey_number && (
-                            <div
-                              className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md flex-shrink-0"
-                              style={{ backgroundColor: profile.team_color || '#0284c7' }}
-                            >
-                              {profile.jersey_number}
+                            <div className="flex justify-center sm:justify-start w-full sm:w-auto">
+                              <div
+                                className="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-white font-bold text-lg sm:text-xl shadow-md flex-shrink-0"
+                                style={{ backgroundColor: profile.team_color || '#0284c7' }}
+                              >
+                                {profile.jersey_number}
+                              </div>
                             </div>
                           )}
-                          <div className="flex-1">
-                            <div className="font-bold text-lg text-gray-900 mb-1">{profile.team_name}</div>
-                            <div className="text-sm text-gray-600 flex items-center gap-2 mb-3">
+                          <div className="flex-1 min-w-0 w-full">
+                            <div className="font-bold text-base sm:text-lg text-gray-900 mb-1 text-center sm:text-left">{profile.team_name}</div>
+                            <div className="text-sm text-gray-600 flex items-center gap-2 mb-3 text-center sm:text-left flex-wrap justify-center sm:justify-start">
                               <span>{profile.name}</span>
                               {profile.is_captain === 1 && (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                                   ⭐ Captain
                                 </span>
                               )}
-                              {profile.position === 'goalie' ? (
-                                <span className="badge badge-info">
-                                  Goalie
-                                </span>
-                              ) : profile.sub_position ? (
-                                <span className="badge badge-neutral capitalize">
-                                  {profile.sub_position}
-                                </span>
-                              ) : profile.position && profile.position !== 'player' && (
-                                <span className="badge badge-neutral capitalize">
-                                  {profile.position}
-                                </span>
-                              )}
+                              <span className="text-center sm:text-left">
+                                {profile.position === 'goalie' ? (
+                                  <span className="badge badge-info">
+                                    Goalie
+                                  </span>
+                                ) : profile.sub_position ? (
+                                  <span className="badge badge-neutral capitalize">
+                                    {profile.sub_position}
+                                  </span>
+                                ) : profile.position && profile.position !== 'player' && (
+                                  <span className="badge badge-neutral capitalize">
+                                    {profile.position}
+                                  </span>
+                                )}
+                              </span>
                             </div>
 
                             <div className="space-y-1.5 text-sm">
@@ -777,7 +781,7 @@ export default function Dashboard() {
                                       href={getMapUrls(game.location).google}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="hover:opacity-75 transition-opacity"
+                                      className="hover:opacity-75 transition-opacity min-w-[44px] min-h-[44px] flex items-center justify-center"
                                       title="Open in Google Maps"
                                     >
                                       <img src="/icons/google-maps.png" alt="Google Maps" className="w-6 h-6" />
@@ -786,7 +790,7 @@ export default function Dashboard() {
                                       href={getMapUrls(game.location).apple}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="hover:opacity-75 transition-opacity"
+                                      className="hover:opacity-75 transition-opacity min-w-[44px] min-h-[44px] flex items-center justify-center"
                                       title="Open in Apple Maps"
                                     >
                                       <img src="/icons/apple-maps.ico" alt="Apple Maps" className="w-6 h-6" />
@@ -795,14 +799,14 @@ export default function Dashboard() {
                                       href={getMapUrls(game.location).waze}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="hover:opacity-75 transition-opacity"
+                                      className="hover:opacity-75 transition-opacity min-w-[44px] min-h-[44px] flex items-center justify-center"
                                       title="Open in Waze"
                                     >
                                       <img src="/icons/waze.ico" alt="Waze" className="w-6 h-6" />
                                     </a>
                                   </div>
                                 )}
-                                <div className="flex gap-2 mt-2">
+                                <div className="flex gap-2 mt-2 flex-wrap">
                                   <button
                                     onClick={() => updateAttendance(game.id, profile.id, 'attending')}
                                     className={`px-3 py-1 rounded text-xs font-medium ${
@@ -863,8 +867,8 @@ export default function Dashboard() {
                                   <th className="text-left py-2 px-2">#</th>
                                   <th className="text-left py-2 px-2">Name</th>
                                   <th className="text-left py-2 px-2">Position</th>
-                                  <th className="text-left py-2 px-2">Email</th>
-                                  <th className="text-left py-2 px-2">Phone</th>
+                                  <th className="text-left py-2 px-2 hidden sm:table-cell">Email</th>
+                                  <th className="text-left py-2 px-2 hidden md:table-cell">Phone</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -897,7 +901,7 @@ export default function Dashboard() {
                                        player.sub_position ? player.sub_position :
                                        player.position || 'player'}
                                     </td>
-                                    <td className="py-2 px-2">
+                                    <td className="py-2 px-2 hidden sm:table-cell">
                                       {player.email ? (
                                         <a href={`mailto:${player.email}`} className="text-gray-700 hover:underline">
                                           {player.email}
@@ -906,7 +910,7 @@ export default function Dashboard() {
                                         <span className="text-gray-400">-</span>
                                       )}
                                     </td>
-                                    <td className="py-2 px-2">
+                                    <td className="py-2 px-2 hidden md:table-cell">
                                       {player.phone ? (
                                         <a href={`tel:${player.phone}`} className="text-gray-700 hover:underline">
                                           {player.phone}
@@ -1151,7 +1155,7 @@ export default function Dashboard() {
                         <div className="text-xs font-semibold text-gray-700 mb-2">
                           Active Season: {activeSeason.name}
                         </div>
-                        <div className="grid grid-cols-4 gap-3 text-center text-sm">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-sm">
                           <div>
                             <div className="text-xs text-gray-600">Total</div>
                             <div className="font-semibold text-gray-900">{stats.total_players}</div>
@@ -1188,7 +1192,7 @@ export default function Dashboard() {
               {showLeagueForm && (
                 <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                   <h3 className="text-lg font-bold mb-4">Create New League</h3>
-                  <form onSubmit={handleCreateLeague} className="space-y-4">
+                  <form onSubmit={handleCreateLeague} className="space-y-3 sm:space-y-4">
                     <div>
                       <label className="label">League Name</label>
                       <input
@@ -1241,7 +1245,7 @@ export default function Dashboard() {
             {showLeagueForm && managedLeagues.length === 0 && (
               <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                 <h3 className="section-header mb-4">Create New League</h3>
-                <form onSubmit={handleCreateLeague} className="space-y-4">
+                <form onSubmit={handleCreateLeague} className="space-y-3 sm:space-y-4">
                   <div>
                     <label className="label">League Name</label>
                     <input
@@ -1289,7 +1293,7 @@ export default function Dashboard() {
                       className="border border-gray-200 rounded-lg hover:border-gray-300 hover:shadow-md transition-all overflow-hidden"
                     >
                       <div className="p-4 bg-gray-50 border-b border-gray-200">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                           <div
                             className="flex items-center gap-3 flex-1 cursor-pointer"
                             onClick={() => navigate(`/leagues/${league.id}`)}
@@ -1299,7 +1303,7 @@ export default function Dashboard() {
                               <span className="badge badge-neutral">Archived</span>
                             )}
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <button
                               onClick={(e) => handleToggleArchiveLeague(e, league)}
                               className={`btn-secondary btn-sm px-3 py-1 ${league.archived === 1 ? '' : 'text-amber-600'}`}
@@ -1328,7 +1332,7 @@ export default function Dashboard() {
                         className="p-4 cursor-pointer"
                         onClick={() => navigate(`/leagues/${league.id}`)}
                       >
-                        <div className="grid grid-cols-3 gap-4 mb-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
                           <div>
                             <div className="text-xs text-gray-500 mb-1">Active Season</div>
                             <div className="font-semibold">
@@ -1347,7 +1351,7 @@ export default function Dashboard() {
                             </div>
                           </div>
 
-                          <div>
+                          <div className="col-span-2 sm:col-span-1">
                             <div className="text-xs text-gray-500 mb-1">Unpaid Players</div>
                             <div className="font-semibold">
                               {paymentStats ? (
@@ -1440,8 +1444,8 @@ export default function Dashboard() {
 
       {/* Payment Self-Report Modal */}
       {showPaymentModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 sm:p-6 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-4 sm:p-6">
             <div className="mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Report Payment</h3>
               <p className="text-sm text-gray-600 mt-1">
@@ -1463,20 +1467,20 @@ export default function Dashboard() {
               </div>
             )}
 
-            <form onSubmit={handleSelfReportPayment} className="space-y-4">
+            <form onSubmit={handleSelfReportPayment} className="space-y-3 sm:space-y-4">
               <div>
                 <label className="label mb-3">Payment Method *</label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-2">
                   <button
                     type="button"
                     onClick={() => setPaymentFormData({ ...paymentFormData, payment_method: 'venmo' })}
-                    className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg transition-all ${
+                    className={`flex flex-col items-center justify-center p-4 sm:p-3 min-h-[80px] sm:min-h-0 border-2 rounded-lg transition-all ${
                       paymentFormData.payment_method === 'venmo'
                         ? 'border-[#008CFF] bg-gradient-to-br from-[#008CFF]/20 to-[#3D95CE]/20'
                         : 'border-gray-200 hover:border-[#008CFF] hover:bg-[#008CFF]/5'
                     }`}
                   >
-                    <div className="w-10 h-10 bg-[#008CFF] rounded-lg flex items-center justify-center mb-1">
+                    <div className="w-12 h-12 sm:w-10 sm:h-10 bg-[#008CFF] rounded-lg flex items-center justify-center mb-1">
                       <span className="text-white text-lg font-bold">V</span>
                     </div>
                     <span className="font-semibold text-xs text-[#008CFF]">Venmo</span>
@@ -1485,13 +1489,13 @@ export default function Dashboard() {
                   <button
                     type="button"
                     onClick={() => setPaymentFormData({ ...paymentFormData, payment_method: 'zelle' })}
-                    className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg transition-all ${
+                    className={`flex flex-col items-center justify-center p-4 sm:p-3 min-h-[80px] sm:min-h-0 border-2 rounded-lg transition-all ${
                       paymentFormData.payment_method === 'zelle'
                         ? 'border-[#6D1ED4] bg-gradient-to-br from-[#6D1ED4]/20 to-[#A24DFF]/20'
                         : 'border-gray-200 hover:border-[#6D1ED4] hover:bg-[#6D1ED4]/5'
                     }`}
                   >
-                    <div className="w-10 h-10 bg-[#6D1ED4] rounded-lg flex items-center justify-center mb-1">
+                    <div className="w-12 h-12 sm:w-10 sm:h-10 bg-[#6D1ED4] rounded-lg flex items-center justify-center mb-1">
                       <span className="text-white text-lg font-bold">Z</span>
                     </div>
                     <span className="font-semibold text-xs text-[#6D1ED4]">Zelle</span>
@@ -1500,13 +1504,13 @@ export default function Dashboard() {
                   <button
                     type="button"
                     onClick={() => setPaymentFormData({ ...paymentFormData, payment_method: 'cash' })}
-                    className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg transition-all ${
+                    className={`flex flex-col items-center justify-center p-4 sm:p-3 min-h-[80px] sm:min-h-0 border-2 rounded-lg transition-all ${
                       paymentFormData.payment_method === 'cash'
                         ? 'border-green-600 bg-gradient-to-br from-green-100 to-green-200'
                         : 'border-gray-200 hover:border-green-600 hover:bg-green-50'
                     }`}
                   >
-                    <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center mb-1">
+                    <div className="w-12 h-12 sm:w-10 sm:h-10 bg-green-600 rounded-lg flex items-center justify-center mb-1">
                       <span className="text-white text-xl font-bold">$</span>
                     </div>
                     <span className="font-semibold text-xs text-green-700">Cash</span>
@@ -1515,13 +1519,13 @@ export default function Dashboard() {
                   <button
                     type="button"
                     onClick={() => setPaymentFormData({ ...paymentFormData, payment_method: 'check' })}
-                    className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg transition-all ${
+                    className={`flex flex-col items-center justify-center p-4 sm:p-3 min-h-[80px] sm:min-h-0 border-2 rounded-lg transition-all ${
                       paymentFormData.payment_method === 'check'
                         ? 'border-blue-600 bg-gradient-to-br from-blue-100 to-blue-200'
                         : 'border-gray-200 hover:border-blue-600 hover:bg-blue-50'
                     }`}
                   >
-                    <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mb-1">
+                    <div className="w-12 h-12 sm:w-10 sm:h-10 bg-blue-600 rounded-lg flex items-center justify-center mb-1">
                       <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
@@ -1532,13 +1536,13 @@ export default function Dashboard() {
                   <button
                     type="button"
                     onClick={() => setPaymentFormData({ ...paymentFormData, payment_method: 'paypal' })}
-                    className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg transition-all ${
+                    className={`flex flex-col items-center justify-center p-4 sm:p-3 min-h-[80px] sm:min-h-0 border-2 rounded-lg transition-all ${
                       paymentFormData.payment_method === 'paypal'
                         ? 'border-[#0070BA] bg-gradient-to-br from-[#0070BA]/20 to-[#003087]/20'
                         : 'border-gray-200 hover:border-[#0070BA] hover:bg-[#0070BA]/5'
                     }`}
                   >
-                    <div className="w-10 h-10 bg-[#0070BA] rounded-lg flex items-center justify-center mb-1">
+                    <div className="w-12 h-12 sm:w-10 sm:h-10 bg-[#0070BA] rounded-lg flex items-center justify-center mb-1">
                       <span className="text-white text-lg font-bold">P</span>
                     </div>
                     <span className="font-semibold text-xs text-[#0070BA]">PayPal</span>
@@ -1547,13 +1551,13 @@ export default function Dashboard() {
                   <button
                     type="button"
                     onClick={() => setPaymentFormData({ ...paymentFormData, payment_method: 'other' })}
-                    className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg transition-all ${
+                    className={`flex flex-col items-center justify-center p-4 sm:p-3 min-h-[80px] sm:min-h-0 border-2 rounded-lg transition-all ${
                       paymentFormData.payment_method === 'other'
                         ? 'border-gray-500 bg-gradient-to-br from-gray-100 to-gray-200'
                         : 'border-gray-200 hover:border-gray-500 hover:bg-gray-50'
                     }`}
                   >
-                    <div className="w-10 h-10 bg-gray-500 rounded-lg flex items-center justify-center mb-1">
+                    <div className="w-12 h-12 sm:w-10 sm:h-10 bg-gray-500 rounded-lg flex items-center justify-center mb-1">
                       <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
@@ -1585,7 +1589,7 @@ export default function Dashboard() {
                 />
               </div>
 
-              <div className="flex gap-2 mt-6">
+              <div className="flex gap-2 mt-6 flex-wrap">
                 <button
                   type="button"
                   onClick={() => setShowPaymentModal(false)}

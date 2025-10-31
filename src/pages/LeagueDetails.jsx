@@ -1257,7 +1257,7 @@ export default function LeagueDetails() {
   return (
     <div>
       <div className="page-header mb-6">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
           {/* Left: League name + Season selector */}
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
@@ -1305,7 +1305,7 @@ export default function LeagueDetails() {
               )}
               {league.archived === 1 && <span className="badge badge-warning">Archived</span>}
               {canManage && (
-                <div className="flex items-center gap-2 ml-auto">
+                <div className="flex items-center flex-wrap gap-2 ml-auto">
                   <button
                     onClick={handleArchive}
                     className="text-xs text-gray-500 hover:text-gray-700 underline"
@@ -1476,7 +1476,7 @@ export default function LeagueDetails() {
                 </button>
               </div>
             ) : (
-              <form onSubmit={handleSeasonSubmit} className="p-8 bg-white rounded-xl shadow-lg">
+              <form onSubmit={handleSeasonSubmit} className="p-4 sm:p-8 bg-white rounded-xl shadow-lg space-y-3 sm:space-y-4">
                 <h3 className="text-2xl font-bold mb-6 text-gray-800">✨ Create Your First Season</h3>
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
@@ -1823,7 +1823,7 @@ export default function LeagueDetails() {
             {showManagerForm && (
               <div className="mb-4 p-4 bg-gray-50 rounded-lg">
                 <h4 className="font-semibold text-gray-900 mb-3">Add Manager</h4>
-                <form onSubmit={handleAddManager} className="space-y-4">
+                <form onSubmit={handleAddManager} className="space-y-3 sm:space-y-4">
                   {/* User Search */}
                   <div>
                     <label className="label">Search for User *</label>
@@ -1983,7 +1983,7 @@ export default function LeagueDetails() {
                 <h3 className="text-lg font-semibold mb-4">
                   {editingAnnouncementId ? 'Edit Announcement' : 'Create New Announcement'}
                 </h3>
-                <form onSubmit={handleAnnouncementSubmit} className="space-y-4">
+                <form onSubmit={handleAnnouncementSubmit} className="space-y-3 sm:space-y-4">
                   <div>
                     <label className="label">Title *</label>
                     <input
@@ -2125,7 +2125,7 @@ export default function LeagueDetails() {
                     <div className="flex items-center justify-between mb-2">
                       <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Season Dues</div>
                       {!editingSeasonDues && (
-                        <button onClick={handleEditSeasonDues} className="text-xs text-gray-700 hover:text-gray-800 underline">
+                        <button onClick={handleEditSeasonDues} className="text-xs text-gray-700 hover:text-gray-800 underline min-h-[44px]">
                           Edit
                         </button>
                       )}
@@ -2142,10 +2142,10 @@ export default function LeagueDetails() {
                           min="0"
                           autoFocus
                         />
-                        <button onClick={handleSaveSeasonDues} className="text-sm px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700">
+                        <button onClick={handleSaveSeasonDues} className="text-sm px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 min-h-[44px]">
                           Save
                         </button>
-                        <button onClick={() => setEditingSeasonDues(false)} className="text-sm px-2 py-1 bg-gray-400 text-white rounded hover:bg-gray-500">
+                        <button onClick={() => setEditingSeasonDues(false)} className="text-sm px-2 py-1 bg-gray-400 text-white rounded hover:bg-gray-500 min-h-[44px]">
                           Cancel
                         </button>
                       </div>
@@ -2161,7 +2161,7 @@ export default function LeagueDetails() {
                     <div className="flex items-center justify-between mb-2">
                       <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Payment Link</div>
                       {!editingPaymentLink && (
-                        <button onClick={handleEditPaymentLink} className="text-xs text-gray-700 hover:text-gray-800 underline">
+                        <button onClick={handleEditPaymentLink} className="text-xs text-gray-700 hover:text-gray-800 underline min-h-[44px]">
                           {activeSeason.venmo_link ? 'Edit' : 'Add'}
                         </button>
                       )}
@@ -2176,10 +2176,10 @@ export default function LeagueDetails() {
                           placeholder="https://venmo.com/..."
                           autoFocus
                         />
-                        <button onClick={handleSavePaymentLink} className="text-sm px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700">
+                        <button onClick={handleSavePaymentLink} className="text-sm px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 min-h-[44px]">
                           Save
                         </button>
-                        <button onClick={() => setEditingPaymentLink(false)} className="text-sm px-2 py-1 bg-gray-400 text-white rounded hover:bg-gray-500">
+                        <button onClick={() => setEditingPaymentLink(false)} className="text-sm px-2 py-1 bg-gray-400 text-white rounded hover:bg-gray-500 min-h-[44px]">
                           Cancel
                         </button>
                       </div>
@@ -2351,30 +2351,30 @@ export default function LeagueDetails() {
                           </span>
                         </div>
                         <div className="overflow-x-auto">
-                          <table className="w-full">
+                          <table className="w-full text-xs sm:text-sm">
                             <thead>
                               <tr className="border-b">
-                                <th className="text-left py-2 px-3">Player</th>
-                                <th className="text-left py-2 px-3">Email</th>
-                                <th className="text-center py-2 px-3">Amount</th>
-                                <th className="text-center py-2 px-3">Status</th>
-                                <th className="text-center py-2 px-3">Method</th>
-                                <th className="text-center py-2 px-3">Actions</th>
+                                <th className="text-left py-2 px-2 sm:px-3">Player</th>
+                                <th className="text-left py-2 px-2 sm:px-3 hidden sm:table-cell">Email</th>
+                                <th className="text-center py-2 px-2 sm:px-3">Amount</th>
+                                <th className="text-center py-2 px-2 sm:px-3">Status</th>
+                                <th className="text-center py-2 px-2 sm:px-3 hidden md:table-cell">Method</th>
+                                <th className="text-center py-2 px-2 sm:px-3">Actions</th>
                               </tr>
                             </thead>
                             <tbody>
                               {team.players.length === 0 ? (
                                 <tr>
-                                  <td colSpan="6" className="py-4 px-3 text-center text-gray-500 text-sm">
+                                  <td colSpan="6" className="py-4 px-2 sm:px-3 text-center text-gray-500 text-sm">
                                     No players on this team yet
                                   </td>
                                 </tr>
                               ) : (
                                 team.players.map((player) => (
                                   <tr key={player.id} className="border-b hover:bg-gray-50">
-                                    <td className="py-2 px-3 font-medium">{player.name}</td>
-                                    <td className="py-2 px-3 text-sm text-gray-600">{player.email || '-'}</td>
-                                    <td className="py-2 px-3 text-center">
+                                    <td className="py-2 px-2 sm:px-3 font-medium">{player.name}</td>
+                                    <td className="py-2 px-2 sm:px-3 text-sm text-gray-600 hidden sm:table-cell">{player.email || '-'}</td>
+                                    <td className="py-2 px-2 sm:px-3 text-center">
                                       {editingPaymentId === (player.payment_id || `new-${player.id}`) ? (
                                         <div className="flex items-center justify-center gap-1">
                                           <span className="text-sm">$</span>
@@ -2389,7 +2389,7 @@ export default function LeagueDetails() {
                                           />
                                           <button
                                             onClick={() => handleSavePaymentAmount(player)}
-                                            className="text-xs px-2 py-0.5 bg-green-600 text-white rounded hover:bg-green-700"
+                                            className="text-xs px-2 py-0.5 bg-green-600 text-white rounded hover:bg-green-700 min-h-[44px]"
                                           >
                                             ✓
                                           </button>
@@ -2398,7 +2398,7 @@ export default function LeagueDetails() {
                                               setEditingPaymentId(null)
                                               setEditingPaymentAmount('')
                                             }}
-                                            className="text-xs px-2 py-0.5 bg-gray-400 text-white rounded hover:bg-gray-500"
+                                            className="text-xs px-2 py-0.5 bg-gray-400 text-white rounded hover:bg-gray-500 min-h-[44px]"
                                           >
                                             ✕
                                           </button>
@@ -2409,7 +2409,7 @@ export default function LeagueDetails() {
                                           {canManage && (
                                             <button
                                               onClick={() => handleEditPaymentAmount(player)}
-                                              className="text-xs text-gray-700 hover:text-gray-800"
+                                              className="text-xs text-gray-700 hover:text-gray-800 min-h-[44px] min-w-[44px]"
                                             >
                                               ✎
                                             </button>
@@ -2417,14 +2417,14 @@ export default function LeagueDetails() {
                                         </div>
                                       )}
                                     </td>
-                                    <td className="py-2 px-3 text-center">
+                                    <td className="py-2 px-2 sm:px-3 text-center">
                                       {player.payment_status === 'paid' ? (
                                         <span className="badge badge-success">Paid</span>
                                       ) : (
                                         <span className="badge badge-error">Unpaid</span>
                                       )}
                                     </td>
-                                    <td className="py-2 px-3 text-center">
+                                    <td className="py-2 px-2 sm:px-3 text-center hidden md:table-cell">
                                       {player.payment_status === 'paid' && player.payment_method ? (
                                         <span className="text-xs text-gray-600 capitalize">
                                           {player.payment_method}
@@ -2433,7 +2433,7 @@ export default function LeagueDetails() {
                                         <span className="text-xs text-gray-400">-</span>
                                       )}
                                     </td>
-                                    <td className="py-2 px-3 text-center">
+                                    <td className="py-2 px-2 sm:px-3 text-center">
                                       {player.payment_status === 'paid' ? (
                                         <div className="flex flex-col items-center gap-1">
                                           <span className="text-xs text-gray-500">
@@ -2442,7 +2442,7 @@ export default function LeagueDetails() {
                                           {canManage && (
                                             <button
                                               onClick={() => handleMarkUnpaid(player)}
-                                              className="text-xs text-red-600 hover:text-red-700 hover:underline"
+                                              className="text-xs text-red-600 hover:text-red-700 hover:underline min-h-[44px]"
                                             >
                                               Mark Unpaid
                                             </button>
@@ -2451,7 +2451,7 @@ export default function LeagueDetails() {
                                       ) : canManage ? (
                                         <button
                                           onClick={() => handleMarkPaid(player)}
-                                          className="btn-primary btn-sm text-xs px-3 py-1"
+                                          className="btn-primary btn-sm text-xs px-3 py-1 min-h-[44px]"
                                         >
                                           Mark Paid
                                         </button>
@@ -2571,7 +2571,7 @@ export default function LeagueDetails() {
           {showTeamForm && (
             <div className="card mb-8">
               <h2 className="section-header mb-4">Add Team to {league.name}</h2>
-              <form onSubmit={handleTeamSubmit} className="space-y-4">
+              <form onSubmit={handleTeamSubmit} className="space-y-3 sm:space-y-4">
                 <div>
                   <label className="label">Team Name</label>
                   <input
@@ -3029,7 +3029,7 @@ export default function LeagueDetails() {
               {showGameForm && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
               <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                   <div className="flex justify-between items-center mb-4">
                     <h2 className="text-2xl font-bold">{editingGameId ? 'Edit Game' : 'Schedule New Game'}</h2>
                     <button
@@ -3040,7 +3040,7 @@ export default function LeagueDetails() {
                       ×
                     </button>
                   </div>
-              <form onSubmit={handleGameSubmit} className="space-y-4">
+              <form onSubmit={handleGameSubmit} className="space-y-3 sm:space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="label">Home Team *</label>
@@ -3241,7 +3241,7 @@ export default function LeagueDetails() {
                                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(game.location)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="hover:opacity-75 transition-opacity"
+                                    className="hover:opacity-75 transition-opacity min-w-[44px] min-h-[44px] flex items-center justify-center"
                                     title="Open in Google Maps"
                                   >
                                     <img src="/icons/google-maps.png" alt="Google Maps" className="w-6 h-6" />
@@ -3250,7 +3250,7 @@ export default function LeagueDetails() {
                                     href={`https://maps.apple.com/?q=${encodeURIComponent(game.location)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="hover:opacity-75 transition-opacity"
+                                    className="hover:opacity-75 transition-opacity min-w-[44px] min-h-[44px] flex items-center justify-center"
                                     title="Open in Apple Maps"
                                   >
                                     <img src="/icons/apple-maps.ico" alt="Apple Maps" className="w-6 h-6" />
@@ -3259,7 +3259,7 @@ export default function LeagueDetails() {
                                     href={`https://waze.com/ul?q=${encodeURIComponent(game.location)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="hover:opacity-75 transition-opacity"
+                                    className="hover:opacity-75 transition-opacity min-w-[44px] min-h-[44px] flex items-center justify-center"
                                     title="Open in Waze"
                                   >
                                     <img src="/icons/waze.ico" alt="Waze" className="w-6 h-6" />
@@ -3361,7 +3361,7 @@ export default function LeagueDetails() {
                                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(game.location)}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="hover:opacity-75 transition-opacity"
+                                      className="hover:opacity-75 transition-opacity min-w-[44px] min-h-[44px] flex items-center justify-center"
                                       title="Open in Google Maps"
                                     >
                                       <img src="/icons/google-maps.png" alt="Google Maps" className="w-6 h-6" />
@@ -3370,7 +3370,7 @@ export default function LeagueDetails() {
                                       href={`https://maps.apple.com/?q=${encodeURIComponent(game.location)}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="hover:opacity-75 transition-opacity"
+                                      className="hover:opacity-75 transition-opacity min-w-[44px] min-h-[44px] flex items-center justify-center"
                                       title="Open in Apple Maps"
                                     >
                                       <img src="/icons/apple-maps.ico" alt="Apple Maps" className="w-6 h-6" />
@@ -3379,7 +3379,7 @@ export default function LeagueDetails() {
                                       href={`https://waze.com/ul?q=${encodeURIComponent(game.location)}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="hover:opacity-75 transition-opacity"
+                                      className="hover:opacity-75 transition-opacity min-w-[44px] min-h-[44px] flex items-center justify-center"
                                       title="Open in Waze"
                                     >
                                       <img src="/icons/waze.ico" alt="Waze" className="w-6 h-6" />
@@ -3506,25 +3506,25 @@ export default function LeagueDetails() {
 
               return (
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full text-xs sm:text-sm">
                     <thead>
                       <tr className="border-b">
-                        <th className="text-left py-2 px-2">#</th>
-                        <th className="text-left py-2 px-2">Team</th>
-                        <th className="text-center py-2 px-2">W</th>
-                        <th className="text-center py-2 px-2">L</th>
-                        <th className="text-center py-2 px-2">T</th>
-                        <th className="text-center py-2 px-2">GF</th>
-                        <th className="text-center py-2 px-2">GA</th>
-                        <th className="text-center py-2 px-2">DIFF</th>
-                        <th className="text-center py-2 px-2 font-bold">PTS</th>
+                        <th className="text-left py-2 px-2 sm:px-4">#</th>
+                        <th className="text-left py-2 px-2 sm:px-4">Team</th>
+                        <th className="text-center py-2 px-2 sm:px-4">W</th>
+                        <th className="text-center py-2 px-2 sm:px-4">L</th>
+                        <th className="text-center py-2 px-2 sm:px-4 hidden sm:table-cell">T</th>
+                        <th className="text-center py-2 px-2 sm:px-4 hidden md:table-cell">GF</th>
+                        <th className="text-center py-2 px-2 sm:px-4 hidden md:table-cell">GA</th>
+                        <th className="text-center py-2 px-2 sm:px-4 hidden sm:table-cell">DIFF</th>
+                        <th className="text-center py-2 px-2 sm:px-4 font-bold">PTS</th>
                       </tr>
                     </thead>
                     <tbody>
                       {sortedStandings.map((standing, index) => (
                         <tr key={standing.team.id} className="border-b hover:bg-gray-50">
-                          <td className="py-2 px-2 font-semibold">{index + 1}</td>
-                          <td className="py-2 px-2">
+                          <td className="py-2 px-2 sm:px-4 font-semibold">{index + 1}</td>
+                          <td className="py-2 px-2 sm:px-4">
                             <div className="flex items-center space-x-2">
                               <div
                                 className="w-4 h-4 rounded-full"
@@ -3533,16 +3533,16 @@ export default function LeagueDetails() {
                               <span className="font-medium">{standing.team.name}</span>
                             </div>
                           </td>
-                          <td className="text-center py-2 px-2">{standing.wins}</td>
-                          <td className="text-center py-2 px-2">{standing.losses}</td>
-                          <td className="text-center py-2 px-2">{standing.ties}</td>
-                          <td className="text-center py-2 px-2">{standing.gf}</td>
-                          <td className="text-center py-2 px-2">{standing.ga}</td>
-                          <td className="text-center py-2 px-2">
+                          <td className="text-center py-2 px-2 sm:px-4">{standing.wins}</td>
+                          <td className="text-center py-2 px-2 sm:px-4">{standing.losses}</td>
+                          <td className="text-center py-2 px-2 sm:px-4 hidden sm:table-cell">{standing.ties}</td>
+                          <td className="text-center py-2 px-2 sm:px-4 hidden md:table-cell">{standing.gf}</td>
+                          <td className="text-center py-2 px-2 sm:px-4 hidden md:table-cell">{standing.ga}</td>
+                          <td className="text-center py-2 px-2 sm:px-4 hidden sm:table-cell">
                             {standing.gf - standing.ga > 0 ? '+' : ''}
                             {standing.gf - standing.ga}
                           </td>
-                          <td className="text-center py-2 px-2 font-bold">{standing.points}</td>
+                          <td className="text-center py-2 px-2 sm:px-4 font-bold">{standing.points}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -3571,7 +3571,7 @@ export default function LeagueDetails() {
       {showContactModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold">Contact All Players</h2>
                 <button
@@ -3672,7 +3672,7 @@ export default function LeagueDetails() {
       {showPaymentMethodModal && playerToMarkPaid && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-            <form onSubmit={handlePaymentFormSubmit} className="p-6">
+            <form onSubmit={handlePaymentFormSubmit} className="p-4 sm:p-6 space-y-3 sm:space-y-4">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-900">Mark Payment</h2>
                 <button
@@ -3849,13 +3849,13 @@ export default function LeagueDetails() {
       {/* Transfer Player Modal */}
       {showTransferModal && playerToTransfer && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full mx-4">
             <h3 className="section-header mb-4">Transfer Player</h3>
             <p className="text-gray-600 mb-4">
               Transfer <strong>{playerToTransfer.name}</strong> to:
             </p>
 
-            <div className="space-y-3">
+            <div className="space-y-3 sm:space-y-4">
               <select
                 value={selectedTeamId}
                 onChange={(e) => setSelectedTeamId(e.target.value)}
@@ -3989,7 +3989,7 @@ This will also delete all associated teams, games, and payment records.`}
       {showSeasonForm && leagueSeasons.length > 0 && !editingSeasonId && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <form onSubmit={handleSeasonSubmit} className="p-8">
+            <form onSubmit={handleSeasonSubmit} className="p-4 sm:p-8 space-y-3 sm:space-y-4">
               <h3 className="text-2xl font-bold mb-6 text-gray-800">Create New Season</h3>
               <div className="grid md:grid-cols-2 gap-6">
                 <div>

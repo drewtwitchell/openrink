@@ -113,9 +113,9 @@ export default function Login({ onLogin }) {
   }
 
   return (
-    <div className="max-w-md mx-auto">
+    <div className="max-w-md mx-auto px-4 sm:px-0">
       <div className="card">
-        <h2 className="section-header text-center mb-6">
+        <h2 className="section-header text-center mb-4 sm:mb-6 text-lg sm:text-xl">
           {isSignUp ? 'Sign Up' : 'Sign In'}
         </h2>
 
@@ -129,7 +129,7 @@ export default function Login({ onLogin }) {
           </div>
         )}
 
-        <form onSubmit={handleAuth} className="space-y-4">
+        <form onSubmit={handleAuth} className="space-y-3 sm:space-y-4">
           {isSignUp && (
             <>
               <div>
@@ -198,7 +198,7 @@ export default function Login({ onLogin }) {
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full disabled:opacity-50"
+            className="btn-primary w-full disabled:opacity-50 text-sm sm:text-base"
           >
             {loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Sign In'}
           </button>
@@ -207,7 +207,7 @@ export default function Login({ onLogin }) {
         <div className="mt-4 text-center">
           <button
             onClick={() => setIsSignUp(!isSignUp)}
-            className="text-gray-700 hover:underline"
+            className="text-gray-700 hover:underline text-sm"
           >
             {isSignUp
               ? 'Already have an account? Sign In'
