@@ -16,6 +16,9 @@ export default function Users() {
   const [loadingHistories, setLoadingHistories] = useState({}) // Track loading state per user
   const [openUserMenu, setOpenUserMenu] = useState(null) // Track which user's menu is open
   const userMenuRef = useRef(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null })
+  const [dropdownPosition, setDropdownPosition] = useState({}) // Track dropdown positions by user ID
 
   useEffect(() => {
     const currentUser = auth.getUser()
@@ -117,19 +120,23 @@ export default function Users() {
     return new Date(dateString).toLocaleDateString()
   }
 
-  const handleDeactivateUser = async (userId, userName) => {
-    if (!confirm(`Are you sure you want to deactivate ${userName}? They will not be able to log in until reactivated.`)) {
-      return
-    }
-
-    try {
-      await auth.deactivateUser(userId)
-      setMessage(`User ${userName} has been deactivated successfully`)
-      fetchAllUsers()
-      setTimeout(() => setMessage(''), 3000)
-    } catch (error) {
-      setMessage('Error deactivating user: ' + error.message)
-    }
+  const handleDeactivateUser = (userId, userName) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Deactivate User',
+      message: `Are you sure you want to deactivate ${userName}? They will not be able to log in until reactivated.`,
+      onConfirm: async () => {
+        try {
+          await auth.deactivateUser(userId)
+          setMessage(`User ${userName} has been deactivated successfully`)
+          fetchAllUsers()
+          setTimeout(() => setMessage(''), 3000)
+        } catch (error) {
+          setMessage('Error deactivating user: ' + error.message)
+        }
+        setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null })
+      }
+    })
   }
 
   const handleReactivateUser = async (userId, userName) => {
@@ -142,6 +149,47 @@ export default function Users() {
       setMessage('Error reactivating user: ' + error.message)
     }
   }
+
+  const handleToggleUserMenu = (userId, event) => {
+    if (openUserMenu === userId) {
+      setOpenUserMenu(null)
+      return
+    }
+
+    // Calculate if there's enough space below for the dropdown
+    const button = event.currentTarget
+    const rect = button.getBoundingClientRect()
+    const spaceBelow = window.innerHeight - rect.bottom
+    const dropdownHeight = 200 // Approximate height of dropdown
+
+    // If not enough space below, open upward; otherwise open downward
+    const openUpward = spaceBelow < dropdownHeight
+
+    setDropdownPosition({ ...dropdownPosition, [userId]: openUpward ? 'up' : 'down' })
+    setOpenUserMenu(userId)
+  }
+
+  // Filter and sort users
+  const filteredAndSortedUsers = allUsers
+    .filter(u => {
+      if (!searchQuery) return true
+      const query = searchQuery.toLowerCase()
+      return (
+        u.email?.toLowerCase().includes(query) ||
+        u.name?.toLowerCase().includes(query) ||
+        u.phone?.toLowerCase().includes(query)
+      )
+    })
+    .sort((a, b) => {
+      // First user (ID 1) always at top
+      if (a.id === 1) return -1
+      if (b.id === 1) return 1
+
+      // Then sort alphabetically by name or email
+      const aName = a.name || a.email
+      const bName = b.name || b.email
+      return aName.toLowerCase().localeCompare(bName.toLowerCase())
+    })
 
   if (loading) {
     return <div className="loading">Loading users...</div>
@@ -167,8 +215,17 @@ export default function Users() {
       )}
 
       <div className="card mb-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="section-header mb-0">All Users ({allUsers.length})</h2>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <h2 className="section-header mb-0">All Users ({filteredAndSortedUsers.length})</h2>
+          <div className="w-full sm:w-auto">
+            <input
+              type="text"
+              placeholder="Search users..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="input w-full sm:w-64"
+            />
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -184,9 +241,9 @@ export default function Users() {
               </tr>
             </thead>
             <tbody>
-              {allUsers.map((u) => (
+              {filteredAndSortedUsers.map((u) => (
                 <>
-                  <tr key={u.id} className={u.is_active === 0 ? 'opacity-60 bg-gray-50' : ''}>
+                  <tr key={u.id} className={`${u.is_active === 0 ? 'opacity-60 bg-gray-50' : ''} ${u.id === 1 ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''}`}>
                     <td className="font-medium">
                       {u.email}
                       {u.is_active === 0 && (
@@ -221,7 +278,7 @@ export default function Users() {
                       {user?.role === 'admin' && (
                         <div className="relative inline-block" ref={openUserMenu === u.id ? userMenuRef : null}>
                           <button
-                            onClick={() => setOpenUserMenu(openUserMenu === u.id ? null : u.id)}
+                            onClick={(e) => handleToggleUserMenu(u.id, e)}
                             className="btn-secondary btn-sm px-3"
                             aria-label="User actions"
                           >
@@ -230,7 +287,9 @@ export default function Users() {
                             </svg>
                           </button>
                           {openUserMenu === u.id && (
-                            <div className="absolute right-0 bottom-full mb-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                            <div className={`absolute right-0 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10 ${
+                              dropdownPosition[u.id] === 'up' ? 'bottom-full mb-1' : 'mt-1'
+                            }`}>
                               <button
                                 onClick={() => {
                                   toggleUserHistory(u.id)
@@ -414,6 +473,15 @@ export default function Users() {
           </div>
         </div>
       )}
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null })}
+      />
     </div>
   )
 }
