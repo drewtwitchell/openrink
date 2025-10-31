@@ -15,20 +15,16 @@ const validate = (req, res, next) => {
   next()
 }
 
-// Password validation rules - require 8+ chars with at least one uppercase, lowercase, and number
+// Password validation rules - require 6+ chars for backward compatibility
 const passwordValidation = body('password')
   .trim()
-  .isLength({ min: 8 })
-  .withMessage('Password must be at least 8 characters')
-  .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-  .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number')
+  .isLength({ min: 6 })
+  .withMessage('Password must be at least 6 characters')
 
 const newPasswordValidation = body('new_password')
   .trim()
-  .isLength({ min: 8 })
-  .withMessage('Password must be at least 8 characters')
-  .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-  .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number')
+  .isLength({ min: 6 })
+  .withMessage('Password must be at least 6 characters')
 
 // Sign up
 router.post('/signup', [
