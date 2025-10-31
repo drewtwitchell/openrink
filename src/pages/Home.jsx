@@ -1,6 +1,6 @@
 import { Link, useSearchParams } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { auth } from '../lib/api'
+import { auth, players as playersAPI } from '../lib/api'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -317,6 +317,14 @@ export default function Home() {
             return acc
           }, {})
 
+          // Fetch player stats for this league
+          let playerStats = []
+          try {
+            playerStats = await playersAPI.getLeagueStats(league.id)
+          } catch (error) {
+            console.error(`Error fetching player stats for league ${league.id}:`, error)
+          }
+
           return {
             league,
             activeSeason,
@@ -326,7 +334,8 @@ export default function Home() {
             announcements: leagueAnnouncements[league.id] || [],
             bracket: leagueBrackets[league.id] || null,
             teams: leagueTeams,
-            teamRosters
+            teamRosters,
+            playerStats
           }
         }))
 
@@ -520,7 +529,7 @@ export default function Home() {
         )}
       </div>
 
-      {displayLeagues.map(({ league, activeSeason, standings, upcomingGames, allGames, announcements, bracket, teams, teamRosters }) => {
+      {displayLeagues.map(({ league, activeSeason, standings, upcomingGames, allGames, announcements, bracket, teams, teamRosters, playerStats }) => {
         const isCollapsed = collapsedLeagues[league.id] || false
         const isStarred = starredLeagues[league.id] || false
         const isScheduleExpanded = expandedSchedules[league.id] || false
@@ -1009,6 +1018,62 @@ export default function Home() {
               </div>
             </div>
           </div>
+
+          {/* Player Stats */}
+          {playerStats && playerStats.length > 0 && (
+            <div className="card mb-8">
+              <h3 className="section-header mb-4">
+                {isMultipleLeagues ? `${league.name} - Player Stats` : 'Player Stats'}
+                {isMultipleLeagues && activeSeason && (
+                  <span className="text-sm font-normal text-gray-500 ml-2">({activeSeason.name})</span>
+                )}
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs sm:text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-3 px-2 sm:px-4">#</th>
+                      <th className="text-left py-3 px-2 sm:px-4">Player</th>
+                      <th className="text-left py-3 px-2 sm:px-4">Team</th>
+                      <th className="text-center py-3 px-2 sm:px-4 hidden md:table-cell">Jersey</th>
+                      <th className="text-center py-3 px-2 sm:px-4">GP</th>
+                      <th className="text-center py-3 px-2 sm:px-4">G</th>
+                      <th className="text-center py-3 px-2 sm:px-4">A</th>
+                      <th className="text-center py-3 px-2 sm:px-4 font-bold">PTS</th>
+                      <th className="text-center py-3 px-2 sm:px-4 hidden sm:table-cell">PIM</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {playerStats.map((stat, index) => (
+                      <tr key={stat.player_id} className="border-b hover:bg-gray-50">
+                        <td className="py-3 px-2 sm:px-4 font-semibold">{index + 1}</td>
+                        <td className="py-3 px-2 sm:px-4 font-medium">{stat.player_name}</td>
+                        <td className="py-3 px-2 sm:px-4">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: stat.team_color }}
+                            />
+                            <span className="text-xs sm:text-sm">{stat.team_name}</span>
+                          </div>
+                        </td>
+                        <td className="text-center py-3 px-2 sm:px-4 text-xs hidden md:table-cell">
+                          {stat.jersey_number || '-'}
+                        </td>
+                        <td className="text-center py-3 px-2 sm:px-4">{stat.games_played}</td>
+                        <td className="text-center py-3 px-2 sm:px-4">{stat.goals}</td>
+                        <td className="text-center py-3 px-2 sm:px-4">{stat.assists}</td>
+                        <td className="text-center py-3 px-2 sm:px-4 font-bold">{stat.points}</td>
+                        <td className="text-center py-3 px-2 sm:px-4 hidden sm:table-cell">
+                          {stat.penalty_minutes}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* Team Rosters */}
           {teams && teams.length > 0 && (

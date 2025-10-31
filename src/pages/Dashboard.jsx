@@ -70,6 +70,8 @@ export default function Dashboard() {
     sub_position: ''
   })
   const [leagueAnnouncements, setLeagueAnnouncements] = useState({})
+  const [playerStats, setPlayerStats] = useState({}) // Stats by player_id
+  const [leagueStats, setLeagueStats] = useState({}) // League-wide stats by league_id
 
   useEffect(() => {
     const currentUser = auth.getUser()
@@ -152,6 +154,32 @@ export default function Dashboard() {
             }
           }
           setLeagueAnnouncements(announcementsData)
+
+          // Fetch player stats for each player profile
+          const statsData = {}
+          for (const profile of userProfiles) {
+            try {
+              const stats = await players.getStats(profile.id)
+              statsData[profile.id] = stats
+            } catch (error) {
+              console.error(`Error fetching stats for player ${profile.id}:`, error)
+              statsData[profile.id] = null
+            }
+          }
+          setPlayerStats(statsData)
+
+          // Fetch league-wide stats for each league
+          const leagueStatsData = {}
+          for (const league of playerLeagues) {
+            try {
+              const stats = await players.getLeagueStats(league.id)
+              leagueStatsData[league.id] = stats
+            } catch (error) {
+              console.error(`Error fetching league stats for league ${league.id}:`, error)
+              leagueStatsData[league.id] = []
+            }
+          }
+          setLeagueStats(leagueStatsData)
 
           // For backwards compatibility, set first league as leagueData
           if (playerLeagues.length > 0) {
@@ -964,6 +992,163 @@ export default function Dashboard() {
                 )
               })}
             </div>
+          </div>
+        )}
+
+        {/* Player Stats Section */}
+        {userPlayerProfiles.length > 0 && userLeagues.length > 0 && (
+          <div className="card mb-8">
+            <h2 className="section-header mb-6">My Stats</h2>
+
+            {/* Display stats grouped by league */}
+            <div className="space-y-6">
+              {userLeagues.map((league) => {
+                const leagueProfiles = userPlayerProfiles.filter(profile => {
+                  const team = allTeams.find(t => t.id === profile.team_id)
+                  return team && team.league_id === league.id
+                })
+
+                const allLeagueStats = leagueStats[league.id] || []
+                const hasAnyStats = leagueProfiles.some(profile => playerStats[profile.id])
+
+                if (!hasAnyStats) return null
+
+                return (
+                  <div key={league.id} className="border border-gray-200 rounded-lg p-5 bg-white">
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">{league.name}</h3>
+
+                    {/* Personal Stats for each player profile in this league */}
+                    {leagueProfiles.map((profile) => {
+                      const stats = playerStats[profile.id]
+                      if (!stats || stats.games_played === 0) return null
+
+                      // Find player's rank in league
+                      const playerRank = allLeagueStats.findIndex(s => s.player_id === profile.id) + 1
+
+                      return (
+                        <div key={profile.id} className="mb-6 last:mb-0">
+                          <div className="flex items-center gap-3 mb-3">
+                            {profile.jersey_number && (
+                              <div
+                                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
+                                style={{ backgroundColor: profile.team_color || '#0284c7' }}
+                              >
+                                {profile.jersey_number}
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-bold text-lg">{profile.name}</div>
+                              <div className="text-sm text-gray-600">{profile.team_name}</div>
+                            </div>
+                            {playerRank > 0 && allLeagueStats.length > 0 && (
+                              <div className="ml-auto">
+                                <span className="badge badge-info text-xs">
+                                  #{playerRank} of {allLeagueStats.length} in league
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3 bg-gray-50 rounded-lg p-4">
+                            <div className="text-center">
+                              <div className="text-xs text-gray-600 mb-1">GP</div>
+                              <div className="font-bold text-gray-900">{stats.games_played || 0}</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-xs text-gray-600 mb-1">G</div>
+                              <div className="font-bold text-gray-900">{stats.goals || 0}</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-xs text-gray-600 mb-1">A</div>
+                              <div className="font-bold text-gray-900">{stats.assists || 0}</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-xs text-gray-600 mb-1">PTS</div>
+                              <div className="font-bold text-blue-600">{stats.points || 0}</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-xs text-gray-600 mb-1">PIM</div>
+                              <div className="font-bold text-gray-900">{stats.penalty_minutes || 0}</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-xs text-gray-600 mb-1">G/GP</div>
+                              <div className="font-bold text-gray-900">{stats.goals_per_game || '0.00'}</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-xs text-gray-600 mb-1">P/GP</div>
+                              <div className="font-bold text-blue-600">{stats.points_per_game || '0.00'}</div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+
+                    {/* League-wide Stats Table */}
+                    {allLeagueStats.length > 0 && (
+                      <div className="mt-6 pt-6 border-t border-gray-200">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="font-semibold text-gray-900">League Leaders</h4>
+                          <button
+                            onClick={() => navigate('/')}
+                            className="btn-secondary btn-sm"
+                          >
+                            View Full Standings
+                          </button>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs sm:text-sm">
+                            <thead>
+                              <tr className="border-b">
+                                <th className="text-left py-2 px-2">#</th>
+                                <th className="text-left py-2 px-2">Player</th>
+                                <th className="text-left py-2 px-2">Team</th>
+                                <th className="text-center py-2 px-2 hidden md:table-cell">GP</th>
+                                <th className="text-center py-2 px-2">G</th>
+                                <th className="text-center py-2 px-2">A</th>
+                                <th className="text-center py-2 px-2 font-bold">PTS</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {allLeagueStats.slice(0, 10).map((stat, index) => {
+                                const isCurrentUser = leagueProfiles.some(p => p.id === stat.player_id)
+                                return (
+                                  <tr
+                                    key={stat.player_id}
+                                    className={`border-b hover:bg-gray-50 ${isCurrentUser ? 'bg-blue-50 font-semibold' : ''}`}
+                                  >
+                                    <td className="py-2 px-2">{index + 1}</td>
+                                    <td className="py-2 px-2">
+                                      {stat.player_name}
+                                      {isCurrentUser && <span className="ml-1 text-blue-600">(You)</span>}
+                                    </td>
+                                    <td className="py-2 px-2">
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: stat.team_color }} />
+                                        <span className="text-xs">{stat.team_name}</span>
+                                      </div>
+                                    </td>
+                                    <td className="text-center py-2 px-2 hidden md:table-cell">{stat.games_played}</td>
+                                    <td className="text-center py-2 px-2">{stat.goals}</td>
+                                    <td className="text-center py-2 px-2">{stat.assists}</td>
+                                    <td className="text-center py-2 px-2 font-bold">{stat.points}</td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {!userPlayerProfiles.some(profile => playerStats[profile.id]?.games_played > 0) && (
+              <div className="text-center py-8 text-gray-500">
+                <p>No stats recorded yet. Stats will appear after games are played and recorded.</p>
+              </div>
+            )}
           </div>
         )}
 
