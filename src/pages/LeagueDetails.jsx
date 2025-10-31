@@ -75,6 +75,7 @@ export default function LeagueDetails() {
   const [playerToTransfer, setPlayerToTransfer] = useState(null)
   const [selectedTeamId, setSelectedTeamId] = useState('')
   const [selectedSeasonId, setSelectedSeasonId] = useState(null) // Track which season is selected in Season tab
+  const [seasonPlayerStats, setSeasonPlayerStats] = useState([])
   const [showGameForm, setShowGameForm] = useState(false)
   const [editingGameId, setEditingGameId] = useState(null)
   const [gameFormData, setGameFormData] = useState({
@@ -813,6 +814,22 @@ export default function LeagueDetails() {
       fetchPlayoffBrackets()
     }
   }, [mainTab, seasonSubTab, selectedSeasonId])
+
+  // Fetch player stats when standings tab is selected
+  useEffect(() => {
+    const fetchSeasonPlayerStats = async () => {
+      if (mainTab === 'season' && seasonSubTab === 'standings' && selectedSeasonId && league) {
+        try {
+          const stats = await players.getLeagueStats(league.id, selectedSeasonId)
+          setSeasonPlayerStats(stats)
+        } catch (error) {
+          console.error('Error fetching season player stats:', error)
+          setSeasonPlayerStats([])
+        }
+      }
+    }
+    fetchSeasonPlayerStats()
+  }, [mainTab, seasonSubTab, selectedSeasonId, league])
 
   const handlePlayerDelete = async (playerId, playerName, teamId) => {
     setRemovePlayerModal({ isOpen: true, playerId, playerName, teamId })
@@ -4180,6 +4197,52 @@ export default function LeagueDetails() {
               )
             })()}
           </div>
+
+          {seasonPlayerStats.length > 0 && (
+            <div className="card mt-6">
+              <h3 className="section-header mb-4">Player Stats</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs sm:text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2 px-2 sm:px-4">#</th>
+                      <th className="text-left py-2 px-2 sm:px-4">Player</th>
+                      <th className="text-left py-2 px-2 sm:px-4">Team</th>
+                      <th className="text-center py-2 px-2 sm:px-4 hidden md:table-cell">No.</th>
+                      <th className="text-center py-2 px-2 sm:px-4">GP</th>
+                      <th className="text-center py-2 px-2 sm:px-4">G</th>
+                      <th className="text-center py-2 px-2 sm:px-4">A</th>
+                      <th className="text-center py-2 px-2 sm:px-4 font-bold">PTS</th>
+                      <th className="text-center py-2 px-2 sm:px-4 hidden sm:table-cell">PIM</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {seasonPlayerStats.map((stat, index) => (
+                      <tr key={stat.player_id} className="border-b hover:bg-gray-50">
+                        <td className="py-2 px-2 sm:px-4 font-semibold">{index + 1}</td>
+                        <td className="py-2 px-2 sm:px-4 font-medium">{stat.player_name}</td>
+                        <td className="py-2 px-2 sm:px-4">
+                          <div className="flex items-center space-x-2">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: stat.team_color }}
+                            />
+                            <span className="text-xs sm:text-sm">{stat.team_name}</span>
+                          </div>
+                        </td>
+                        <td className="text-center py-2 px-2 sm:px-4 text-xs hidden md:table-cell">{stat.jersey_number || '-'}</td>
+                        <td className="text-center py-2 px-2 sm:px-4">{stat.games_played}</td>
+                        <td className="text-center py-2 px-2 sm:px-4">{stat.goals}</td>
+                        <td className="text-center py-2 px-2 sm:px-4">{stat.assists}</td>
+                        <td className="text-center py-2 px-2 sm:px-4 font-bold">{stat.points}</td>
+                        <td className="text-center py-2 px-2 sm:px-4 hidden sm:table-cell">{stat.penalty_minutes}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

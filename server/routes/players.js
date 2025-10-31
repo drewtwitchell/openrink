@@ -516,6 +516,56 @@ router.get('/user/:userId/history', authenticateToken, (req, res) => {
   })
 })
 
+// Get aggregate stats for all players in a league/season
+router.get('/league/:leagueId/stats', (req, res) => {
+  const { leagueId } = req.params
+  const { seasonId } = req.query
+
+  // Build the WHERE clause based on whether seasonId is provided
+  let whereClause = 'WHERE t.league_id = ?'
+  let params = [leagueId]
+
+  if (seasonId) {
+    whereClause += ' AND t.season_id = ?'
+    params.push(seasonId)
+  }
+
+  // Get aggregate stats for all players in the league/season
+  db.all(
+    `SELECT
+      p.id as player_id,
+      p.name as player_name,
+      p.jersey_number,
+      p.position,
+      t.id as team_id,
+      t.name as team_name,
+      t.color as team_color,
+      COUNT(DISTINCT gs.game_id) as games_played,
+      COALESCE(SUM(gs.goals), 0) as goals,
+      COALESCE(SUM(gs.assists), 0) as assists,
+      COALESCE(SUM(gs.goals + gs.assists), 0) as points,
+      COALESCE(SUM(gs.penalty_minutes), 0) as penalty_minutes,
+      ROUND(CAST(SUM(gs.goals) AS FLOAT) / NULLIF(COUNT(DISTINCT gs.game_id), 0), 2) as goals_per_game,
+      ROUND(CAST(SUM(gs.assists) AS FLOAT) / NULLIF(COUNT(DISTINCT gs.game_id), 0), 2) as assists_per_game,
+      ROUND(CAST(SUM(gs.goals + gs.assists) AS FLOAT) / NULLIF(COUNT(DISTINCT gs.game_id), 0), 2) as points_per_game
+     FROM players p
+     INNER JOIN teams t ON p.team_id = t.id
+     LEFT JOIN game_stats gs ON p.id = gs.player_id
+     ${whereClause}
+     GROUP BY p.id, p.name, p.jersey_number, p.position, t.id, t.name, t.color
+     HAVING games_played > 0
+     ORDER BY points DESC, goals DESC, assists DESC`,
+    params,
+    (err, stats) => {
+      if (err) {
+        console.error('Error fetching league player stats:', err)
+        return res.status(500).json({ error: 'Error fetching player stats' })
+      }
+      res.json(stats)
+    }
+  )
+})
+
 // Get aggregate stats for a player across all games
 router.get('/:id/stats', (req, res) => {
   const playerId = req.params.id

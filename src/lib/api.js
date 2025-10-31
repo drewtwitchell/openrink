@@ -230,6 +230,12 @@ export const players = {
   getHistory: (id) => apiRequest(`/api/players/${id}/history`),
   getHistoryByUser: (userId) => apiRequest(`/api/players/user/${userId}/history`),
   getStats: (id) => apiRequest(`/api/players/${id}/stats`),
+  getLeagueStats: (leagueId, seasonId = null) => {
+    const url = seasonId
+      ? `/api/players/league/${leagueId}/stats?seasonId=${seasonId}`
+      : `/api/players/league/${leagueId}/stats`
+    return apiRequest(url)
+  },
 }
 
 // Announcements API

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { leagues, games } from '../lib/api'
+import { leagues, games, players } from '../lib/api'
 
 export default function Standings() {
   const [leaguesList, setLeaguesList] = useState([])
   const [selectedLeague, setSelectedLeague] = useState('')
   const [standings, setStandings] = useState([])
+  const [playerStats, setPlayerStats] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -14,6 +15,7 @@ export default function Standings() {
   useEffect(() => {
     if (selectedLeague) {
       calculateStandings(selectedLeague)
+      fetchPlayerStats(selectedLeague)
     }
   }, [selectedLeague])
 
@@ -110,6 +112,16 @@ export default function Standings() {
     }
   }
 
+  const fetchPlayerStats = async (leagueId) => {
+    try {
+      const stats = await players.getLeagueStats(leagueId)
+      setPlayerStats(stats)
+    } catch (error) {
+      console.error('Error fetching player stats:', error)
+      setPlayerStats([])
+    }
+  }
+
   if (loading) {
     return <div className="loading">Loading standings...</div>
   }
@@ -155,51 +167,98 @@ export default function Standings() {
               </div>
             </div>
           ) : (
-            <div className="card overflow-x-auto">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Rank</th>
-                    <th>Team</th>
-                    <th className="text-center">W</th>
-                    <th className="text-center">L</th>
-                    <th className="text-center">T</th>
-                    <th className="text-center">GF</th>
-                    <th className="text-center">GA</th>
-                    <th className="text-center">DIFF</th>
-                    <th className="text-center">PTS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {standings.map((standing, index) => (
-                    <tr key={standing.id}>
-                      <td className="font-semibold">{index + 1}</td>
-                      <td>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-4 h-4 rounded-full"
-                            style={{ backgroundColor: standing.color }}
-                          />
-                          <span className="font-medium">{standing.name}</span>
-                        </div>
-                      </td>
-                      <td className="text-center">{standing.wins}</td>
-                      <td className="text-center">{standing.losses}</td>
-                      <td className="text-center">{standing.ties}</td>
-                      <td className="text-center">{standing.gf}</td>
-                      <td className="text-center">{standing.ga}</td>
-                      <td className="text-center">
-                        {standing.gf - standing.ga > 0 ? '+' : ''}
-                        {standing.gf - standing.ga}
-                      </td>
-                      <td className="text-center font-bold">
-                        {standing.points}
-                      </td>
+            <>
+              <div className="card overflow-x-auto mb-6">
+                <h3 className="section-header mb-4">Team Standings</h3>
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Rank</th>
+                      <th>Team</th>
+                      <th className="text-center">W</th>
+                      <th className="text-center">L</th>
+                      <th className="text-center">T</th>
+                      <th className="text-center">GF</th>
+                      <th className="text-center">GA</th>
+                      <th className="text-center">DIFF</th>
+                      <th className="text-center">PTS</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {standings.map((standing, index) => (
+                      <tr key={standing.id}>
+                        <td className="font-semibold">{index + 1}</td>
+                        <td>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-4 h-4 rounded-full"
+                              style={{ backgroundColor: standing.color }}
+                            />
+                            <span className="font-medium">{standing.name}</span>
+                          </div>
+                        </td>
+                        <td className="text-center">{standing.wins}</td>
+                        <td className="text-center">{standing.losses}</td>
+                        <td className="text-center">{standing.ties}</td>
+                        <td className="text-center">{standing.gf}</td>
+                        <td className="text-center">{standing.ga}</td>
+                        <td className="text-center">
+                          {standing.gf - standing.ga > 0 ? '+' : ''}
+                          {standing.gf - standing.ga}
+                        </td>
+                        <td className="text-center font-bold">
+                          {standing.points}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {playerStats.length > 0 && (
+                <div className="card overflow-x-auto">
+                  <h3 className="section-header mb-4">Player Stats</h3>
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Rank</th>
+                        <th>Player</th>
+                        <th>Team</th>
+                        <th className="text-center">#</th>
+                        <th className="text-center">GP</th>
+                        <th className="text-center">G</th>
+                        <th className="text-center">A</th>
+                        <th className="text-center">PTS</th>
+                        <th className="text-center">PIM</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {playerStats.map((stat, index) => (
+                        <tr key={stat.player_id}>
+                          <td className="font-semibold">{index + 1}</td>
+                          <td className="font-medium">{stat.player_name}</td>
+                          <td>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: stat.team_color }}
+                              />
+                              <span className="text-sm">{stat.team_name}</span>
+                            </div>
+                          </td>
+                          <td className="text-center text-sm">{stat.jersey_number || '-'}</td>
+                          <td className="text-center">{stat.games_played}</td>
+                          <td className="text-center">{stat.goals}</td>
+                          <td className="text-center">{stat.assists}</td>
+                          <td className="text-center font-bold">{stat.points}</td>
+                          <td className="text-center">{stat.penalty_minutes}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
           )}
         </>
       )}
