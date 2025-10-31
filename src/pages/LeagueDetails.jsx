@@ -126,6 +126,8 @@ export default function LeagueDetails() {
   const [tempLeagueInfo, setTempLeagueInfo] = useState('')
   const [leagueInfoCollapsed, setLeagueInfoCollapsed] = useState(false)
   const [paymentTrackingCollapsed, setPaymentTrackingCollapsed] = useState(false)
+  const [openPlayerMenu, setOpenPlayerMenu] = useState(null) // Track which player's menu is open
+  const playerMenuRef = useRef(null)
 
   // Playoff state variables
   const [playoffBrackets, setPlayoffBrackets] = useState([])
@@ -313,6 +315,17 @@ export default function LeagueDetails() {
     const handleClickOutside = (event) => {
       if (leagueMenuRef.current && !leagueMenuRef.current.contains(event.target)) {
         setShowLeagueMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Close player menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (playerMenuRef.current && !playerMenuRef.current.contains(event.target)) {
+        setOpenPlayerMenu(null)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -3379,33 +3392,71 @@ export default function LeagueDetails() {
                                     )}
                                   </div>
                                   {canManageTeam(team.id) && (
-                                    <div className="flex gap-2">
+                                    <div className="relative" ref={openPlayerMenu === player.id ? playerMenuRef : null}>
                                       <button
-                                        onClick={() => handleEditPlayer(player)}
-                                        className="btn-secondary btn-sm"
+                                        onClick={() => setOpenPlayerMenu(openPlayerMenu === player.id ? null : player.id)}
+                                        className="btn-secondary btn-sm px-3"
+                                        aria-label="Player actions"
                                       >
-                                        Edit
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                        </svg>
                                       </button>
-                                      {player.user_id && (
-                                        <button
-                                          onClick={() => handleToggleCaptain(player, team.id)}
-                                          className={player.is_captain === 1 ? "btn-warning btn-sm" : "btn-secondary btn-sm"}
-                                        >
-                                          {player.is_captain === 1 ? 'Remove Captain' : 'Make Captain'}
-                                        </button>
+                                      {openPlayerMenu === player.id && (
+                                        <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                                          <button
+                                            onClick={() => {
+                                              handleEditPlayer(player)
+                                              setOpenPlayerMenu(null)
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                          >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                            Edit Player
+                                          </button>
+                                          {player.user_id && (
+                                            <button
+                                              onClick={() => {
+                                                handleToggleCaptain(player, team.id)
+                                                setOpenPlayerMenu(null)
+                                              }}
+                                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                            >
+                                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                                              </svg>
+                                              {player.is_captain === 1 ? 'Remove Captain' : 'Make Captain'}
+                                            </button>
+                                          )}
+                                          <button
+                                            onClick={() => {
+                                              openTransferModal(player)
+                                              setOpenPlayerMenu(null)
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                          >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                            </svg>
+                                            Transfer Player
+                                          </button>
+                                          <div className="border-t border-gray-200 my-1"></div>
+                                          <button
+                                            onClick={() => {
+                                              handlePlayerDelete(player.id, player.name, team.id)
+                                              setOpenPlayerMenu(null)
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                          >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                            Remove Player
+                                          </button>
+                                        </div>
                                       )}
-                                      <button
-                                        onClick={() => openTransferModal(player)}
-                                        className="btn-secondary btn-sm"
-                                      >
-                                        Transfer
-                                      </button>
-                                      <button
-                                        onClick={() => handlePlayerDelete(player.id, player.name, team.id)}
-                                        className="btn-danger btn-sm"
-                                      >
-                                        Remove
-                                      </button>
                                     </div>
                                   )}
                                 </div>
