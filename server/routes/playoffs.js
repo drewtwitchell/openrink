@@ -5,12 +5,34 @@ import { authenticateToken } from '../middleware/auth.js'
 const router = express.Router()
 
 // Helper middleware to check admin/league_manager
-function requireAdmin(req, res, next) {
+function requireAdminOrLeagueManager(req, res, next) {
   db.get('SELECT role FROM users WHERE id = ?', [req.user.id], (err, user) => {
-    if (err || !user || (user.role !== 'admin' && user.role !== 'league_manager')) {
+    if (err || !user) {
       return res.status(403).json({ error: 'Unauthorized' })
     }
-    next()
+
+    // Admins have full access
+    if (user.role === 'admin') {
+      return next()
+    }
+
+    // Check if user is a league manager
+    // Note: For playoffs creation, we need league_id from request body
+    const leagueId = req.body.league_id || req.params.leagueId
+    if (!leagueId) {
+      return res.status(403).json({ error: 'Unauthorized' })
+    }
+
+    db.get(
+      'SELECT id FROM league_managers WHERE user_id = ? AND league_id = ?',
+      [req.user.id, leagueId],
+      (err, manager) => {
+        if (err || !manager) {
+          return res.status(403).json({ error: 'Unauthorized' })
+        }
+        next()
+      }
+    )
   })
 }
 
@@ -358,7 +380,7 @@ router.get('/:bracketId', (req, res) => {
 })
 
 // Create new bracket
-router.post('/', authenticateToken, requireAdmin, (req, res) => {
+router.post('/', authenticateToken, requireAdminOrLeagueManager, (req, res) => {
   const { league_id, season_id, name, format, team_ids } = req.body
 
   if (!league_id || !season_id || !name || !format || !team_ids || !Array.isArray(team_ids)) {
@@ -510,7 +532,7 @@ router.post('/', authenticateToken, requireAdmin, (req, res) => {
 })
 
 // Update match result
-router.put('/matches/:matchId', authenticateToken, requireAdmin, (req, res) => {
+router.put('/matches/:matchId', authenticateToken, requireAdminOrLeagueManager, (req, res) => {
   const { team1_score, team2_score, winner_id, game_date, game_time, rink_id, surface_name } = req.body
 
   // Get the match details first
@@ -604,7 +626,7 @@ router.put('/matches/:matchId', authenticateToken, requireAdmin, (req, res) => {
 })
 
 // Create round robin schedule
-router.post('/round-robin/schedule', authenticateToken, requireAdmin, (req, res) => {
+router.post('/round-robin/schedule', authenticateToken, requireAdminOrLeagueManager, (req, res) => {
   const { bracket_id, team_ids, start_date, game_times } = req.body
 
   if (!bracket_id || !team_ids || !Array.isArray(team_ids) || !start_date || !game_times || !Array.isArray(game_times)) {
@@ -702,7 +724,7 @@ router.get('/:bracketId/round-robin/standings', (req, res) => {
 })
 
 // Generate elimination bracket from round robin standings
-router.post('/:bracketId/generate-elimination', authenticateToken, requireAdmin, (req, res) => {
+router.post('/:bracketId/generate-elimination', authenticateToken, requireAdminOrLeagueManager, (req, res) => {
   const { semifinal_date, semifinal_times, final_date, final_times } = req.body
 
   if (!semifinal_date || !semifinal_times || !Array.isArray(semifinal_times) || semifinal_times.length !== 2) {
@@ -842,7 +864,7 @@ router.post('/:bracketId/generate-elimination', authenticateToken, requireAdmin,
 })
 
 // Toggle bracket active status
-router.put('/:bracketId/toggle', authenticateToken, requireAdmin, (req, res) => {
+router.put('/:bracketId/toggle', authenticateToken, requireAdminOrLeagueManager, (req, res) => {
   db.get(
     'SELECT is_active FROM playoff_brackets WHERE id = ?',
     [req.params.bracketId],
@@ -871,7 +893,7 @@ router.put('/:bracketId/toggle', authenticateToken, requireAdmin, (req, res) => 
 })
 
 // Delete bracket
-router.delete('/:bracketId', authenticateToken, requireAdmin, (req, res) => {
+router.delete('/:bracketId', authenticateToken, requireAdminOrLeagueManager, (req, res) => {
   db.run(
     'DELETE FROM playoff_brackets WHERE id = ?',
     [req.params.bracketId],

@@ -193,9 +193,9 @@ export default function Users() {
       )
     })
     .sort((a, b) => {
-      // First user (ID 1) always at top
-      if (a.id === 1) return -1
-      if (b.id === 1) return 1
+      // Default admin (username: 'admin') always at top
+      if (a.username === 'admin') return -1
+      if (b.username === 'admin') return 1
 
       // Then sort alphabetically by name, email, or username
       const aName = a.name || a.email || a.username
@@ -240,7 +240,7 @@ export default function Users() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" style={{ minHeight: filteredAndSortedUsers.length <= 3 ? '400px' : 'auto' }}>
           <table className="data-table">
             <thead>
               <tr>
@@ -255,16 +255,16 @@ export default function Users() {
             <tbody>
               {filteredAndSortedUsers.map((u) => (
                 <>
-                  <tr key={u.id} className={`${u.is_active === 0 ? 'opacity-60 bg-gray-50' : ''} ${u.id === 1 ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''}`}>
-                    <td className="font-medium">
+                  <tr key={u.id} className={`${u.is_active === 0 ? 'bg-gray-50' : ''} ${u.username === 'admin' ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''}`}>
+                    <td className={`font-medium ${u.is_active === 0 ? 'text-gray-400' : ''}`}>
                       {u.email || u.username || '-'}
                       {u.is_active === 0 && (
                         <span className="ml-2 badge badge-neutral text-xs">Deactivated</span>
                       )}
                     </td>
-                    <td>{u.name || '-'}</td>
-                    <td className="text-gray-600">{u.phone || '-'}</td>
-                    <td>
+                    <td className={u.is_active === 0 ? 'text-gray-400' : ''}>{u.name || '-'}</td>
+                    <td className={u.is_active === 0 ? 'text-gray-400' : 'text-gray-600'}>{u.phone || '-'}</td>
+                    <td className={u.is_active === 0 ? 'text-gray-400' : ''}>
                       {user?.role === 'admin' ? (
                         <>
                           <select
@@ -283,7 +283,7 @@ export default function Users() {
                         getRoleBadge(u.role)
                       )}
                     </td>
-                    <td className="text-gray-600">
+                    <td className={u.is_active === 0 ? 'text-gray-400' : 'text-gray-600'}>
                       {new Date(u.created_at).toLocaleDateString()}
                     </td>
                     <td className="text-right">
@@ -492,7 +492,7 @@ export default function Users() {
         title={confirmModal.title}
         message={confirmModal.message}
         onConfirm={confirmModal.onConfirm}
-        onCancel={() => setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null })}
+        onClose={() => setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null })}
       />
     </div>
   )
