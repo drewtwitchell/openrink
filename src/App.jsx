@@ -7,10 +7,6 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import LeagueDetails from './pages/LeagueDetails'
-import Teams from './pages/Teams'
-import TeamRoster from './pages/TeamRoster'
-import Games from './pages/Games'
-import Standings from './pages/Standings'
 import Settings from './pages/Settings'
 import Users from './pages/Users'
 import PlayoffBracketView from './pages/PlayoffBracketView'
@@ -433,10 +429,6 @@ function AppContent({
             <Route path="/login" element={<Login onLogin={() => setIsAuthenticated(true)} />} />
             <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
             <Route path="/leagues/:id" element={isAuthenticated ? <LeagueDetails /> : <Navigate to="/login" />} />
-            <Route path="/teams" element={isAuthenticated ? <Teams /> : <Navigate to="/login" />} />
-            <Route path="/teams/:id/roster" element={isAuthenticated ? <TeamRoster /> : <Navigate to="/login" />} />
-            <Route path="/games" element={isAuthenticated ? <Games /> : <Navigate to="/login" />} />
-            <Route path="/standings" element={isAuthenticated ? <Standings /> : <Navigate to="/login" />} />
             <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
             <Route path="/users" element={isAuthenticated ? <Users /> : <Navigate to="/login" />} />
             <Route path="/playoffs/:bracketId/view" element={isAuthenticated ? <PlayoffBracketView /> : <Navigate to="/login" />} />
