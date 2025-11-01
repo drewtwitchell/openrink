@@ -20,6 +20,7 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
+    "@libsql/client": "^0.15.15",
     "@vitejs/plugin-react": "^5.1.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",

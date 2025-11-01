@@ -1,27 +1,89 @@
 import sqlite3 from 'sqlite3'
+import { createClient } from '@libsql/client'
 import bcrypt from 'bcrypt'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-const db = new sqlite3.Database(join(__dirname, 'openrink.db'), (err) => {
-  if (err) {
-    console.error('Error opening database:', err)
-  } else {
-    console.log('Connected to SQLite database')
-    // Enable foreign key constraints
-    db.run('PRAGMA foreign_keys = ON', (pragmaErr) => {
-      if (pragmaErr) {
-        console.error('Error enabling foreign keys:', pragmaErr)
-      } else {
-        console.log('Foreign key constraints enabled')
+// Check if we should use Turso (production) or SQLite (local)
+const useTurso = process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN
+
+let db
+let isTurso = false
+
+if (useTurso) {
+  // Use Turso for production
+  console.log('🚀 Connecting to Turso database...')
+  const tursoClient = createClient({
+    url: process.env.TURSO_DATABASE_URL,
+    authToken: process.env.TURSO_AUTH_TOKEN,
+  })
+  isTurso = true
+
+  // Create wrapper to make Turso compatible with sqlite3 callback API
+  db = {
+    serialize: (callback) => callback(),
+    run: async (sql, params, callback) => {
+      try {
+        const result = await tursoClient.execute({ sql, args: Array.isArray(params) ? params : [] })
+        if (callback) callback(null)
+      } catch (err) {
+        if (callback) callback(err)
       }
-    })
-    initDatabase()
+    },
+    get: async (sql, params, callback) => {
+      try {
+        const result = await tursoClient.execute({ sql, args: Array.isArray(params) ? params : [] })
+        if (callback) callback(null, result.rows[0] || null)
+      } catch (err) {
+        if (callback) callback(err)
+      }
+    },
+    all: async (sql, params, callback) => {
+      try {
+        const result = await tursoClient.execute({ sql, args: Array.isArray(params) ? params : [] })
+        if (callback) callback(null, result.rows)
+      } catch (err) {
+        if (callback) callback(err)
+      }
+    },
+    exec: async (sql, callback) => {
+      try {
+        await tursoClient.execute(sql)
+        if (callback) callback(null)
+      } catch (err) {
+        if (callback) callback(err)
+      }
+    }
   }
-})
+
+  console.log('✅ Connected to Turso database')
+  initDatabase()
+} else {
+  // Use SQLite for local development
+  console.log('📁 Connecting to local SQLite database...')
+  db = new sqlite3.Database(join(__dirname, 'openrink.db'), (err) => {
+    if (err) {
+      console.error('Error opening database:', err)
+    } else {
+      console.log('✅ Connected to SQLite database')
+      // Enable foreign key constraints
+      db.run('PRAGMA foreign_keys = ON', (pragmaErr) => {
+        if (pragmaErr) {
+          console.error('Error enabling foreign keys:', pragmaErr)
+        } else {
+          console.log('Foreign key constraints enabled')
+        }
+      })
+      initDatabase()
+    }
+  })
+}
 
 function initDatabase() {
   db.serialize(() => {

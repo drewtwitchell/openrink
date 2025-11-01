@@ -114,9 +114,14 @@ app.use((err, req, res, next) => {
   })
 })
 
-app.listen(PORT, () => {
-  console.log(`🏒 OpenRink API server running on port ${PORT}`)
+// Only start server if not running in Vercel serverless environment
+if (process.env.VERCEL !== '1') {
+  app.listen(PORT, () => {
+    console.log(`🏒 OpenRink API server running on port ${PORT}`)
 
-  // Initialize backup system (creates initial backup and schedules weekly backups)
-  initBackupSystem()
-})
+    // Initialize backup system (creates initial backup and schedules weekly backups)
+    initBackupSystem()
+  })
+}
+
+export default app
