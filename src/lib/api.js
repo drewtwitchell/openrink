@@ -113,9 +113,17 @@ export const auth = {
     method: 'DELETE',
   }),
 
-  createPlaceholderUser: (email, name, phone) => apiRequest('/api/auth/users/create', {
+  createPlaceholderUser: (email, name, phone, teamId, position, subPosition, jerseyNumber) => apiRequest('/api/auth/users/create', {
     method: 'POST',
-    body: JSON.stringify({ email, name, phone }),
+    body: JSON.stringify({
+      email,
+      name,
+      phone,
+      team_id: teamId,
+      position,
+      sub_position: subPosition,
+      jersey_number: jerseyNumber
+    }),
   }),
 
   isAuthenticated: () => {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { auth, players } from '../lib/api'
+import { auth, players, teams } from '../lib/api'
 import ConfirmModal from '../components/ConfirmModal'
 
 export default function Users() {
@@ -21,6 +21,14 @@ export default function Users() {
   const [dropdownPosition, setDropdownPosition] = useState({}) // Track dropdown positions by user ID
   const [createUserModal, setCreateUserModal] = useState({ isOpen: false })
   const [newUserData, setNewUserData] = useState({ email: '', name: '', phone: '' })
+  const [availableTeams, setAvailableTeams] = useState([])
+  const [rosterAssignment, setRosterAssignment] = useState({
+    addToRoster: false,
+    teamId: '',
+    position: 'forward',
+    subPosition: '',
+    jerseyNumber: ''
+  })
 
   useEffect(() => {
     const currentUser = auth.getUser()
@@ -182,6 +190,18 @@ export default function Users() {
     setOpenUserMenu(userId)
   }
 
+  const handleOpenCreateUserModal = async () => {
+    // Fetch all teams for roster assignment
+    try {
+      const allTeams = await teams.getAll()
+      setAvailableTeams(allTeams)
+    } catch (error) {
+      console.error('Error fetching teams:', error)
+      setAvailableTeams([])
+    }
+    setCreateUserModal({ isOpen: true })
+  }
+
   const handleCreateUser = async (e) => {
     e.preventDefault()
 
@@ -190,11 +210,50 @@ export default function Users() {
       return
     }
 
+    if (rosterAssignment.addToRoster && !rosterAssignment.teamId) {
+      setMessage('Please select a team for roster assignment')
+      return
+    }
+
     try {
-      const result = await auth.createPlaceholderUser(newUserData.email, newUserData.name, newUserData.phone)
+      const userData = {
+        email: newUserData.email,
+        name: newUserData.name,
+        phone: newUserData.phone
+      }
+
+      // Add roster assignment if selected
+      if (rosterAssignment.addToRoster) {
+        userData.team_id = rosterAssignment.teamId
+        userData.position = rosterAssignment.position
+        if (rosterAssignment.position !== 'goalie' && rosterAssignment.subPosition) {
+          userData.sub_position = rosterAssignment.subPosition
+        }
+        if (rosterAssignment.jerseyNumber) {
+          userData.jersey_number = rosterAssignment.jerseyNumber
+        }
+      }
+
+      const result = await auth.createPlaceholderUser(
+        userData.email,
+        userData.name,
+        userData.phone,
+        userData.team_id,
+        userData.position,
+        userData.sub_position,
+        userData.jersey_number
+      )
+
       setMessage(result.message || 'User created successfully. They can register with this email to claim their account.')
       setCreateUserModal({ isOpen: false })
       setNewUserData({ email: '', name: '', phone: '' })
+      setRosterAssignment({
+        addToRoster: false,
+        teamId: '',
+        position: 'forward',
+        subPosition: '',
+        jerseyNumber: ''
+      })
       fetchAllUsers()
       setTimeout(() => setMessage(''), 5000)
     } catch (error) {
@@ -254,7 +313,7 @@ export default function Users() {
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             {user?.role === 'admin' && (
               <button
-                onClick={() => setCreateUserModal({ isOpen: true })}
+                onClick={handleOpenCreateUserModal}
                 className="btn-primary btn-sm whitespace-nowrap"
               >
                 <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -522,7 +581,7 @@ export default function Users() {
       {/* Create User Modal */}
       {createUserModal.isOpen && (
         <div className="modal-overlay">
-          <div className="modal-container">
+          <div className="modal-container max-w-2xl">
             <h3 className="modal-header">Create Placeholder User</h3>
             <div className="modal-body">
               <p className="text-sm text-gray-600 mb-4">
@@ -562,6 +621,87 @@ export default function Users() {
                     placeholder="(555) 123-4567"
                   />
                 </div>
+
+                {/* Roster Assignment Section */}
+                <div className="border-t pt-4 mt-4">
+                  <div className="flex items-center mb-3">
+                    <input
+                      type="checkbox"
+                      id="addToRoster"
+                      checked={rosterAssignment.addToRoster}
+                      onChange={(e) => setRosterAssignment({ ...rosterAssignment, addToRoster: e.target.checked })}
+                      className="mr-2"
+                    />
+                    <label htmlFor="addToRoster" className="font-semibold text-gray-900 cursor-pointer">
+                      Add User to Team Roster
+                    </label>
+                  </div>
+
+                  {rosterAssignment.addToRoster && (
+                    <div className="pl-6 space-y-3">
+                      <div>
+                        <label className="label">Team *</label>
+                        <select
+                          value={rosterAssignment.teamId}
+                          onChange={(e) => setRosterAssignment({ ...rosterAssignment, teamId: e.target.value })}
+                          className="input w-full"
+                          required={rosterAssignment.addToRoster}
+                        >
+                          <option value="">Select a team...</option>
+                          {availableTeams.map((team) => (
+                            <option key={team.id} value={team.id}>
+                              {team.name} - {team.league_name} ({team.season_name})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="label">Position *</label>
+                          <select
+                            value={rosterAssignment.position}
+                            onChange={(e) => setRosterAssignment({ ...rosterAssignment, position: e.target.value, subPosition: '' })}
+                            className="input w-full"
+                          >
+                            <option value="forward">Forward</option>
+                            <option value="defense">Defense</option>
+                            <option value="goalie">Goalie</option>
+                          </select>
+                        </div>
+
+                        {rosterAssignment.position !== 'goalie' && (
+                          <div>
+                            <label className="label">Sub Position</label>
+                            <select
+                              value={rosterAssignment.subPosition}
+                              onChange={(e) => setRosterAssignment({ ...rosterAssignment, subPosition: e.target.value })}
+                              className="input w-full"
+                            >
+                              <option value="">None</option>
+                              <option value="center">Center</option>
+                              <option value="left_wing">Left Wing</option>
+                              <option value="right_wing">Right Wing</option>
+                            </select>
+                          </div>
+                        )}
+
+                        <div>
+                          <label className="label">Jersey Number</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="99"
+                            value={rosterAssignment.jerseyNumber}
+                            onChange={(e) => setRosterAssignment({ ...rosterAssignment, jerseyNumber: e.target.value })}
+                            className="input w-full"
+                            placeholder="00"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </form>
             </div>
             <div className="modal-actions">
@@ -569,6 +709,13 @@ export default function Users() {
                 onClick={() => {
                   setCreateUserModal({ isOpen: false })
                   setNewUserData({ email: '', name: '', phone: '' })
+                  setRosterAssignment({
+                    addToRoster: false,
+                    teamId: '',
+                    position: 'forward',
+                    subPosition: '',
+                    jerseyNumber: ''
+                  })
                 }}
                 className="btn-secondary btn-sm"
               >

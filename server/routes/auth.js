@@ -496,7 +496,7 @@ router.post('/users/create', [
   body('phone').optional().trim().matches(/^[\d\s\-\+\(\)]*$/).withMessage('Invalid phone number format'),
   validate
 ], async (req, res) => {
-  const { email, name, phone } = req.body
+  const { email, name, phone, team_id, position, sub_position, jersey_number } = req.body
 
   try {
     // Check if user is admin
@@ -530,15 +530,54 @@ router.post('/users/create', [
               return res.status(500).json({ error: 'Error creating user' })
             }
 
-            res.json({
-              id: this.lastID,
-              email,
-              name,
-              phone,
-              role: 'player',
-              is_placeholder: 1,
-              message: 'Placeholder user created. They can register with this email to claim their account.'
-            })
+            const userId = this.lastID
+
+            // If team assignment is provided, create player record
+            if (team_id) {
+              db.run(
+                'INSERT INTO players (user_id, team_id, position, sub_position, jersey_number) VALUES (?, ?, ?, ?, ?)',
+                [userId, team_id, position || 'forward', sub_position || null, jersey_number || null],
+                function (err) {
+                  if (err) {
+                    console.error('Error creating player record:', err)
+                    // User was created successfully, but player record failed
+                    // Still return success since the user exists
+                    return res.json({
+                      id: userId,
+                      email,
+                      name,
+                      phone,
+                      role: 'player',
+                      is_placeholder: 1,
+                      message: 'Placeholder user created (note: roster assignment failed). They can register with this email to claim their account.',
+                      warning: 'Roster assignment failed'
+                    })
+                  }
+
+                  res.json({
+                    id: userId,
+                    email,
+                    name,
+                    phone,
+                    role: 'player',
+                    is_placeholder: 1,
+                    player_id: this.lastID,
+                    team_id,
+                    message: 'Placeholder user created and added to roster. They can register with this email to claim their account.'
+                  })
+                }
+              )
+            } else {
+              res.json({
+                id: userId,
+                email,
+                name,
+                phone,
+                role: 'player',
+                is_placeholder: 1,
+                message: 'Placeholder user created. They can register with this email to claim their account.'
+              })
+            }
           }
         )
       })
