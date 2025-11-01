@@ -199,9 +199,12 @@ function AppContent({
 }) {
   const location = useLocation()
   const isHomePage = location.pathname === '/'
+  const isLoginPage = location.pathname === '/login'
 
-  // Hide navigation Sign In button when on home page with no leagues
-  const showNavSignIn = !isAuthenticated && (!isHomePage || hasLeagues)
+  // Hide navigation Sign In button when:
+  // 1. On home page with no leagues (brand new system)
+  // 2. On the login page itself (already signing in)
+  const showNavSignIn = !isAuthenticated && !isLoginPage && (!isHomePage || hasLeagues)
 
   return (
     <div className="min-h-screen bg-gray-50">
