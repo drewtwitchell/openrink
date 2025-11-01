@@ -6,7 +6,6 @@ import { auth } from './lib/api'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
-import Leagues from './pages/Leagues'
 import LeagueDetails from './pages/LeagueDetails'
 import Teams from './pages/Teams'
 import TeamRoster from './pages/TeamRoster'
@@ -433,7 +432,6 @@ function AppContent({
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login onLogin={() => setIsAuthenticated(true)} />} />
             <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
-            <Route path="/leagues" element={isAuthenticated ? <Leagues /> : <Navigate to="/login" />} />
             <Route path="/leagues/:id" element={isAuthenticated ? <LeagueDetails /> : <Navigate to="/login" />} />
             <Route path="/teams" element={isAuthenticated ? <Teams /> : <Navigate to="/login" />} />
             <Route path="/teams/:id/roster" element={isAuthenticated ? <TeamRoster /> : <Navigate to="/login" />} />

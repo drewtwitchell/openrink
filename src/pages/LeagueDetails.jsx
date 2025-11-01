@@ -1853,8 +1853,8 @@ export default function LeagueDetails() {
     return (
       <div className="card text-center py-12">
         <p className="text-gray-500 mb-4">League not found</p>
-        <button onClick={() => navigate('/leagues')} className="btn-primary btn-sm">
-          Back to Leagues
+        <button onClick={() => navigate('/dashboard')} className="btn-primary btn-sm">
+          Back to Dashboard
         </button>
       </div>
     )
