@@ -16,6 +16,8 @@ import Settings from './pages/Settings'
 import Users from './pages/Users'
 import PlayoffBracketView from './pages/PlayoffBracketView'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -23,6 +25,7 @@ function App() {
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [user, setUser] = useState(null)
   const [showPasswordResetModal, setShowPasswordResetModal] = useState(false)
+  const [hasLeagues, setHasLeagues] = useState(false)
   const [passwordData, setPasswordData] = useState({
     current_password: '',
     new_password: '',
@@ -36,7 +39,7 @@ function App() {
 
     const refreshUserData = async () => {
       try {
-        const response = await fetch('http://localhost:3001/api/auth/me', {
+        const response = await fetch(`${API_URL}/api/auth/me`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -90,6 +93,21 @@ function App() {
       setLoading(false)
     }
   }, [isAuthenticated])
+
+  // Check if any leagues exist
+  useEffect(() => {
+    const checkLeagues = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/leagues`)
+        const data = await response.json()
+        setHasLeagues(data.leagues && data.leagues.length > 0)
+      } catch (error) {
+        setHasLeagues(false)
+      }
+    }
+
+    checkLeagues()
+  }, [])
 
   const handlePasswordChange = async (e) => {
     e.preventDefault()
@@ -157,6 +175,7 @@ function App() {
         passwordMessage={passwordMessage}
         handlePasswordChange={handlePasswordChange}
         handleSignOut={handleSignOut}
+        hasLeagues={hasLeagues}
       />
     </Router>
   )
@@ -175,10 +194,14 @@ function AppContent({
   setPasswordData,
   passwordMessage,
   handlePasswordChange,
-  handleSignOut
+  handleSignOut,
+  hasLeagues
 }) {
   const location = useLocation()
   const isHomePage = location.pathname === '/'
+
+  // Hide navigation Sign In button when on home page with no leagues
+  const showNavSignIn = !isAuthenticated && (!isHomePage || hasLeagues)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -299,7 +322,7 @@ function AppContent({
                     </div>
                   </>
                 ) : (
-                  !isHomePage && (
+                  showNavSignIn && (
                     <Link to="/login" className="btn-primary text-sm sm:text-base">
                       Sign In
                     </Link>
