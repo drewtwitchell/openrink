@@ -127,6 +127,8 @@ export default function LeagueDetails() {
   const [tempSeasonName, setTempSeasonName] = useState('')
   const [editingLeagueInfo, setEditingLeagueInfo] = useState(false)
   const [tempLeagueInfo, setTempLeagueInfo] = useState('')
+  const [editingLeagueDescription, setEditingLeagueDescription] = useState(false)
+  const [tempLeagueDescription, setTempLeagueDescription] = useState('')
   const [leagueInfoCollapsed, setLeagueInfoCollapsed] = useState(false)
   const [paymentTrackingCollapsed, setPaymentTrackingCollapsed] = useState(false)
   const [openPlayerMenu, setOpenPlayerMenu] = useState(null) // Track which player's menu is open
@@ -1070,6 +1072,27 @@ export default function LeagueDetails() {
   const handleCancelLeagueInfo = () => {
     setEditingLeagueInfo(false)
     setTempLeagueInfo('')
+  }
+
+  const handleEditLeagueDescription = () => {
+    setEditingLeagueDescription(true)
+    setTempLeagueDescription(league.description || '')
+  }
+
+  const handleSaveLeagueDescription = async () => {
+    try {
+      await leagues.update(id, { ...league, description: tempLeagueDescription })
+      setLeague({ ...league, description: tempLeagueDescription })
+      setEditingLeagueDescription(false)
+    } catch (error) {
+      console.error('Error updating league description:', error)
+      alert('Failed to update league description')
+    }
+  }
+
+  const handleCancelLeagueDescription = () => {
+    setEditingLeagueDescription(false)
+    setTempLeagueDescription('')
   }
 
   const handleEditSeasonName = (seasonId, currentName) => {
@@ -2325,6 +2348,64 @@ export default function LeagueDetails() {
 
             {!leagueInfoCollapsed && (
             <>
+            {/* League Description */}
+            <div className="mb-6 pb-6 border-b border-gray-200">
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="font-semibold text-gray-900">Description</h4>
+              {canManage && !editingLeagueDescription && (
+                <button
+                  onClick={handleEditLeagueDescription}
+                  className="btn-primary btn-sm"
+                >
+                  {league.description ? 'Edit Description' : 'Add Description'}
+                </button>
+              )}
+            </div>
+
+            {editingLeagueDescription ? (
+              <div>
+                <div className="mb-3">
+                  <label className="label">
+                    League Description
+                  </label>
+                  <textarea
+                    value={tempLeagueDescription}
+                    onChange={(e) => setTempLeagueDescription(e.target.value)}
+                    className="input w-full"
+                    rows="3"
+                    placeholder="Brief description of the league"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveLeagueDescription}
+                    className="btn-primary btn-sm"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={handleCancelLeagueDescription}
+                    className="btn-secondary btn-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                {league.description ? (
+                  <div className="text-gray-700 whitespace-pre-wrap bg-gray-50 p-4 rounded">
+                    {league.description}
+                  </div>
+                ) : (
+                  <div className="text-center py-6">
+                    <p className="text-gray-500 text-sm">No description set</p>
+                  </div>
+                )}
+              </div>
+            )}
+            </div>
+
             {/* League Info Text */}
             <div className="mb-6 pb-6 border-b border-gray-200">
               <div className="flex justify-between items-center mb-4">
@@ -2377,7 +2458,7 @@ export default function LeagueDetails() {
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <p className="text-gray-500 mb-4">No league information set</p>
+                    <p className="text-gray-500 mb-4">No general information set</p>
                     <p className="text-sm text-gray-400">
                       Add information about game locations, typical times, and other general details for players and visitors.
                     </p>
@@ -2386,6 +2467,55 @@ export default function LeagueDetails() {
               </div>
             )}
             </div>
+
+            {/* Active Season Details */}
+            {activeSeason && (
+              <div className="mb-6 pb-6 border-b border-gray-200">
+                <div className="mb-4">
+                  <h4 className="font-semibold text-gray-900">
+                    Active Season: {activeSeason.name}
+                  </h4>
+                </div>
+                <div className="bg-gray-50 p-4 rounded space-y-2">
+                  {activeSeason.description && (
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">Description:</span>
+                      <p className="text-sm text-gray-700 mt-1">{activeSeason.description}</p>
+                    </div>
+                  )}
+                  {(activeSeason.start_date || activeSeason.end_date) && (
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">Season Dates:</span>
+                      <p className="text-sm text-gray-700 mt-1">
+                        {activeSeason.start_date && new Date(activeSeason.start_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {activeSeason.start_date && activeSeason.end_date && ' - '}
+                        {activeSeason.end_date && new Date(activeSeason.end_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </p>
+                    </div>
+                  )}
+                  {activeSeason.season_dues && (
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">Season Dues:</span>
+                      <p className="text-sm text-gray-700 mt-1">${activeSeason.season_dues}</p>
+                    </div>
+                  )}
+                  {activeSeason.venmo_link && (
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">Payment Link:</span>
+                      <a
+                        href={activeSeason.venmo_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-ice-600 hover:text-ice-700 underline mt-1 block"
+                      >
+                        {activeSeason.venmo_link}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
 
             {/* Managers Subsection */}
             <div className="mb-6 pb-6 border-b border-gray-200">
