@@ -2092,7 +2092,7 @@ export default function LeagueDetails() {
                       value={seasonFormData.name}
                       onChange={(e) => setSeasonFormData({ ...seasonFormData, name: e.target.value })}
                       className="input"
-                      placeholder="e.g., Winter 2024"
+                      placeholder="e.g., Fall Season"
                       required
                       autoFocus
                     />
@@ -2348,16 +2348,16 @@ export default function LeagueDetails() {
 
             {!leagueInfoCollapsed && (
             <>
-            {/* League Description */}
+            {/* General Information - Shows League Description */}
             <div className="mb-6 pb-6 border-b border-gray-200">
               <div className="flex justify-between items-center mb-4">
-                <h4 className="font-semibold text-gray-900">Description</h4>
+                <h4 className="font-semibold text-gray-900">General Information</h4>
               {canManage && !editingLeagueDescription && (
                 <button
                   onClick={handleEditLeagueDescription}
                   className="btn-primary btn-sm"
                 >
-                  {league.description ? 'Edit Description' : 'Add Description'}
+                  {league.description ? 'Edit Information' : 'Add Information'}
                 </button>
               )}
             </div>
@@ -2366,14 +2366,15 @@ export default function LeagueDetails() {
               <div>
                 <div className="mb-3">
                   <label className="label">
-                    League Description
+                    League Information
+                    <span className="text-xs text-gray-500 ml-2">(Game locations, typical times, general information)</span>
                   </label>
                   <textarea
                     value={tempLeagueDescription}
                     onChange={(e) => setTempLeagueDescription(e.target.value)}
                     className="input w-full"
-                    rows="3"
-                    placeholder="Brief description of the league"
+                    rows="6"
+                    placeholder="Games are typically played at Main Ice Arena on Tuesday and Thursday evenings. Check the schedule for specific times and locations."
                   />
                 </div>
                 <div className="flex gap-2">
@@ -2398,65 +2399,6 @@ export default function LeagueDetails() {
                     {league.description}
                   </div>
                 ) : (
-                  <div className="text-center py-6">
-                    <p className="text-gray-500 text-sm">No description set</p>
-                  </div>
-                )}
-              </div>
-            )}
-            </div>
-
-            {/* League Info Text */}
-            <div className="mb-6 pb-6 border-b border-gray-200">
-              <div className="flex justify-between items-center mb-4">
-                <h4 className="font-semibold text-gray-900">General Information</h4>
-              {canManage && !editingLeagueInfo && (
-                <button
-                  onClick={handleEditLeagueInfo}
-                  className="btn-primary btn-sm"
-                >
-                  {league.league_info ? 'Edit Information' : 'Add Information'}
-                </button>
-              )}
-            </div>
-
-            {editingLeagueInfo ? (
-              <div>
-                <div className="mb-3">
-                  <label className="label">
-                    League Information
-                    <span className="text-xs text-gray-500 ml-2">(Game locations, typical times, general information)</span>
-                  </label>
-                  <textarea
-                    value={tempLeagueInfo}
-                    onChange={(e) => setTempLeagueInfo(e.target.value)}
-                    className="input w-full"
-                    rows="6"
-                    placeholder="Example: Games are typically played at Main Ice Arena on Tuesday and Thursday evenings from 8:00-10:00 PM. Check the schedule for specific times and locations."
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleSaveLeagueInfo}
-                    className="btn-primary btn-sm"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={handleCancelLeagueInfo}
-                    className="btn-secondary btn-sm"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div>
-                {league.league_info ? (
-                  <div className="text-gray-700 whitespace-pre-wrap bg-gray-50 p-4 rounded">
-                    {league.league_info}
-                  </div>
-                ) : (
                   <div className="text-center py-8">
                     <p className="text-gray-500 mb-4">No general information set</p>
                     <p className="text-sm text-gray-400">
@@ -2477,12 +2419,6 @@ export default function LeagueDetails() {
                   </h4>
                 </div>
                 <div className="bg-gray-50 p-4 rounded space-y-2">
-                  {activeSeason.description && (
-                    <div>
-                      <span className="text-sm font-medium text-gray-600">Description:</span>
-                      <p className="text-sm text-gray-700 mt-1">{activeSeason.description}</p>
-                    </div>
-                  )}
                   {(activeSeason.start_date || activeSeason.end_date) && (
                     <div>
                       <span className="text-sm font-medium text-gray-600">Season Dates:</span>
@@ -5250,7 +5186,7 @@ This will also delete all associated teams, games, and payment records.`}
                     value={seasonFormData.name}
                     onChange={(e) => setSeasonFormData({ ...seasonFormData, name: e.target.value })}
                     className="input"
-                    placeholder="e.g., Winter 2024"
+                    placeholder="e.g., Fall Season"
                     required
                     autoFocus
                   />
@@ -5360,7 +5296,7 @@ This will also delete all associated teams, games, and payment records.`}
                   value={bracketFormData.name}
                   onChange={(e) => setBracketFormData({ ...bracketFormData, name: e.target.value })}
                   className="input"
-                  placeholder="e.g., Spring 2024 Playoffs"
+                  placeholder="e.g., Playoff Tournament"
                   required
                 />
               </div>
