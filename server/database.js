@@ -565,6 +565,7 @@ function initDatabase() {
         game_id INTEGER NOT NULL,
         player_id INTEGER NOT NULL,
         status TEXT DEFAULT 'pending',
+        is_sub INTEGER DEFAULT 0,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE,
@@ -572,6 +573,16 @@ function initDatabase() {
         UNIQUE(game_id, player_id)
       )
     `)
+
+    // Add is_sub column to existing game_attendance table if it doesn't exist
+    db.run(`
+      ALTER TABLE game_attendance ADD COLUMN is_sub INTEGER DEFAULT 0
+    `, (err) => {
+      // Ignore error if column already exists
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding is_sub column:', err)
+      }
+    })
 
     // Game stats table for tracking player statistics
     db.run(`

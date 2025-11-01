@@ -19,6 +19,10 @@ import calendarRoutes from './routes/calendar.js'
 import announcementRoutes from './routes/announcements.js'
 import playoffRoutes from './routes/playoffs.js'
 import teamCaptainsRoutes from './routes/team-captains.js'
+import backupRoutes from './routes/backup.js'
+
+// Import backup system
+import { initBackupSystem } from './utils/backup.js'
 
 dotenv.config()
 
@@ -86,6 +90,7 @@ app.use('/api/calendar', calendarRoutes)
 app.use('/api/announcements', announcementRoutes)
 app.use('/api/playoffs', playoffRoutes)
 app.use('/api/team-captains', teamCaptainsRoutes)
+app.use('/api/backups', backupRoutes)
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -111,4 +116,7 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`🏒 OpenRink API server running on port ${PORT}`)
+
+  // Initialize backup system (creates initial backup and schedules weekly backups)
+  initBackupSystem()
 })

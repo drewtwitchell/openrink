@@ -26,6 +26,11 @@
     @apply bg-red-600 text-white px-5 py-2.5 rounded-lg hover:bg-red-700 transition-all duration-200 font-medium shadow-sm hover:shadow-md;
   }
 
+  /* Warning Button */
+  .btn-warning {
+    @apply bg-amber-500 text-white px-5 py-2.5 rounded-lg hover:bg-amber-600 transition-all duration-200 font-medium shadow-sm hover:shadow-md;
+  }
+
   /* Small Button Variant */
   .btn-sm {
     @apply px-3 py-1.5 text-sm;

@@ -77,6 +77,8 @@ export default function Dashboard() {
   const [subRequestConfirmModal, setSubRequestConfirmModal] = useState({ isOpen: false })
   const [subRequestSuccess, setSubRequestSuccess] = useState(false)
   const [deleteAnnouncementModal, setDeleteAnnouncementModal] = useState({ isOpen: false, announcement: null, leagueId: null })
+  const [confirmSubAvailabilityModal, setConfirmSubAvailabilityModal] = useState({ isOpen: false, announcement: null })
+  const [subAvailabilityMessage, setSubAvailabilityMessage] = useState('')
 
   useEffect(() => {
     const currentUser = auth.getUser()
@@ -639,6 +641,59 @@ export default function Dashboard() {
     }
   }
 
+  const handleConfirmSubAvailability = async () => {
+    const { announcement } = confirmSubAvailabilityModal
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/announcements/${announcement.id}/notify-available`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            message: subAvailabilityMessage || 'I am available to sub for this game.'
+          })
+        }
+      )
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to confirm availability')
+      }
+
+      // Refresh announcements and upcoming games
+      const leagueId = announcement.league_id
+      const updatedAnnouncements = await announcements.getActive(leagueId)
+      setLeagueAnnouncements(prev => ({ ...prev, [leagueId]: updatedAnnouncements || [] }))
+
+      // Refresh upcoming games for all teams
+      if (userPlayerProfiles.length > 0) {
+        const uniqueTeamIds = [...new Set(userPlayerProfiles.map(p => p.team_id))]
+        for (const teamId of uniqueTeamIds) {
+          await fetchUpcomingGames(teamId)
+        }
+      }
+
+      setConfirmSubAvailabilityModal({ isOpen: false, announcement: null })
+      setSubAvailabilityMessage('')
+
+      // Show success message
+      setSubRequestSuccess(true)
+      setTimeout(() => setSubRequestSuccess(false), 3000)
+
+      // Refresh full dashboard to show updated game in upcoming games
+      if (user) {
+        await fetchDashboardData(user)
+      }
+    } catch (error) {
+      alert('Error confirming availability: ' + error.message)
+      setConfirmSubAvailabilityModal({ isOpen: false, announcement: null })
+    }
+  }
+
   if (loading) {
     return <div className="loading">Loading dashboard...</div>
   }
@@ -1054,52 +1109,74 @@ export default function Dashboard() {
                       <div className="mt-6 pt-6 border-t border-gray-200">
                         <h4 className="font-semibold text-gray-900 mb-3">League Announcements</h4>
                         <div className="space-y-3">
-                          {leagueAnnouncements[league.id].map((announcement) => (
-                            <div
-                              key={announcement.id}
-                              className={`p-4 border rounded-lg ${
-                                announcement.announcement_type === 'sub_request'
-                                  ? 'bg-amber-50 border-amber-300'
-                                  : 'bg-gray-50 border-gray-200'
-                              }`}
-                            >
-                              <div className="flex items-start justify-between mb-2">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <h5 className="font-semibold text-gray-900">{announcement.title}</h5>
-                                  </div>
-                                  {announcement.announcement_type === 'sub_request' && announcement.game_date && (
-                                    <div className="text-xs text-gray-600 mb-2">
-                                      {parseLocalDate(announcement.game_date).toLocaleDateString()} at {formatTime(announcement.game_time)}
-                                      {announcement.rink_name && ` - ${announcement.rink_name}`}
+                          {leagueAnnouncements[league.id].map((announcement) => {
+                            // Check if this is a sub request and if the user is on either team playing
+                            const isSubRequest = announcement.announcement_type === 'sub_request'
+                            const userTeamIds = leagueProfiles.map(p => p.team_id)
+                            const isOnGameTeam = isSubRequest &&
+                              (userTeamIds.includes(announcement.home_team_id) || userTeamIds.includes(announcement.away_team_id))
+
+                            // Only show button if user is NOT on either team
+                            const canSubForGame = isSubRequest && !isOnGameTeam
+
+                            return (
+                              <div
+                                key={announcement.id}
+                                className={`p-4 border rounded-lg ${
+                                  announcement.announcement_type === 'sub_request'
+                                    ? 'bg-amber-50 border-amber-300'
+                                    : 'bg-gray-50 border-gray-200'
+                                }`}
+                              >
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <h5 className="font-semibold text-gray-900">{announcement.title}</h5>
                                     </div>
-                                  )}
+                                    {announcement.announcement_type === 'sub_request' && announcement.game_date && (
+                                      <div className="text-xs text-gray-600 mb-2">
+                                        {parseLocalDate(announcement.game_date).toLocaleDateString()} at {formatTime(announcement.game_time)}
+                                        {announcement.rink_name && ` - ${announcement.rink_name}`}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex items-start gap-2">
+                                    <span className="text-xs text-gray-500">
+                                      {new Date(announcement.created_at).toLocaleDateString()}
+                                    </span>
+                                    {announcement.announcement_type === 'sub_request' && (user?.role === 'admin' || managedLeagues.some(ml => ml.id === league.id)) && (
+                                      <button
+                                        onClick={() => setDeleteAnnouncementModal({ isOpen: true, announcement, leagueId: league.id })}
+                                        className="text-red-600 hover:text-red-700 text-xs"
+                                        title="Delete sub request"
+                                      >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
-                                <div className="flex items-start gap-2">
-                                  <span className="text-xs text-gray-500">
-                                    {new Date(announcement.created_at).toLocaleDateString()}
-                                  </span>
-                                  {announcement.announcement_type === 'sub_request' && (user?.role === 'admin' || managedLeagues.some(ml => ml.id === league.id)) && (
+                                <p className="text-gray-700 text-sm whitespace-pre-wrap">{announcement.message}</p>
+                                {announcement.expires_at && (
+                                  <p className="text-xs text-gray-500 mt-2">
+                                    Expires: {new Date(announcement.expires_at).toLocaleDateString()}
+                                  </p>
+                                )}
+                                {/* Sub Availability Button - only for players not on the teams playing */}
+                                {canSubForGame && (
+                                  <div className="mt-3 pt-3 border-t border-amber-200">
                                     <button
-                                      onClick={() => setDeleteAnnouncementModal({ isOpen: true, announcement, leagueId: league.id })}
-                                      className="text-red-600 hover:text-red-700 text-xs"
-                                      title="Delete sub request"
+                                      onClick={() => setConfirmSubAvailabilityModal({ isOpen: true, announcement })}
+                                      className="btn-warning btn-sm"
                                     >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                      </svg>
+                                      I Can Sub for This Game
                                     </button>
-                                  )}
-                                </div>
+                                  </div>
+                                )}
                               </div>
-                              <p className="text-gray-700 text-sm whitespace-pre-wrap">{announcement.message}</p>
-                              {announcement.expires_at && (
-                                <p className="text-xs text-gray-500 mt-2">
-                                  Expires: {new Date(announcement.expires_at).toLocaleDateString()}
-                                </p>
-                              )}
-                            </div>
-                          ))}
+                            )
+                          })}
                         </div>
                       </div>
                     )}
@@ -1750,8 +1827,8 @@ export default function Dashboard() {
 
       {/* Payment Self-Report Modal */}
       {showPaymentModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 sm:p-6 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <div className="modal-overlay animate-fadeIn">
+          <div className="modal-container animate-scaleIn max-h-[90vh] overflow-y-auto">
             <div className="mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Report Payment</h3>
               <p className="text-sm text-gray-600 mt-1">
@@ -1921,51 +1998,68 @@ export default function Dashboard() {
 
       {/* Sub Request Modal */}
       {subRequestModal.isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 sm:p-6 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-4 sm:p-6">
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Request a Substitute</h3>
-              <p className="text-sm text-gray-600 mt-2">
+        <div className="modal-overlay animate-fadeIn">
+          <div className="modal-container animate-scaleIn">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="modal-header mb-0">Request a Substitute</h3>
+              <button
+                onClick={() => {
+                  setSubRequestModal({ isOpen: false, game: null, league: null })
+                  setSubRequestMessage('')
+                }}
+                className="btn-icon text-gray-400 hover:text-gray-600"
+                aria-label="Close modal"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="modal-body">
+              <p className="text-sm text-gray-600 mb-4">
                 <span className="font-semibold">{subRequestModal.game?.home_team_name} vs {subRequestModal.game?.away_team_name}</span>
                 <br />
                 <span className="text-xs">
                   {subRequestModal.game && parseLocalDate(subRequestModal.game.game_date).toLocaleDateString()} at {subRequestModal.game && formatTime(subRequestModal.game.game_time)}
                 </span>
               </p>
+
+              <form onSubmit={handleSubRequestSubmit} className="space-y-4">
+                <div>
+                  <label className="label">Message to Players *</label>
+                  <textarea
+                    value={subRequestMessage}
+                    onChange={(e) => setSubRequestMessage(e.target.value)}
+                    className="input w-full"
+                    rows="4"
+                    placeholder="Looking for a sub for our game on... Need a forward/defense/goalie."
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Your contact information will be automatically included so players can reach you.
+                  </p>
+                </div>
+
+                <div className="modal-actions">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSubRequestModal({ isOpen: false, game: null, league: null })
+                      setSubRequestMessage('')
+                    }}
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn-warning">
+                    Post Sub Request
+                  </button>
+                </div>
+              </form>
             </div>
-
-            <form onSubmit={handleSubRequestSubmit} className="space-y-4">
-              <div>
-                <label className="label">Message to Players *</label>
-                <textarea
-                  value={subRequestMessage}
-                  onChange={(e) => setSubRequestMessage(e.target.value)}
-                  className="input w-full"
-                  rows="4"
-                  placeholder="Looking for a sub for our game on... Need a forward/defense/goalie."
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Your contact information will be automatically included so players can reach you.
-                </p>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSubRequestModal({ isOpen: false, game: null, league: null })
-                    setSubRequestMessage('')
-                  }}
-                  className="btn-secondary flex-1"
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn-warning flex-1">
-                  Post Sub Request
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
@@ -1993,6 +2087,86 @@ export default function Dashboard() {
         cancelText="Cancel"
         variant="danger"
       />
+
+      {/* Confirm Sub Availability Modal */}
+      {confirmSubAvailabilityModal.isOpen && (
+        <div className="modal-overlay animate-fadeIn">
+          <div className="modal-container animate-scaleIn">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="modal-header mb-0">Confirm Sub Availability</h3>
+              <button
+                onClick={() => {
+                  setConfirmSubAvailabilityModal({ isOpen: false, announcement: null })
+                  setSubAvailabilityMessage('')
+                }}
+                className="btn-icon text-gray-400 hover:text-gray-600"
+                aria-label="Close modal"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="modal-body">
+              <p className="text-sm text-gray-600 mb-4">
+                <span className="font-semibold">{confirmSubAvailabilityModal.announcement?.title}</span>
+                <br />
+                {confirmSubAvailabilityModal.announcement?.game_date && (
+                  <span className="text-xs">
+                    {parseLocalDate(confirmSubAvailabilityModal.announcement.game_date).toLocaleDateString()} at {formatTime(confirmSubAvailabilityModal.announcement.game_time)}
+                  </span>
+                )}
+              </p>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-gray-700">
+                  By confirming, you will:
+                </p>
+                <ul className="text-sm text-gray-700 list-disc list-inside mt-2 space-y-1">
+                  <li>Be added to the game attendance roster</li>
+                  <li>Notify the team captain and league managers</li>
+                  <li>See this game in your upcoming games</li>
+                  <li>Automatically remove this sub request announcement</li>
+                </ul>
+              </div>
+
+              <div>
+                <label className="label">Optional Message</label>
+                <textarea
+                  value={subAvailabilityMessage}
+                  onChange={(e) => setSubAvailabilityMessage(e.target.value)}
+                  className="input w-full"
+                  rows="3"
+                  placeholder="Add any additional notes for the captain..."
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="modal-actions">
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmSubAvailabilityModal({ isOpen: false, announcement: null })
+                  setSubAvailabilityMessage('')
+                }}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmSubAvailability}
+                className="btn-warning"
+              >
+                Confirm I Can Sub
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Success Message */}
       {subRequestSuccess && (

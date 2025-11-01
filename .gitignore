@@ -31,3 +31,4 @@ dist-ssr
 # Database
 server/*.db
 *.db
+server/backups/

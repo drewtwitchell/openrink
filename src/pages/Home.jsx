@@ -462,13 +462,11 @@ export default function Home() {
 
   const handleNotifySubClick = (announcement) => {
     if (!isAuthenticated) {
-      // Redirect to login with return URL
-      window.location.href = `/login?returnUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`
+      window.location.href = `/login?returnUrl=${encodeURIComponent('/dashboard')}`
       return
     }
-    setNotifySubModal({ isOpen: true, announcement })
-    setSubNotificationMessage('')
-    setSubNotificationStatus(null)
+    // Redirect to dashboard where sub confirmation happens
+    window.location.href = '/dashboard'
   }
 
   const handleSubmitSubNotification = async (e) => {

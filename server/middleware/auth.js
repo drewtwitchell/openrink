@@ -39,3 +39,27 @@ export function generateToken(user) {
     { expiresIn: '7d' }
   )
 }
+
+// Middleware to require admin role
+export function requireAdmin(req, res, next) {
+  // User should be already authenticated via authenticateToken
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({ error: 'Authentication required' })
+  }
+
+  // Get user's role from database
+  import('../database.js').then(({ default: db }) => {
+    db.get('SELECT role FROM users WHERE id = ?', [req.user.id], (err, user) => {
+      if (err) {
+        console.error('Error checking user role:', err)
+        return res.status(500).json({ error: 'Error verifying permissions' })
+      }
+
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ error: 'Admin access required' })
+      }
+
+      next()
+    })
+  })
+}
