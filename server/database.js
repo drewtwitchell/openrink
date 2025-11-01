@@ -11,6 +11,14 @@ const db = new sqlite3.Database(join(__dirname, 'openrink.db'), (err) => {
     console.error('Error opening database:', err)
   } else {
     console.log('Connected to SQLite database')
+    // Enable foreign key constraints
+    db.run('PRAGMA foreign_keys = ON', (pragmaErr) => {
+      if (pragmaErr) {
+        console.error('Error enabling foreign keys:', pragmaErr)
+      } else {
+        console.log('Foreign key constraints enabled')
+      }
+    })
     initDatabase()
   }
 })

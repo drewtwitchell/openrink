@@ -1023,7 +1023,7 @@ export default function LeagueDetails() {
   const confirmDeleteLeague = async () => {
     try {
       await leagues.delete(id)
-      navigate('/leagues')
+      navigate('/dashboard')
     } catch (error) {
       alert('Error deleting league: ' + error.message)
     }
