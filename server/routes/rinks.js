@@ -16,20 +16,20 @@ router.get('/', authenticateToken, (req, res) => {
 
 // Create rink
 router.post('/', authenticateToken, (req, res) => {
-  const { name, address, phone } = req.body
+  const { name, address, phone, latitude, longitude } = req.body
 
   if (!name) {
     return res.status(400).json({ error: 'Rink name required' })
   }
 
   db.run(
-    'INSERT INTO rinks (name, address, phone) VALUES (?, ?, ?)',
-    [name, address, phone],
+    'INSERT INTO rinks (name, address, phone, latitude, longitude) VALUES (?, ?, ?, ?, ?)',
+    [name, address, phone, latitude || null, longitude || null],
     function (err) {
       if (err) {
         return res.status(500).json({ error: 'Error creating rink' })
       }
-      res.json({ id: this.lastID, name, address, phone })
+      res.json({ id: this.lastID, name, address, phone, latitude, longitude })
     }
   )
 })

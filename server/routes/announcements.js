@@ -9,13 +9,22 @@ router.get('/league/:leagueId', (req, res) => {
   const now = new Date().toISOString()
 
   db.all(
-    `SELECT announcements.*, users.name as author_name
+    `SELECT announcements.*, users.name as author_name,
+       games.game_date, games.game_time,
+       home_team.name as home_team_name, home_team.color as home_team_color,
+       away_team.name as away_team_name, away_team.color as away_team_color,
+       games.rink_name, games.location
      FROM announcements
      LEFT JOIN users ON announcements.created_by = users.id
+     LEFT JOIN games ON announcements.game_id = games.id
+     LEFT JOIN teams as home_team ON games.home_team_id = home_team.id
+     LEFT JOIN teams as away_team ON games.away_team_id = away_team.id
      WHERE announcements.league_id = ?
        AND announcements.is_active = 1
        AND (announcements.expires_at IS NULL OR announcements.expires_at > ?)
-     ORDER BY announcements.created_at DESC`,
+     ORDER BY
+       CASE WHEN announcements.announcement_type = 'sub_request' THEN 0 ELSE 1 END,
+       announcements.created_at DESC`,
     [req.params.leagueId, now],
     (err, rows) => {
       if (err) {
@@ -34,22 +43,27 @@ router.get('/league/:leagueId/all', authenticateToken, (req, res) => {
       return res.status(403).json({ error: 'Unauthorized' })
     }
 
+    const query = `SELECT announcements.*, users.name as author_name,
+       games.game_date, games.game_time,
+       home_team.name as home_team_name, home_team.color as home_team_color,
+       away_team.name as away_team_name, away_team.color as away_team_color,
+       games.rink_name, games.location
+     FROM announcements
+     LEFT JOIN users ON announcements.created_by = users.id
+     LEFT JOIN games ON announcements.game_id = games.id
+     LEFT JOIN teams as home_team ON games.home_team_id = home_team.id
+     LEFT JOIN teams as away_team ON games.away_team_id = away_team.id
+     WHERE announcements.league_id = ?
+     ORDER BY announcements.created_at DESC`
+
     // Allow if admin
     if (user.role === 'admin') {
-      db.all(
-        `SELECT announcements.*, users.name as author_name
-         FROM announcements
-         LEFT JOIN users ON announcements.created_by = users.id
-         WHERE announcements.league_id = ?
-         ORDER BY announcements.created_at DESC`,
-        [req.params.leagueId],
-        (err, rows) => {
-          if (err) {
-            return res.status(500).json({ error: 'Error fetching announcements' })
-          }
-          res.json(rows)
+      db.all(query, [req.params.leagueId], (err, rows) => {
+        if (err) {
+          return res.status(500).json({ error: 'Error fetching announcements' })
         }
-      )
+        res.json(rows)
+      })
       return
     }
 
@@ -62,28 +76,20 @@ router.get('/league/:leagueId/all', authenticateToken, (req, res) => {
           return res.status(403).json({ error: 'Unauthorized' })
         }
 
-        db.all(
-          `SELECT announcements.*, users.name as author_name
-           FROM announcements
-           LEFT JOIN users ON announcements.created_by = users.id
-           WHERE announcements.league_id = ?
-           ORDER BY announcements.created_at DESC`,
-          [req.params.leagueId],
-          (err, rows) => {
-            if (err) {
-              return res.status(500).json({ error: 'Error fetching announcements' })
-            }
-            res.json(rows)
+        db.all(query, [req.params.leagueId], (err, rows) => {
+          if (err) {
+            return res.status(500).json({ error: 'Error fetching announcements' })
           }
-        )
+          res.json(rows)
+        })
       }
     )
   })
 })
 
-// Create announcement (admins/league managers only)
+// Create announcement (admins/league managers/team captains for sub requests)
 router.post('/', authenticateToken, (req, res) => {
-  const { league_id, title, message, expires_at } = req.body
+  const { league_id, title, message, expires_at, game_id, announcement_type } = req.body
 
   if (!league_id || !title || !message) {
     return res.status(400).json({ error: 'League ID, title, and message required' })
@@ -97,13 +103,13 @@ router.post('/', authenticateToken, (req, res) => {
 
     const createAnnouncement = () => {
       db.run(
-        'INSERT INTO announcements (league_id, title, message, created_by, expires_at) VALUES (?, ?, ?, ?, ?)',
-        [league_id, title, message, req.user.id, expires_at || null],
+        'INSERT INTO announcements (league_id, title, message, created_by, expires_at, game_id, announcement_type) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [league_id, title, message, req.user.id, expires_at || null, game_id || null, announcement_type || 'general'],
         function (err) {
           if (err) {
             return res.status(500).json({ error: 'Error creating announcement' })
           }
-          res.json({ id: this.lastID, league_id, title, message, expires_at })
+          res.json({ id: this.lastID, league_id, title, message, expires_at, game_id, announcement_type })
         }
       )
     }
@@ -119,10 +125,33 @@ router.post('/', authenticateToken, (req, res) => {
       'SELECT id FROM league_managers WHERE user_id = ? AND league_id = ?',
       [req.user.id, league_id],
       (err, manager) => {
-        if (err || !manager) {
-          return res.status(403).json({ error: 'Unauthorized' })
+        if (err) {
+          return res.status(500).json({ error: 'Server error' })
         }
-        createAnnouncement()
+
+        if (manager) {
+          createAnnouncement()
+          return
+        }
+
+        // For sub_request announcements, check if user is a team captain for a team in the game
+        if (announcement_type === 'sub_request' && game_id) {
+          db.get(
+            `SELECT tc.id FROM team_captains tc
+             INNER JOIN games g ON (tc.team_id = g.home_team_id OR tc.team_id = g.away_team_id)
+             WHERE tc.user_id = ? AND g.id = ?`,
+            [req.user.id, game_id],
+            (err, captain) => {
+              if (err || !captain) {
+                return res.status(403).json({ error: 'Unauthorized - must be admin, league manager, or team captain for this game' })
+              }
+              createAnnouncement()
+            }
+          )
+          return
+        }
+
+        return res.status(403).json({ error: 'Unauthorized' })
       }
     )
   })
@@ -220,6 +249,124 @@ router.delete('/:id', authenticateToken, (req, res) => {
       )
     })
   })
+})
+
+// Notify captain that player is available to sub
+router.post('/:id/notify-available', authenticateToken, (req, res) => {
+  const announcementId = req.params.id
+  const { message } = req.body
+
+  // Get the announcement and captain info
+  db.get(
+    `SELECT a.created_by as captain_user_id, u.email as captain_email, u.name as captain_name
+     FROM announcements a
+     JOIN users u ON a.created_by = u.id
+     WHERE a.id = ? AND a.announcement_type = 'sub_request'`,
+    [announcementId],
+    (err, announcement) => {
+      if (err || !announcement) {
+        return res.status(404).json({ error: 'Announcement not found' })
+      }
+
+      // Get player info
+      db.get(
+        'SELECT name, email, phone FROM users WHERE id = ?',
+        [req.user.id],
+        (err, player) => {
+          if (err || !player) {
+            return res.status(404).json({ error: 'Player not found' })
+          }
+
+          // Check if this player already notified for this announcement
+          db.get(
+            'SELECT id FROM sub_availability_notifications WHERE announcement_id = ? AND player_user_id = ?',
+            [announcementId, req.user.id],
+            (err, existing) => {
+              if (existing) {
+                return res.status(400).json({ error: 'You have already indicated availability for this game' })
+              }
+
+              // Create notification
+              db.run(
+                `INSERT INTO sub_availability_notifications
+                 (announcement_id, player_user_id, captain_user_id, player_name, player_email, player_phone, message)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [announcementId, req.user.id, announcement.captain_user_id, player.name, player.email, player.phone, message || null],
+                function(err) {
+                  if (err) {
+                    console.error('Error creating notification:', err)
+                    return res.status(500).json({ error: 'Error creating notification' })
+                  }
+
+                  res.json({
+                    message: 'Captain has been notified of your availability',
+                    notificationId: this.lastID
+                  })
+                }
+              )
+            }
+          )
+        }
+      )
+    }
+  )
+})
+
+// Get sub availability notifications for captain
+router.get('/notifications/sub-availability', authenticateToken, (req, res) => {
+  db.all(
+    `SELECT san.*,
+       a.title as announcement_title,
+       g.game_date, g.game_time,
+       home_team.name as home_team_name,
+       away_team.name as away_team_name,
+       r.name as rink_name
+     FROM sub_availability_notifications san
+     JOIN announcements a ON san.announcement_id = a.id
+     LEFT JOIN games g ON a.game_id = g.id
+     LEFT JOIN teams home_team ON g.home_team_id = home_team.id
+     LEFT JOIN teams away_team ON g.away_team_id = away_team.id
+     LEFT JOIN rinks r ON g.rink_id = r.id
+     WHERE san.captain_user_id = ?
+     ORDER BY san.is_read ASC, san.created_at DESC`,
+    [req.user.id],
+    (err, rows) => {
+      if (err) {
+        console.error('Error fetching notifications:', err)
+        return res.status(500).json({ error: 'Error fetching notifications' })
+      }
+      res.json(rows)
+    }
+  )
+})
+
+// Mark notification as read
+router.put('/notifications/sub-availability/:id/read', authenticateToken, (req, res) => {
+  // Verify this notification belongs to the user
+  db.get(
+    'SELECT captain_user_id FROM sub_availability_notifications WHERE id = ?',
+    [req.params.id],
+    (err, notification) => {
+      if (err || !notification) {
+        return res.status(404).json({ error: 'Notification not found' })
+      }
+
+      if (notification.captain_user_id !== req.user.id) {
+        return res.status(403).json({ error: 'Unauthorized' })
+      }
+
+      db.run(
+        'UPDATE sub_availability_notifications SET is_read = 1 WHERE id = ?',
+        [req.params.id],
+        (err) => {
+          if (err) {
+            return res.status(500).json({ error: 'Error updating notification' })
+          }
+          res.json({ message: 'Notification marked as read' })
+        }
+      )
+    }
+  )
 })
 
 export default router

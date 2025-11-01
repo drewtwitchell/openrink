@@ -249,6 +249,18 @@ router.put('/:id/score', authenticateToken, requireGameLeagueManager, (req, res)
       if (err) {
         return res.status(500).json({ error: 'Error updating game' })
       }
+
+      // Auto-deactivate any sub_request announcements for this game
+      db.run(
+        'UPDATE announcements SET is_active = 0 WHERE game_id = ? AND announcement_type = ?',
+        [req.params.id, 'sub_request'],
+        (err) => {
+          if (err) {
+            console.error('Error deactivating sub request announcements:', err)
+          }
+        }
+      )
+
       res.json({ message: 'Game score updated successfully' })
     }
   )

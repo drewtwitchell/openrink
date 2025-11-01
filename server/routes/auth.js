@@ -39,33 +39,75 @@ router.post('/signup', [
   try {
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Check if this is the first user
-    db.get('SELECT COUNT(*) as count FROM users', [], (err, result) => {
+    // Check if a placeholder user exists with this email
+    db.get('SELECT * FROM users WHERE email = ?', [email], async (err, existingUser) => {
       if (err) {
         return res.status(500).json({ error: 'Server error' })
       }
 
-      const isFirstUser = result.count === 0
-      const role = isFirstUser ? 'admin' : 'player'
+      // If user exists and is a placeholder, merge the account
+      if (existingUser && existingUser.is_placeholder === 1) {
+        console.log(`Merging placeholder account for ${email}`)
 
-      db.run(
-        'INSERT INTO users (email, password, name, phone, role) VALUES (?, ?, ?, ?, ?)',
-        [email, hashedPassword, name, phone, role],
-        function (err) {
-          if (err) {
-            if (err.message.includes('UNIQUE')) {
-              return res.status(400).json({ error: 'Email already exists' })
+        db.run(
+          'UPDATE users SET password = ?, name = COALESCE(?, name), phone = COALESCE(?, phone), is_placeholder = 0 WHERE id = ?',
+          [hashedPassword, name, phone, existingUser.id],
+          function (err) {
+            if (err) {
+              return res.status(500).json({ error: 'Error updating user account' })
             }
-            return res.status(500).json({ error: 'Error creating user' })
-          }
 
-          const token = generateToken({ id: this.lastID, email })
-          res.json({
-            token,
-            user: { id: this.lastID, email, name, phone, role }
-          })
+            const token = generateToken({ id: existingUser.id, email: existingUser.email })
+            res.json({
+              token,
+              user: {
+                id: existingUser.id,
+                email: existingUser.email,
+                name: name || existingUser.name,
+                phone: phone || existingUser.phone,
+                role: existingUser.role
+              },
+              merged: true,
+              message: 'Your account has been activated! You now have access to all your teams and data.'
+            })
+          }
+        )
+        return
+      }
+
+      // If user exists and is not a placeholder, return error
+      if (existingUser) {
+        return res.status(400).json({ error: 'Email already exists' })
+      }
+
+      // Otherwise create a new user
+      db.get('SELECT COUNT(*) as count FROM users', [], (err, result) => {
+        if (err) {
+          return res.status(500).json({ error: 'Server error' })
         }
-      )
+
+        const isFirstUser = result.count === 0
+        const role = isFirstUser ? 'admin' : 'player'
+
+        db.run(
+          'INSERT INTO users (email, password, name, phone, role, is_placeholder) VALUES (?, ?, ?, ?, ?, ?)',
+          [email, hashedPassword, name, phone, role, 0],
+          function (err) {
+            if (err) {
+              if (err.message.includes('UNIQUE')) {
+                return res.status(400).json({ error: 'Email already exists' })
+              }
+              return res.status(500).json({ error: 'Error creating user' })
+            }
+
+            const token = generateToken({ id: this.lastID, email })
+            res.json({
+              token,
+              user: { id: this.lastID, email, name, phone, role }
+            })
+          }
+        )
+      })
     })
   } catch (error) {
     res.status(500).json({ error: 'Server error' })
@@ -444,6 +486,66 @@ router.delete('/users/:id', authenticateToken, (req, res) => {
       res.json({ message: 'User deleted successfully' })
     })
   })
+})
+
+// Create placeholder user (admin only)
+router.post('/users/create', [
+  authenticateToken,
+  body('email').trim().isEmail().normalizeEmail().withMessage('Valid email required'),
+  body('name').trim().notEmpty().withMessage('Name required'),
+  body('phone').optional().trim().matches(/^[\d\s\-\+\(\)]*$/).withMessage('Invalid phone number format'),
+  validate
+], async (req, res) => {
+  const { email, name, phone } = req.body
+
+  try {
+    // Check if user is admin
+    db.get('SELECT role FROM users WHERE id = ?', [req.user.id], async (err, user) => {
+      if (err || !user || user.role !== 'admin') {
+        return res.status(403).json({ error: 'Admin access required' })
+      }
+
+      // Check if user already exists
+      db.get('SELECT id FROM users WHERE email = ?', [email], async (err, existingUser) => {
+        if (err) {
+          return res.status(500).json({ error: 'Server error' })
+        }
+
+        if (existingUser) {
+          return res.status(400).json({ error: 'User with this email already exists' })
+        }
+
+        // Create placeholder password (random string they won't know)
+        const placeholderPassword = await bcrypt.hash(Math.random().toString(36), 10)
+
+        // Create user as placeholder
+        db.run(
+          'INSERT INTO users (email, password, name, phone, role, is_placeholder) VALUES (?, ?, ?, ?, ?, ?)',
+          [email, placeholderPassword, name, phone || null, 'player', 1],
+          function (err) {
+            if (err) {
+              if (err.message.includes('UNIQUE')) {
+                return res.status(400).json({ error: 'Email already exists' })
+              }
+              return res.status(500).json({ error: 'Error creating user' })
+            }
+
+            res.json({
+              id: this.lastID,
+              email,
+              name,
+              phone,
+              role: 'player',
+              is_placeholder: 1,
+              message: 'Placeholder user created. They can register with this email to claim their account.'
+            })
+          }
+        )
+      })
+    })
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' })
+  }
 })
 
 export default router

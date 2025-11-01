@@ -113,6 +113,11 @@ export const auth = {
     method: 'DELETE',
   }),
 
+  createPlaceholderUser: (email, name, phone) => apiRequest('/api/auth/users/create', {
+    method: 'POST',
+    body: JSON.stringify({ email, name, phone }),
+  }),
+
   isAuthenticated: () => {
     return !!getToken()
   },
@@ -253,6 +258,16 @@ export const announcements = {
   create: (data) => apiRequest('/api/announcements', {
     method: 'POST',
     body: JSON.stringify(data),
+  }),
+  createSubRequest: (leagueId, gameId, title, message) => apiRequest('/api/announcements', {
+    method: 'POST',
+    body: JSON.stringify({
+      league_id: leagueId,
+      game_id: gameId,
+      title,
+      message,
+      announcement_type: 'sub_request',
+    }),
   }),
   update: (id, data) => apiRequest(`/api/announcements/${id}`, {
     method: 'PUT',

@@ -19,6 +19,8 @@ export default function Users() {
   const [searchQuery, setSearchQuery] = useState('')
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null })
   const [dropdownPosition, setDropdownPosition] = useState({}) // Track dropdown positions by user ID
+  const [createUserModal, setCreateUserModal] = useState({ isOpen: false })
+  const [newUserData, setNewUserData] = useState({ email: '', name: '', phone: '' })
 
   useEffect(() => {
     const currentUser = auth.getUser()
@@ -180,6 +182,26 @@ export default function Users() {
     setOpenUserMenu(userId)
   }
 
+  const handleCreateUser = async (e) => {
+    e.preventDefault()
+
+    if (!newUserData.email || !newUserData.name) {
+      setMessage('Email and name are required')
+      return
+    }
+
+    try {
+      const result = await auth.createPlaceholderUser(newUserData.email, newUserData.name, newUserData.phone)
+      setMessage(result.message || 'User created successfully. They can register with this email to claim their account.')
+      setCreateUserModal({ isOpen: false })
+      setNewUserData({ email: '', name: '', phone: '' })
+      fetchAllUsers()
+      setTimeout(() => setMessage(''), 5000)
+    } catch (error) {
+      setMessage('Error creating user: ' + error.message)
+    }
+  }
+
   // Filter and sort users
   const filteredAndSortedUsers = allUsers
     .filter(u => {
@@ -229,7 +251,18 @@ export default function Users() {
       <div className="card mb-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <h2 className="section-header mb-0">All Users ({filteredAndSortedUsers.length})</h2>
-          <div className="w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            {user?.role === 'admin' && (
+              <button
+                onClick={() => setCreateUserModal({ isOpen: true })}
+                className="btn-primary btn-sm whitespace-nowrap"
+              >
+                <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Create User
+              </button>
+            )}
             <input
               type="text"
               placeholder="Search users..."
@@ -480,6 +513,72 @@ export default function Users() {
                 className="btn-primary btn-sm"
               >
                 Reset Password
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create User Modal */}
+      {createUserModal.isOpen && (
+        <div className="modal-overlay">
+          <div className="modal-container">
+            <h3 className="modal-header">Create Placeholder User</h3>
+            <div className="modal-body">
+              <p className="text-sm text-gray-600 mb-4">
+                Create a placeholder account for a player. When they register with this email, their account will be automatically activated and merged with any existing team assignments.
+              </p>
+              <form onSubmit={handleCreateUser}>
+                <div className="mb-4">
+                  <label className="label">Email *</label>
+                  <input
+                    type="email"
+                    value={newUserData.email}
+                    onChange={(e) => setNewUserData({ ...newUserData, email: e.target.value })}
+                    className="input w-full"
+                    placeholder="player@example.com"
+                    required
+                    autoFocus
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="label">Name *</label>
+                  <input
+                    type="text"
+                    value={newUserData.name}
+                    onChange={(e) => setNewUserData({ ...newUserData, name: e.target.value })}
+                    className="input w-full"
+                    placeholder="John Doe"
+                    required
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="label">Phone (optional)</label>
+                  <input
+                    type="tel"
+                    value={newUserData.phone}
+                    onChange={(e) => setNewUserData({ ...newUserData, phone: e.target.value })}
+                    className="input w-full"
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+              </form>
+            </div>
+            <div className="modal-actions">
+              <button
+                onClick={() => {
+                  setCreateUserModal({ isOpen: false })
+                  setNewUserData({ email: '', name: '', phone: '' })
+                }}
+                className="btn-secondary btn-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateUser}
+                className="btn-primary btn-sm"
+              >
+                Create User
               </button>
             </div>
           </div>

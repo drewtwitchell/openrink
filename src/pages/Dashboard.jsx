@@ -72,6 +72,11 @@ export default function Dashboard() {
   const [leagueAnnouncements, setLeagueAnnouncements] = useState({})
   const [playerStats, setPlayerStats] = useState({}) // Stats by player_id
   const [leagueStats, setLeagueStats] = useState({}) // League-wide stats by league_id
+  const [subRequestModal, setSubRequestModal] = useState({ isOpen: false, game: null, league: null })
+  const [subRequestMessage, setSubRequestMessage] = useState('')
+  const [subRequestConfirmModal, setSubRequestConfirmModal] = useState({ isOpen: false })
+  const [subRequestSuccess, setSubRequestSuccess] = useState(false)
+  const [deleteAnnouncementModal, setDeleteAnnouncementModal] = useState({ isOpen: false, announcement: null, leagueId: null })
 
   useEffect(() => {
     const currentUser = auth.getUser()
@@ -551,6 +556,89 @@ export default function Dashboard() {
     }
   }
 
+  const handleSubRequestSubmit = async (e) => {
+    e.preventDefault()
+
+    if (!subRequestMessage.trim()) {
+      setSubRequestConfirmModal({
+        isOpen: true,
+        title: 'Message Required',
+        message: 'Please enter a message for your sub request',
+        isError: true
+      })
+      return
+    }
+
+    // Show confirmation
+    setSubRequestConfirmModal({
+      isOpen: true,
+      title: 'Post Sub Request',
+      message: 'Are you sure you want to post this sub request? It will be visible to all players in the league.',
+      isError: false
+    })
+  }
+
+  const confirmSubRequest = async () => {
+    const { game, league } = subRequestModal
+
+    try {
+      // Build message with contact info
+      let fullMessage = subRequestMessage
+
+      // Always append contact info in a clear section at the end
+      if (user.email || user.phone) {
+        // Only add contact section if it doesn't already exist
+        if (!fullMessage.includes('--- Contact Info ---')) {
+          fullMessage += '\n\n--- Contact Info ---'
+          if (user.name) fullMessage += `\n${user.name}`
+          if (user.email) fullMessage += `\n${user.email}`
+          if (user.phone) fullMessage += `\n${user.phone}`
+        }
+      }
+
+      await announcements.createSubRequest(
+        league.id,
+        game.id,
+        `Sub Needed: ${game.home_team_name} vs ${game.away_team_name}`,
+        fullMessage
+      )
+
+      // Refresh announcements
+      const updatedAnnouncements = await announcements.getActive(league.id)
+      setLeagueAnnouncements(prev => ({ ...prev, [league.id]: updatedAnnouncements || [] }))
+
+      // Close modals and show success
+      setSubRequestModal({ isOpen: false, game: null, league: null })
+      setSubRequestMessage('')
+      setSubRequestConfirmModal({ isOpen: false })
+      setSubRequestSuccess(true)
+      setTimeout(() => setSubRequestSuccess(false), 3000)
+    } catch (error) {
+      setSubRequestConfirmModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'Error posting sub request: ' + error.message,
+        isError: true
+      })
+    }
+  }
+
+  const handleDeleteAnnouncement = async () => {
+    const { announcement, leagueId } = deleteAnnouncementModal
+
+    try {
+      await announcements.delete(announcement.id)
+
+      // Refresh announcements for this league
+      const updatedAnnouncements = await announcements.getActive(leagueId)
+      setLeagueAnnouncements(prev => ({ ...prev, [leagueId]: updatedAnnouncements || [] }))
+
+      setDeleteAnnouncementModal({ isOpen: false, announcement: null, leagueId: null })
+    } catch (error) {
+      alert('Error deleting announcement: ' + error.message)
+    }
+  }
+
   if (loading) {
     return <div className="loading">Loading dashboard...</div>
   }
@@ -969,15 +1057,42 @@ export default function Dashboard() {
                           {leagueAnnouncements[league.id].map((announcement) => (
                             <div
                               key={announcement.id}
-                              className="p-4 bg-gray-50 border border-gray-200 rounded-lg"
+                              className={`p-4 border rounded-lg ${
+                                announcement.announcement_type === 'sub_request'
+                                  ? 'bg-amber-50 border-amber-300'
+                                  : 'bg-gray-50 border-gray-200'
+                              }`}
                             >
                               <div className="flex items-start justify-between mb-2">
-                                <h5 className="font-semibold text-gray-900">{announcement.title}</h5>
-                                <span className="text-xs text-gray-500">
-                                  {new Date(announcement.created_at).toLocaleDateString()}
-                                </span>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h5 className="font-semibold text-gray-900">{announcement.title}</h5>
+                                  </div>
+                                  {announcement.announcement_type === 'sub_request' && announcement.game_date && (
+                                    <div className="text-xs text-gray-600 mb-2">
+                                      {parseLocalDate(announcement.game_date).toLocaleDateString()} at {formatTime(announcement.game_time)}
+                                      {announcement.rink_name && ` - ${announcement.rink_name}`}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-start gap-2">
+                                  <span className="text-xs text-gray-500">
+                                    {new Date(announcement.created_at).toLocaleDateString()}
+                                  </span>
+                                  {announcement.announcement_type === 'sub_request' && (user?.role === 'admin' || managedLeagues.some(ml => ml.id === league.id)) && (
+                                    <button
+                                      onClick={() => setDeleteAnnouncementModal({ isOpen: true, announcement, leagueId: league.id })}
+                                      className="text-red-600 hover:text-red-700 text-xs"
+                                      title="Delete sub request"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                              <p className="text-gray-700 text-sm">{announcement.message}</p>
+                              <p className="text-gray-700 text-sm whitespace-pre-wrap">{announcement.message}</p>
                               {announcement.expires_at && (
                                 <p className="text-xs text-gray-500 mt-2">
                                   Expires: {new Date(announcement.expires_at).toLocaleDateString()}
@@ -1197,6 +1312,12 @@ export default function Dashboard() {
                                     {game.location && <div className="text-gray-500">{game.location}</div>}
                                   </div>
                                 </div>
+                                <button
+                                  onClick={() => setSubRequestModal({ isOpen: true, game, league })}
+                                  className="btn-warning btn-sm whitespace-nowrap"
+                                >
+                                  Need a Sub?
+                                </button>
                               </div>
 
                               {/* Show detailed attendance breakdown */}
@@ -1795,6 +1916,88 @@ export default function Dashboard() {
               <strong>Note:</strong> Your payment report will be timestamped and sent to league managers for verification.
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Sub Request Modal */}
+      {subRequestModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 sm:p-6 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-4 sm:p-6">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Request a Substitute</h3>
+              <p className="text-sm text-gray-600 mt-2">
+                <span className="font-semibold">{subRequestModal.game?.home_team_name} vs {subRequestModal.game?.away_team_name}</span>
+                <br />
+                <span className="text-xs">
+                  {subRequestModal.game && parseLocalDate(subRequestModal.game.game_date).toLocaleDateString()} at {subRequestModal.game && formatTime(subRequestModal.game.game_time)}
+                </span>
+              </p>
+            </div>
+
+            <form onSubmit={handleSubRequestSubmit} className="space-y-4">
+              <div>
+                <label className="label">Message to Players *</label>
+                <textarea
+                  value={subRequestMessage}
+                  onChange={(e) => setSubRequestMessage(e.target.value)}
+                  className="input w-full"
+                  rows="4"
+                  placeholder="Looking for a sub for our game on... Need a forward/defense/goalie."
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Your contact information will be automatically included so players can reach you.
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSubRequestModal({ isOpen: false, game: null, league: null })
+                    setSubRequestMessage('')
+                  }}
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn-warning flex-1">
+                  Post Sub Request
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Sub Request Confirmation Modal */}
+      <ConfirmModal
+        isOpen={subRequestConfirmModal.isOpen}
+        onClose={() => setSubRequestConfirmModal({ isOpen: false })}
+        onConfirm={subRequestConfirmModal.isError ? null : confirmSubRequest}
+        title={subRequestConfirmModal.title}
+        message={subRequestConfirmModal.message}
+        confirmText={subRequestConfirmModal.isError ? null : "Post Sub Request"}
+        cancelText={subRequestConfirmModal.isError ? "OK" : "Cancel"}
+        variant={subRequestConfirmModal.isError ? "danger" : "warning"}
+      />
+
+      {/* Delete Announcement Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteAnnouncementModal.isOpen}
+        onClose={() => setDeleteAnnouncementModal({ isOpen: false, announcement: null, leagueId: null })}
+        onConfirm={handleDeleteAnnouncement}
+        title="Delete Sub Request"
+        message={`Are you sure you want to delete this sub request?\n\n"${deleteAnnouncementModal.announcement?.title}"\n\nThis action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
+
+      {/* Success Message */}
+      {subRequestSuccess && (
+        <div className="fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+          Sub request posted successfully!
         </div>
       )}
     </div>

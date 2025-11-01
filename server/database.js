@@ -72,6 +72,16 @@ function initDatabase() {
       }
     })
 
+    // Add is_placeholder column if it doesn't exist (migration)
+    db.run(`ALTER TABLE users ADD COLUMN is_placeholder INTEGER DEFAULT 0`, (err) => {
+      // Ignore error if column already exists
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding is_placeholder column:', err)
+      } else if (!err) {
+        console.log('✅ Added is_placeholder column to users table')
+      }
+    })
+
     // League managers table
     db.run(`
       CREATE TABLE IF NOT EXISTS league_managers (
@@ -448,6 +458,61 @@ function initDatabase() {
         FOREIGN KEY (created_by) REFERENCES users(id)
       )
     `)
+
+    // Add game_id column to announcements if it doesn't exist (migration)
+    db.run(`ALTER TABLE announcements ADD COLUMN game_id INTEGER REFERENCES games(id) ON DELETE CASCADE`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding game_id column to announcements:', err)
+      } else if (!err) {
+        console.log('✅ Added game_id column to announcements table')
+      }
+    })
+
+    // Add announcement_type column to announcements if it doesn't exist (migration)
+    db.run(`ALTER TABLE announcements ADD COLUMN announcement_type TEXT DEFAULT 'general'`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding announcement_type column to announcements:', err)
+      } else if (!err) {
+        console.log('✅ Added announcement_type column to announcements table')
+      }
+    })
+
+    // Create sub availability notifications table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS sub_availability_notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        announcement_id INTEGER NOT NULL,
+        player_user_id INTEGER NOT NULL,
+        captain_user_id INTEGER NOT NULL,
+        player_name TEXT,
+        player_email TEXT,
+        player_phone TEXT,
+        message TEXT,
+        is_read INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (announcement_id) REFERENCES announcements(id) ON DELETE CASCADE,
+        FOREIGN KEY (player_user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (captain_user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `)
+
+    // Add latitude column to rinks if it doesn't exist (migration)
+    db.run(`ALTER TABLE rinks ADD COLUMN latitude REAL`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding latitude column to rinks:', err)
+      } else if (!err) {
+        console.log('✅ Added latitude column to rinks table')
+      }
+    })
+
+    // Add longitude column to rinks if it doesn't exist (migration)
+    db.run(`ALTER TABLE rinks ADD COLUMN longitude REAL`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding longitude column to rinks:', err)
+      } else if (!err) {
+        console.log('✅ Added longitude column to rinks table')
+      }
+    })
 
     // Create playoff brackets table
     db.run(`

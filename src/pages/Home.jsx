@@ -48,6 +48,9 @@ export default function Home() {
     return saved ? JSON.parse(saved) : {}
   })
   const [expandedSchedules, setExpandedSchedules] = useState({})
+  const [notifySubModal, setNotifySubModal] = useState({ isOpen: false, announcement: null })
+  const [subNotificationMessage, setSubNotificationMessage] = useState('')
+  const [subNotificationStatus, setSubNotificationStatus] = useState(null) // null, 'success', 'error'
 
   // Get league from subdomain (e.g., mhl.openrink.app -> "mhl")
   const getLeagueFromSubdomain = () => {
@@ -457,6 +460,49 @@ export default function Home() {
     setExpandedSchedules(prev => ({ ...prev, [leagueId]: !prev[leagueId] }))
   }
 
+  const handleNotifySubClick = (announcement) => {
+    if (!isAuthenticated) {
+      // Redirect to login with return URL
+      window.location.href = `/login?returnUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`
+      return
+    }
+    setNotifySubModal({ isOpen: true, announcement })
+    setSubNotificationMessage('')
+    setSubNotificationStatus(null)
+  }
+
+  const handleSubmitSubNotification = async (e) => {
+    e.preventDefault()
+    const token = localStorage.getItem('token')
+
+    try {
+      const response = await fetch(`${API_URL}/api/announcements/${notifySubModal.announcement.id}/notify-available`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ message: subNotificationMessage })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send notification')
+      }
+
+      setSubNotificationStatus('success')
+      setTimeout(() => {
+        setNotifySubModal({ isOpen: false, announcement: null })
+        setSubNotificationMessage('')
+        setSubNotificationStatus(null)
+      }, 2000)
+    } catch (error) {
+      console.error('Error sending notification:', error)
+      setSubNotificationStatus('error')
+    }
+  }
+
   // Filter leagues based on URL parameter if provided
   let displayLeagues = leagueFilter
     ? leagueData.filter(({ league }) =>
@@ -597,48 +643,51 @@ export default function Home() {
             {(!isMultipleLeagues || !isCollapsed) && (
               <div>
 
-          {/* Login Prompt for Unauthenticated Users */}
-          {!isAuthenticated && (
-            <div className="card bg-blue-50 border-blue-200 mb-8">
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 text-blue-600">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900 mb-1">Mark your attendance for upcoming games</h4>
-                  <p className="text-gray-700 text-sm mb-3">
-                    Sign in to let your team know if you'll be playing.
-                  </p>
-                  <Link to="/login" className="btn-primary btn-sm inline-block">
-                    Sign In / Register
-                  </Link>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Announcements - topmost element */}
           {announcements && announcements.length > 0 && (
-            <div className="mb-8 space-y-3">
+            <div className="mb-6 space-y-2">
               {announcements.map((announcement) => (
-                <div key={announcement.id} className="card bg-amber-50 border-amber-200 p-4 sm:p-6">
-                  <div className="flex items-start gap-3 flex-col sm:flex-row">
-                    <div className="flex-shrink-0 text-amber-600 mx-auto sm:mx-0">
-                      <svg className="w-8 h-8 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div
+                  key={announcement.id}
+                  className={`border rounded p-3 ${
+                    announcement.announcement_type === 'sub_request'
+                      ? 'bg-red-50/50 border-red-200'
+                      : 'bg-amber-50/50 border-amber-200'
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    <div className={`flex-shrink-0 ${
+                      announcement.announcement_type === 'sub_request' ? 'text-red-600' : 'text-amber-600'
+                    }`}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
                       </svg>
                     </div>
-                    <div className="flex-1 text-center sm:text-left">
-                      <h4 className="font-semibold text-gray-900 mb-1 text-base sm:text-sm">{announcement.title}</h4>
-                      <p className="text-gray-700 text-sm mb-2">{announcement.message}</p>
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-gray-900 text-sm mb-1">{announcement.title}</h4>
+                      {announcement.announcement_type === 'sub_request' && announcement.game_date && (
+                        <div className="text-xs text-gray-600 mb-1">
+                          {parseLocalDate(announcement.game_date).toLocaleDateString()} at {formatTime(announcement.game_time)}
+                          {announcement.rink_name && ` - ${announcement.rink_name}`}
+                        </div>
+                      )}
+                      <p className="text-gray-700 text-xs mb-1 whitespace-pre-wrap">{announcement.message}</p>
+                      <div className="flex items-center gap-3 text-xs text-gray-500">
                         <span>Posted {new Date(announcement.created_at).toLocaleDateString()}</span>
                         {announcement.expires_at && (
                           <span>Expires {new Date(announcement.expires_at).toLocaleDateString()}</span>
                         )}
                       </div>
+                      {announcement.announcement_type === 'sub_request' && (
+                        <div className="mt-2">
+                          <button
+                            onClick={() => handleNotifySubClick(announcement)}
+                            className="btn-primary text-xs px-3 py-1"
+                          >
+                            I'm Available to Sub
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -873,6 +922,22 @@ export default function Home() {
                   <span className="text-sm font-normal text-gray-500 ml-2">({activeSeason.name})</span>
                 )}
               </h3>
+
+              {/* Login Prompt for Unauthenticated Users */}
+              {!isAuthenticated && upcomingGames.length > 0 && (
+                <Link to="/login" className="block bg-blue-50 border border-blue-200 rounded px-3 py-2 mb-4 hover:bg-blue-100 transition-colors">
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-gray-700">Mark your attendance for upcoming games</span>
+                    <svg className="w-4 h-4 text-gray-400 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </Link>
+              )}
+
               {upcomingGames.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">No upcoming games this week</p>
               ) : (
@@ -1182,6 +1247,73 @@ export default function Home() {
       )
     })}
 
+      {/* Notify Sub Availability Modal */}
+      {notifySubModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Notify Team Captain
+            </h3>
+            {notifySubModal.announcement && (
+              <div className="mb-4 p-3 bg-gray-50 rounded">
+                <p className="font-semibold text-sm">{notifySubModal.announcement.title}</p>
+                {notifySubModal.announcement.game_date && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    {parseLocalDate(notifySubModal.announcement.game_date).toLocaleDateString()} at {formatTime(notifySubModal.announcement.game_time)}
+                    {notifySubModal.announcement.rink_name && ` - ${notifySubModal.announcement.rink_name}`}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {subNotificationStatus === 'success' ? (
+              <div className="alert alert-success mb-4">
+                Success! The team captain has been notified of your availability.
+              </div>
+            ) : subNotificationStatus === 'error' ? (
+              <div className="alert alert-error mb-4">
+                Error sending notification. Please try again or contact the captain directly.
+              </div>
+            ) : (
+              <form onSubmit={handleSubmitSubNotification}>
+                <div className="mb-4">
+                  <label className="label">
+                    Optional Message
+                  </label>
+                  <textarea
+                    value={subNotificationMessage}
+                    onChange={(e) => setSubNotificationMessage(e.target.value)}
+                    className="input w-full"
+                    rows="3"
+                    placeholder="e.g., I can play forward or defense. Let me know if you need me!"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Your contact information will automatically be shared with the captain.
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNotifySubModal({ isOpen: false, announcement: null })}
+                    className="btn-secondary flex-1"
+                    disabled={subNotificationStatus === 'success'}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-primary flex-1"
+                    disabled={subNotificationStatus === 'success'}
+                  >
+                    Send Notification
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
 
     </div>
   )

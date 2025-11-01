@@ -85,6 +85,8 @@ export default function LeagueDetails() {
     game_time: '',
     rink_name: '',
     location: '',
+    rink_latitude: null,
+    rink_longitude: null,
     home_score: '',
     away_score: '',
   })
@@ -97,6 +99,7 @@ export default function LeagueDetails() {
   const [showRinkResults, setShowRinkResults] = useState(false)
   const [searchingRinks, setSearchingRinks] = useState(false)
   const [rinkSearchActive, setRinkSearchActive] = useState(true)
+  const [userLocation, setUserLocation] = useState(null) // { latitude, longitude }
   const [showPlayerForm, setShowPlayerForm] = useState(null) // Track which team's form is showing
   const [editingPlayerId, setEditingPlayerId] = useState(null)
   const [editingPlayerData, setEditingPlayerData] = useState({
@@ -127,6 +130,7 @@ export default function LeagueDetails() {
   const [leagueInfoCollapsed, setLeagueInfoCollapsed] = useState(false)
   const [paymentTrackingCollapsed, setPaymentTrackingCollapsed] = useState(false)
   const [openPlayerMenu, setOpenPlayerMenu] = useState(null) // Track which player's menu is open
+  const [deleteGameModal, setDeleteGameModal] = useState({ isOpen: false, gameId: null })
   const playerMenuRef = useRef(null)
 
   // Playoff state variables
@@ -332,6 +336,37 @@ export default function LeagueDetails() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Get user's current location for proximity-based rink search
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          })
+        },
+        (error) => {
+          console.log('Location access denied or unavailable:', error.message)
+          // Continue without location - search will work globally
+        }
+      )
+    }
+  }, [])
+
+  // Helper function to calculate distance between two points in miles
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 3959 // Earth's radius in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180
+    const dLon = (lon2 - lon1) * Math.PI / 180
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    return R * c
+  }
+
   // Search for rinks using OpenStreetMap Photon API (free, no API key needed)
   const searchRinks = async (query) => {
     if (!query || query.trim().length < 3) {
@@ -342,24 +377,89 @@ export default function LeagueDetails() {
 
     setSearchingRinks(true)
     try {
-      const response = await fetch(
-        `https://photon.komoot.io/api/?q=${encodeURIComponent(query + ' ice rink arena')}&limit=5`
-      )
+      // Build API URL with location filtering if available
+      let apiUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(query + ' ice rink arena')}&limit=20`
+      if (userLocation) {
+        apiUrl += `&lat=${userLocation.latitude}&lon=${userLocation.longitude}`
+        console.log('Searching with user location:', userLocation)
+      } else {
+        console.log('Searching without user location (global search)')
+      }
+
+      const response = await fetch(apiUrl)
       const data = await response.json()
 
-      const results = data.features.map(feature => ({
-        name: feature.properties.name || feature.properties.street || 'Unknown',
-        address: [
-          feature.properties.street,
-          feature.properties.city,
-          feature.properties.state,
-          feature.properties.postcode,
-          feature.properties.country
-        ].filter(Boolean).join(', ')
-      }))
+      // Process results with distance calculation and building prioritization
+      let results = data.features.map(feature => {
+        const props = feature.properties
+        const coords = feature.geometry.coordinates // [longitude, latitude]
+        const latitude = coords[1]
+        const longitude = coords[0]
 
-      setRinkSearchResults(results)
-      setShowRinkResults(results.length > 0)
+        // Determine if this is an actual building/venue vs just a street
+        const isBuilding = props.name && props.name !== props.street && (
+          props.osm_value === 'sports_centre' ||
+          props.osm_value === 'stadium' ||
+          props.osm_value === 'arena' ||
+          props.osm_key === 'leisure' ||
+          props.osm_key === 'building'
+        )
+
+        // Calculate distance if user location is available
+        let distance = null
+        if (userLocation) {
+          distance = calculateDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            latitude,
+            longitude
+          )
+        }
+
+        // Build complete address with house number
+        const streetAddress = [props.housenumber, props.street].filter(Boolean).join(' ')
+
+        return {
+          name: props.name || props.street || 'Unknown Location',
+          address: [
+            streetAddress,
+            props.city,
+            props.state,
+            props.postcode,
+            props.country
+          ].filter(Boolean).join(', '),
+          latitude,
+          longitude,
+          distance,
+          isBuilding
+        }
+      })
+
+      // If user location is available, filter to only show results within 100 miles
+      if (userLocation) {
+        const maxDistance = 100 // miles
+        results = results.filter(result => result.distance !== null && result.distance <= maxDistance)
+        console.log(`Filtered to ${results.length} results within ${maxDistance} miles`)
+      }
+
+      // Sort results: buildings first, then by distance
+      results.sort((a, b) => {
+        // Prioritize actual buildings
+        if (a.isBuilding && !b.isBuilding) return -1
+        if (!a.isBuilding && b.isBuilding) return 1
+
+        // Then sort by distance if available
+        if (a.distance !== null && b.distance !== null) {
+          return a.distance - b.distance
+        }
+        return 0
+      })
+
+      // Take top 5 results after sorting
+      const topResults = results.slice(0, 5)
+
+      setRinkSearchResults(topResults)
+      setShowRinkResults(topResults.length > 0)
     } catch (error) {
       console.error('Error searching rinks:', error)
       setRinkSearchResults([])
@@ -1173,6 +1273,8 @@ export default function LeagueDetails() {
         game_time: '',
         rink_name: '',
         location: '',
+        rink_latitude: null,
+        rink_longitude: null,
         home_score: '',
         away_score: '',
       })
@@ -1222,6 +1324,8 @@ export default function LeagueDetails() {
       game_time: '',
       rink_name: '',
       location: '',
+      rink_latitude: null,
+      rink_longitude: null,
       home_score: '',
       away_score: '',
     })
@@ -1231,12 +1335,14 @@ export default function LeagueDetails() {
     setPlayerStats({})
   }
 
-  const handleDeleteGame = async (gameId) => {
-    if (!confirm('Are you sure you want to delete this game?')) {
-      return
-    }
+  const handleDeleteGame = (gameId) => {
+    setDeleteGameModal({ isOpen: true, gameId })
+  }
+
+  const confirmDeleteGame = async () => {
     try {
-      await gamesApi.delete(gameId)
+      await gamesApi.delete(deleteGameModal.gameId)
+      setDeleteGameModal({ isOpen: false, gameId: null })
       fetchLeagueData()
     } catch (error) {
       alert('Error deleting game: ' + error.message)
@@ -3643,19 +3749,35 @@ export default function LeagueDetails() {
                                 setGameFormData({
                                   ...gameFormData,
                                   rink_name: result.name,
-                                  location: result.address
+                                  location: result.address,
+                                  rink_latitude: result.latitude,
+                                  rink_longitude: result.longitude
                                 })
                                 setShowRinkResults(false)
                               }}
                             >
-                              <div className="font-medium text-gray-900">{result.name}</div>
+                              <div className="flex items-center justify-between">
+                                <div className="font-medium text-gray-900 flex items-center gap-2">
+                                  {result.name}
+                                  {result.isBuilding && (
+                                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Venue</span>
+                                  )}
+                                </div>
+                                {result.distance !== null && (
+                                  <div className="text-xs text-gray-500 ml-2 whitespace-nowrap">
+                                    {result.distance.toFixed(1)} mi
+                                  </div>
+                                )}
+                              </div>
                               <div className="text-sm text-gray-600">{result.address}</div>
                             </button>
                           ))}
                         </div>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Type at least 3 characters to search</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Type at least 3 characters to search. Results prioritize nearby rinks and actual venues over street addresses.
+                    </p>
                   </div>
                   <div className="md:col-span-2">
                     <label className="label">Location (Address)</label>
@@ -4948,6 +5070,17 @@ This will also delete all associated teams, games, and payment records.`}
         title="Delete Team"
         message={`Delete team "${deleteTeamModal.teamName}"?\n\nThis will also delete all players on this team.`}
         confirmText="Delete Team"
+        variant="danger"
+      />
+
+      {/* Delete Game Modal */}
+      <ConfirmModal
+        isOpen={deleteGameModal.isOpen}
+        onClose={() => setDeleteGameModal({ isOpen: false, gameId: null })}
+        onConfirm={confirmDeleteGame}
+        title="Delete Game"
+        message="Are you sure you want to delete this game?\n\nThis will also delete all associated player stats."
+        confirmText="Delete Game"
         variant="danger"
       />
 
