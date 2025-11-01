@@ -192,11 +192,12 @@ export default function LeagueDetails() {
   const teamRefs = useRef({})
 
   // Check if current user can manage this league
-  // User can manage if they're an admin OR if they're in the league_managers table for this league
+  // User can manage if they're an admin OR the league creator OR if they're in the league_managers table for this league
   const canManage = useMemo(() => {
     return currentUser?.role === 'admin' ||
+      league?.created_by === currentUser?.id ||
       managers.some(m => m.id === currentUser.id)
-  }, [currentUser, managers])
+  }, [currentUser, league, managers])
 
   // Check if current user is a captain of a specific team
   const isTeamCaptain = (teamId) => {
