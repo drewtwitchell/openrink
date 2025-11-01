@@ -456,7 +456,7 @@ export default function Home() {
         ) : (
           <div className="card text-center bg-gray-50 border-2 border-gray-200">
             <h2 className="section-header text-gray-900 mb-3">How It Works</h2>
-            <div className="max-w-2xl mx-auto text-left space-y-4 mb-6">
+            <div className="max-w-2xl mx-auto text-left space-y-4">
               <div className="flex gap-4">
                 <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
                   1
@@ -502,9 +502,6 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            <Link to="/login" className="btn-primary">
-              Get Started Now
-            </Link>
           </div>
         )}
       </div>
