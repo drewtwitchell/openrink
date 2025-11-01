@@ -358,19 +358,19 @@ export default function Home() {
 
   if (!hasLeagues) {
     return (
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-5xl mx-auto px-4">
         {/* Hero Section */}
         <div className="text-center mb-16">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             Welcome to OpenRink
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
-            Free, lightweight hockey league management system. Track teams, games, standings, and player payments all in one place.
+            Free, open-source hockey league management system. Track teams, games, standings, player stats, and payments all in one place.
           </p>
           {!isAuthenticated && (
             <div className="flex justify-center">
-              <Link to="/login" className="btn-primary btn-sm">
-                Sign In/Register
+              <Link to="/login" className="btn-primary">
+                Sign In to Get Started
               </Link>
             </div>
           )}
@@ -384,21 +384,28 @@ export default function Home() {
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">League & Season Management</h3>
                 <p className="text-gray-600 text-sm">
-                  Create multiple leagues with distinct seasons. Track payment periods, dues, and manage team rosters independently for each season.
+                  Create multiple leagues with distinct seasons. Customize point systems, track payment periods, and manage team rosters independently.
                 </p>
               </div>
 
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Live Standings</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Live Standings & Stats</h3>
                 <p className="text-gray-600 text-sm">
-                  Automatic standings calculation based on game results. Track wins, losses, ties, goals for, goals against, and points.
+                  Automatic standings calculation and player statistics tracking. Monitor wins, losses, goals, assists, points, and penalty minutes in real-time.
                 </p>
               </div>
 
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Payment Tracking</h3>
                 <p className="text-gray-600 text-sm">
-                  Track player dues by season with Venmo integration. See who's paid and who hasn't at a glance with visual progress indicators.
+                  Track player dues by season with Venmo integration. See payment status at a glance with visual progress indicators and automated reminders.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Playoff Brackets</h3>
+                <p className="text-gray-600 text-sm">
+                  Create and manage playoff tournaments with automatic bracket generation. Track playoff games and crown your champion.
                 </p>
               </div>
             </div>
@@ -407,21 +414,28 @@ export default function Home() {
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Team & Player Management</h3>
                 <p className="text-gray-600 text-sm">
-                  Manage team rosters, assign jersey numbers, link players to user accounts, and transfer players between teams seamlessly.
+                  Manage team rosters, assign jersey numbers and positions, link players to user accounts, and transfer players between teams seamlessly.
                 </p>
               </div>
 
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Schedule & Rink Management</h3>
                 <p className="text-gray-600 text-sm">
-                  Schedule games across multiple rinks and ice surfaces. Track game times, locations, and results all in one place.
+                  Schedule games across multiple rinks and ice surfaces with integrated maps. Export calendars to sync with Google, Apple, or Outlook.
                 </p>
               </div>
 
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Substitute Requests</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Attendance & Sub Requests</h3>
                 <p className="text-gray-600 text-sm">
-                  Request substitutes for upcoming games with optional payment handling. Notify team members automatically.
+                  Track game attendance and request substitutes for upcoming games. Automated notifications keep everyone informed.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Announcements</h3>
+                <p className="text-gray-600 text-sm">
+                  Post league-wide announcements and communicate important information to all players and teams in your league.
                 </p>
               </div>
             </div>
@@ -429,14 +443,67 @@ export default function Home() {
         </div>
 
         {/* Getting Started */}
-        {isAuthenticated && (
+        {isAuthenticated ? (
           <div className="card text-center">
             <h2 className="section-header text-gray-900 mb-3">Ready to Get Started?</h2>
-            <p className="text-gray-600 mb-6 max-w-xl mx-auto">
-              Head to your dashboard to create your first league and start managing your hockey season.
+            <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+              Create your first league to start managing your hockey season. You'll be able to add teams, schedule games, track standings, and much more.
             </p>
-            <Link to="/dashboard" className="btn-primary btn-sm">
-              Create Your First League
+            <Link to="/dashboard" className="btn-primary">
+              Go to Dashboard
+            </Link>
+          </div>
+        ) : (
+          <div className="card text-center bg-gray-50 border-2 border-gray-200">
+            <h2 className="section-header text-gray-900 mb-3">How It Works</h2>
+            <div className="max-w-2xl mx-auto text-left space-y-4 mb-6">
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+                  1
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-1">Sign In</h4>
+                  <p className="text-gray-600 text-sm">
+                    Create your free account to get started. No credit card required.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+                  2
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-1">Create Your League</h4>
+                  <p className="text-gray-600 text-sm">
+                    Set up your league with seasons, teams, and customize your point system and payment structure.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+                  3
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-1">Add Teams & Players</h4>
+                  <p className="text-gray-600 text-sm">
+                    Build your rosters by importing from CSV or adding players manually. Assign jerseys and positions.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+                  4
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-1">Schedule & Play</h4>
+                  <p className="text-gray-600 text-sm">
+                    Create your game schedule, track scores and stats, and watch the standings update automatically.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <Link to="/login" className="btn-primary">
+              Get Started Now
             </Link>
           </div>
         )}
@@ -920,21 +987,6 @@ export default function Home() {
                   <span className="text-sm font-normal text-gray-500 ml-2">({activeSeason.name})</span>
                 )}
               </h3>
-
-              {/* Login Prompt for Unauthenticated Users */}
-              {!isAuthenticated && upcomingGames.length > 0 && (
-                <Link to="/login" className="block bg-blue-50 border border-blue-200 rounded px-3 py-2 mb-4 hover:bg-blue-100 transition-colors">
-                  <div className="flex items-center gap-2 text-sm">
-                    <svg className="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-gray-700">Mark your attendance for upcoming games</span>
-                    <svg className="w-4 h-4 text-gray-400 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </Link>
-              )}
 
               {upcomingGames.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">No upcoming games this week</p>
