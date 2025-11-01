@@ -2348,7 +2348,7 @@ export default function LeagueDetails() {
 
             {!leagueInfoCollapsed && (
             <>
-            {/* General Information - Shows League Description */}
+            {/* General Information - Shows League Description and Active Season */}
             <div className="mb-6 pb-6 border-b border-gray-200">
               <div className="flex justify-between items-center mb-4">
                 <h4 className="font-semibold text-gray-900">General Information</h4>
@@ -2395,62 +2395,62 @@ export default function LeagueDetails() {
             ) : (
               <div>
                 {league.description ? (
-                  <div className="text-gray-700 whitespace-pre-wrap bg-gray-50 p-4 rounded">
+                  <div className="text-gray-700 whitespace-pre-wrap bg-gray-50 p-4 rounded mb-4">
                     {league.description}
                   </div>
                 ) : (
-                  <div className="text-center py-8">
+                  <div className="text-center py-8 mb-4">
                     <p className="text-gray-500 mb-4">No general information set</p>
                     <p className="text-sm text-gray-400">
                       Add information about game locations, typical times, and other general details for players and visitors.
                     </p>
                   </div>
                 )}
+
+                {/* Active Season Details - within General Information */}
+                {activeSeason && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="mb-3">
+                      <h5 className="font-medium text-gray-900 text-sm">
+                        Active Season: {activeSeason.name}
+                      </h5>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded space-y-2">
+                      {(activeSeason.start_date || activeSeason.end_date) && (
+                        <div>
+                          <span className="text-sm font-medium text-gray-600">Season Dates:</span>
+                          <p className="text-sm text-gray-700 mt-1">
+                            {activeSeason.start_date && new Date(activeSeason.start_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            {activeSeason.start_date && activeSeason.end_date && ' - '}
+                            {activeSeason.end_date && new Date(activeSeason.end_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </p>
+                        </div>
+                      )}
+                      {activeSeason.season_dues && (
+                        <div>
+                          <span className="text-sm font-medium text-gray-600">Season Dues:</span>
+                          <p className="text-sm text-gray-700 mt-1">${activeSeason.season_dues}</p>
+                        </div>
+                      )}
+                      {activeSeason.venmo_link && (
+                        <div>
+                          <span className="text-sm font-medium text-gray-600">Payment Link:</span>
+                          <a
+                            href={activeSeason.venmo_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-ice-600 hover:text-ice-700 underline mt-1 block"
+                          >
+                            {activeSeason.venmo_link}
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             </div>
-
-            {/* Active Season Details */}
-            {activeSeason && (
-              <div className="mb-6 pb-6 border-b border-gray-200">
-                <div className="mb-4">
-                  <h4 className="font-semibold text-gray-900">
-                    Active Season: {activeSeason.name}
-                  </h4>
-                </div>
-                <div className="bg-gray-50 p-4 rounded space-y-2">
-                  {(activeSeason.start_date || activeSeason.end_date) && (
-                    <div>
-                      <span className="text-sm font-medium text-gray-600">Season Dates:</span>
-                      <p className="text-sm text-gray-700 mt-1">
-                        {activeSeason.start_date && new Date(activeSeason.start_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        {activeSeason.start_date && activeSeason.end_date && ' - '}
-                        {activeSeason.end_date && new Date(activeSeason.end_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </p>
-                    </div>
-                  )}
-                  {activeSeason.season_dues && (
-                    <div>
-                      <span className="text-sm font-medium text-gray-600">Season Dues:</span>
-                      <p className="text-sm text-gray-700 mt-1">${activeSeason.season_dues}</p>
-                    </div>
-                  )}
-                  {activeSeason.venmo_link && (
-                    <div>
-                      <span className="text-sm font-medium text-gray-600">Payment Link:</span>
-                      <a
-                        href={activeSeason.venmo_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-ice-600 hover:text-ice-700 underline mt-1 block"
-                      >
-                        {activeSeason.venmo_link}
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
 
 
             {/* Managers Subsection */}
