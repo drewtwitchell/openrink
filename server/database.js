@@ -769,8 +769,8 @@ function initDatabase() {
         try {
           const hashedPassword = await bcrypt.hash('admin123', 10)
           db.run(
-            'INSERT INTO users (username, password, name, role, password_reset_required) VALUES (?, ?, ?, ?, ?)',
-            ['admin', hashedPassword, 'admin', 'admin', 0],
+            'INSERT INTO users (username, email, password, name, role, password_reset_required) VALUES (?, ?, ?, ?, ?, ?)',
+            ['admin', 'admin@openrink.local', hashedPassword, 'Default Admin', 'admin', 1],
             (insertErr) => {
               if (insertErr) {
                 console.error('Error creating default admin:', insertErr)
@@ -778,14 +778,13 @@ function initDatabase() {
                 console.log('✅ Default admin user created')
                 console.log('   Username: admin')
                 console.log('   Password: admin123')
+                console.log('   ⚠️  You will be prompted to change the password on first login')
               }
             }
           )
         } catch (hashErr) {
           console.error('Error hashing default admin password:', hashErr)
         }
-      } else {
-        console.log('Default admin user already exists')
       }
     })
 
