@@ -155,7 +155,7 @@ function App() {
         passwordData={passwordData}
         setPasswordData={setPasswordData}
         passwordMessage={passwordMessage}
-        handlePasswordReset={handlePasswordReset}
+        handlePasswordChange={handlePasswordChange}
         handleSignOut={handleSignOut}
       />
     </Router>
@@ -174,7 +174,7 @@ function AppContent({
   passwordData,
   setPasswordData,
   passwordMessage,
-  handlePasswordReset,
+  handlePasswordChange,
   handleSignOut
 }) {
   const location = useLocation()
