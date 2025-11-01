@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { auth } from './lib/api'
 
@@ -143,36 +143,74 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
-        {/* Navigation */}
-        <nav className="bg-white shadow-md">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              {/* Logo */}
-              <Link to="/" className="text-xl sm:text-2xl font-bold text-ice-600 flex-shrink-0">
-                🏒 OpenRink
-              </Link>
+      <AppContent
+        isAuthenticated={isAuthenticated}
+        setIsAuthenticated={setIsAuthenticated}
+        user={user}
+        showUserMenu={showUserMenu}
+        setShowUserMenu={setShowUserMenu}
+        showMobileMenu={showMobileMenu}
+        setShowMobileMenu={setShowMobileMenu}
+        showPasswordResetModal={showPasswordResetModal}
+        passwordData={passwordData}
+        setPasswordData={setPasswordData}
+        passwordMessage={passwordMessage}
+        handlePasswordReset={handlePasswordReset}
+        handleSignOut={handleSignOut}
+      />
+    </Router>
+  )
+}
 
-              {/* Desktop Navigation */}
-              {isAuthenticated && (
-                <div className="hidden md:flex items-center gap-4">
-                  <Link
-                    to="/"
-                    className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-ice-600 hover:bg-gray-100 transition-colors"
-                  >
-                    Standings/Schedule
-                  </Link>
-                  <Link
-                    to="/dashboard"
-                    className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-ice-600 hover:bg-gray-100 transition-colors"
-                  >
-                    Dashboard
-                  </Link>
-                </div>
-              )}
+function AppContent({
+  isAuthenticated,
+  setIsAuthenticated,
+  user,
+  showUserMenu,
+  setShowUserMenu,
+  showMobileMenu,
+  setShowMobileMenu,
+  showPasswordResetModal,
+  passwordData,
+  setPasswordData,
+  passwordMessage,
+  handlePasswordReset,
+  handleSignOut
+}) {
+  const location = useLocation()
+  const isHomePage = location.pathname === '/'
 
-              {/* Right side - User menu or Sign in */}
-              <div className="flex items-center gap-2">
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Navigation */}
+      <nav className="bg-white shadow-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            {/* Logo */}
+            <Link to="/" className="text-xl sm:text-2xl font-bold text-ice-600 flex-shrink-0">
+              🏒 OpenRink
+            </Link>
+
+            {/* Desktop Navigation */}
+            {isAuthenticated && (
+              <div className="hidden md:flex items-center gap-4">
+                <Link
+                  to="/"
+                  className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-ice-600 hover:bg-gray-100 transition-colors"
+                >
+                  Standings/Schedule
+                </Link>
+                <Link
+                  to="/dashboard"
+                  className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-ice-600 hover:bg-gray-100 transition-colors"
+                >
+                  Dashboard
+                </Link>
+              </div>
+            )}
+
+            {/* Right side - User menu or Sign in */}
+            <div className="flex items-center gap-2">
                 {isAuthenticated ? (
                   <>
                     {/* Mobile hamburger menu button */}
@@ -261,9 +299,11 @@ function App() {
                     </div>
                   </>
                 ) : (
-                  <Link to="/login" className="btn-primary text-sm sm:text-base">
-                    Sign In
-                  </Link>
+                  !isHomePage && (
+                    <Link to="/login" className="btn-primary text-sm sm:text-base">
+                      Sign In
+                    </Link>
+                  )
                 )}
               </div>
             </div>
@@ -379,8 +419,7 @@ function App() {
           </Routes>
         </main>
       </div>
-    </Router>
-  )
+    )
 }
 
 export default App
