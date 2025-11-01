@@ -350,7 +350,6 @@ export default function LeagueDetails() {
           })
         },
         (error) => {
-          console.log('Location access denied or unavailable:', error.message)
           // Continue without location - search will work globally
         }
       )
@@ -5068,111 +5067,6 @@ export default function LeagueDetails() {
         </div>
       )}
 
-      {/* Delete Announcement Modal */}
-      <ConfirmModal
-        isOpen={deleteAnnouncementModal.isOpen}
-        onClose={() => setDeleteAnnouncementModal({ isOpen: false, announcementId: null, title: '' })}
-        onConfirm={confirmDeleteAnnouncement}
-        title="Delete Announcement"
-        message={`Are you sure you want to delete the announcement "${deleteAnnouncementModal.title}"?`}
-        confirmText="Delete"
-        variant="danger"
-      />
-
-      {/* Remove Player Modal */}
-      <ConfirmModal
-        isOpen={removePlayerModal.isOpen}
-        onClose={() => setRemovePlayerModal({ isOpen: false, playerId: null, playerName: '', teamId: null })}
-        onConfirm={confirmRemovePlayer}
-        title="Remove Player"
-        message={`Are you sure you want to remove ${removePlayerModal.playerName} from the roster?`}
-        confirmText="Remove"
-        variant="danger"
-      />
-
-      {/* Archive/Unarchive League Modal */}
-      <ConfirmModal
-        isOpen={archiveSeasonModal.isOpen}
-        onClose={() => setArchiveSeasonModal({ isOpen: false, isArchived: false, leagueName: '' })}
-        onConfirm={confirmArchiveLeague}
-        title={archiveSeasonModal.isArchived ? 'Unarchive League' : 'Archive League'}
-        message={
-          archiveSeasonModal.isArchived
-            ? `Are you sure you want to unarchive this league?\n\nThis will restore "${archiveSeasonModal.leagueName}" and make all its teams, games, and schedules visible again.`
-            : `Are you sure you want to archive this league?\n\nArchiving "${archiveSeasonModal.leagueName}" will:\n• Hide this league and its season data from active views\n• Preserve all teams, games, and player data\n• Allow you to unarchive it later if needed\n\nThis is useful for completed seasons you want to keep but not display.`
-        }
-        confirmText={archiveSeasonModal.isArchived ? 'Unarchive' : 'Archive'}
-        variant="primary"
-      />
-
-      {/* Delete League Modal */}
-      <ConfirmModal
-        isOpen={deleteLeagueModal.isOpen}
-        onClose={() => setDeleteLeagueModal({ isOpen: false })}
-        onConfirm={confirmDeleteLeague}
-        title="Delete League"
-        message={`Delete league "${league?.name}"?\n\nThis will permanently delete all associated seasons, teams, games, and players. This cannot be undone.`}
-        confirmText="Delete League"
-        variant="danger"
-      />
-
-      {/* Delete Season Modal */}
-      <ConfirmModal
-        isOpen={deleteSeasonModal.isOpen}
-        onClose={() => setDeleteSeasonModal({ isOpen: false, seasonId: null })}
-        onConfirm={confirmDeleteSeason}
-        title="Delete Season"
-        message={`Are you sure you want to delete this season?
-
-This will also delete all associated teams, games, and payment records.`}
-        confirmText="Delete Season"
-        variant="danger"
-      />
-
-      {/* Delete Team Modal */}
-      <ConfirmModal
-        isOpen={deleteTeamModal.isOpen}
-        onClose={() => setDeleteTeamModal({ isOpen: false, teamId: null, teamName: '' })}
-        onConfirm={confirmDeleteTeam}
-        title="Delete Team"
-        message={`Delete team "${deleteTeamModal.teamName}"?\n\nThis will also delete all players on this team.`}
-        confirmText="Delete Team"
-        variant="danger"
-      />
-
-      {/* Delete Game Modal */}
-      <ConfirmModal
-        isOpen={deleteGameModal.isOpen}
-        onClose={() => setDeleteGameModal({ isOpen: false, gameId: null })}
-        onConfirm={confirmDeleteGame}
-        title="Delete Game"
-        message="Are you sure you want to delete this game?\n\nThis will also delete all associated player stats."
-        confirmText="Delete Game"
-        variant="danger"
-      />
-
-      {/* Mark Unpaid Modal */}
-      <ConfirmModal
-        isOpen={markUnpaidModal.isOpen}
-        onClose={() => setMarkUnpaidModal({ isOpen: false, player: null })}
-        onConfirm={confirmMarkUnpaid}
-        title="Mark Payment as Unpaid"
-        message={`Are you sure you want to mark ${markUnpaidModal.player?.name}'s payment as unpaid?`}
-        confirmText="Mark Unpaid"
-        variant="primary"
-      />
-
-      {/* Remove Manager Modal */}
-      <ConfirmModal
-        isOpen={removeManagerModal.isOpen}
-        onClose={() => setRemoveManagerModal({ isOpen: false, manager: null })}
-        onConfirm={confirmRemoveManager}
-        title="Remove League Manager"
-        message={`Are you sure you want to remove ${removeManagerModal.manager?.name || removeManagerModal.manager?.email} as a league manager?`}
-        confirmText="Remove Manager"
-        variant="danger"
-      />
-
       {/* New Season Form Modal (when seasons already exist) */}
       {showSeasonForm && leagueSeasons.length > 0 && !editingSeasonId && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -5839,6 +5733,111 @@ This will also delete all associated teams, games, and payment records.`}
 
         </>
       )}
+
+      {/* Delete Announcement Modal */}
+      <ConfirmModal
+        isOpen={deleteAnnouncementModal.isOpen}
+        onClose={() => setDeleteAnnouncementModal({ isOpen: false, announcementId: null, title: '' })}
+        onConfirm={confirmDeleteAnnouncement}
+        title="Delete Announcement"
+        message={`Are you sure you want to delete the announcement "${deleteAnnouncementModal.title}"?`}
+        confirmText="Delete"
+        variant="danger"
+      />
+
+      {/* Remove Player Modal */}
+      <ConfirmModal
+        isOpen={removePlayerModal.isOpen}
+        onClose={() => setRemovePlayerModal({ isOpen: false, playerId: null, playerName: '', teamId: null })}
+        onConfirm={confirmRemovePlayer}
+        title="Remove Player"
+        message={`Are you sure you want to remove ${removePlayerModal.playerName} from the roster?`}
+        confirmText="Remove"
+        variant="danger"
+      />
+
+      {/* Archive/Unarchive League Modal */}
+      <ConfirmModal
+        isOpen={archiveSeasonModal.isOpen}
+        onClose={() => setArchiveSeasonModal({ isOpen: false, isArchived: false, leagueName: '' })}
+        onConfirm={confirmArchiveLeague}
+        title={archiveSeasonModal.isArchived ? 'Unarchive League' : 'Archive League'}
+        message={
+          archiveSeasonModal.isArchived
+            ? `Are you sure you want to unarchive this league?\n\nThis will restore "${archiveSeasonModal.leagueName}" and make all its teams, games, and schedules visible again.`
+            : `Are you sure you want to archive this league?\n\nArchiving "${archiveSeasonModal.leagueName}" will:\n• Hide this league and its season data from active views\n• Preserve all teams, games, and player data\n• Allow you to unarchive it later if needed\n\nThis is useful for completed seasons you want to keep but not display.`
+        }
+        confirmText={archiveSeasonModal.isArchived ? 'Unarchive' : 'Archive'}
+        variant="primary"
+      />
+
+      {/* Delete League Modal */}
+      <ConfirmModal
+        isOpen={deleteLeagueModal.isOpen}
+        onClose={() => setDeleteLeagueModal({ isOpen: false })}
+        onConfirm={confirmDeleteLeague}
+        title="Delete League"
+        message={`Delete league "${league?.name}"?\n\nThis will permanently delete all associated seasons, teams, games, and players. This cannot be undone.`}
+        confirmText="Delete League"
+        variant="danger"
+      />
+
+      {/* Delete Season Modal */}
+      <ConfirmModal
+        isOpen={deleteSeasonModal.isOpen}
+        onClose={() => setDeleteSeasonModal({ isOpen: false, seasonId: null })}
+        onConfirm={confirmDeleteSeason}
+        title="Delete Season"
+        message={`Are you sure you want to delete this season?
+
+This will also delete all associated teams, games, and payment records.`}
+        confirmText="Delete Season"
+        variant="danger"
+      />
+
+      {/* Delete Team Modal */}
+      <ConfirmModal
+        isOpen={deleteTeamModal.isOpen}
+        onClose={() => setDeleteTeamModal({ isOpen: false, teamId: null, teamName: '' })}
+        onConfirm={confirmDeleteTeam}
+        title="Delete Team"
+        message={`Delete team "${deleteTeamModal.teamName}"?\n\nThis will also delete all players on this team.`}
+        confirmText="Delete Team"
+        variant="danger"
+      />
+
+      {/* Delete Game Modal */}
+      <ConfirmModal
+        isOpen={deleteGameModal.isOpen}
+        onClose={() => setDeleteGameModal({ isOpen: false, gameId: null })}
+        onConfirm={confirmDeleteGame}
+        title="Delete Game"
+        message="Are you sure you want to delete this game?\n\nThis will also delete all associated player stats."
+        confirmText="Delete Game"
+        variant="danger"
+      />
+
+      {/* Mark Unpaid Modal */}
+      <ConfirmModal
+        isOpen={markUnpaidModal.isOpen}
+        onClose={() => setMarkUnpaidModal({ isOpen: false, player: null })}
+        onConfirm={confirmMarkUnpaid}
+        title="Mark Payment as Unpaid"
+        message={`Are you sure you want to mark ${markUnpaidModal.player?.name}'s payment as unpaid?`}
+        confirmText="Mark Unpaid"
+        variant="primary"
+      />
+
+      {/* Remove Manager Modal */}
+      <ConfirmModal
+        isOpen={removeManagerModal.isOpen}
+        onClose={() => setRemoveManagerModal({ isOpen: false, manager: null })}
+        onConfirm={confirmRemoveManager}
+        title="Remove League Manager"
+        message={`Are you sure you want to remove ${removeManagerModal.manager?.name || removeManagerModal.manager?.email} as a league manager?`}
+        confirmText="Remove Manager"
+        variant="danger"
+      />
     </div>
   )
 }

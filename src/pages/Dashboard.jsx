@@ -107,12 +107,6 @@ export default function Dashboard() {
       // Find player profiles linked to this user
       if (currentUser) {
         const userProfiles = playersData.filter(p => p.user_id === currentUser.id)
-        console.log('DEBUG: userProfiles =', userProfiles)
-        if (userProfiles.length > 0) {
-          console.log('DEBUG: First profile team_name =', userProfiles[0].team_name)
-          console.log('DEBUG: First profile team_color =', userProfiles[0].team_color)
-          console.log('DEBUG: First profile is_captain =', userProfiles[0].is_captain)
-        }
         setUserPlayerProfiles(userProfiles)
 
         // Fetch upcoming games for each team the user is on
